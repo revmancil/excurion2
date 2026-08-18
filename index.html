@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ORG_NAME}}</title>
+  <meta name="description" content="Member portal, events, and community for our organization — powered by MemberForge." />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <script src="js/memberforge-client.js"></script>
+  <script src="js/org-context.js"></script>
+</head>
+<body>
+
+<!-- Announcement Bar -->
+<div class="announce-bar" style="display:none;"></div>
+
+<div id="pageShell">
+<!-- Navigation -->
+<nav class="site-nav" id="siteNav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">
+      <img data-mf="org_logo" src="images/default-logo.svg" alt="Organization logo" class="nav-logo" />
+      <div class="nav-brand-text">
+        <span class="org-name" data-mf="org_name">Organization</span>
+        <span class="tagline" data-mf="org_tagline"></span>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="active">Home</a>
+      <a href="about.html">About</a>
+      <a href="leadership.html">Leadership</a>
+      <a href="events.html">Events</a>
+      <a href="membership.html">Membership</a>
+      <a href="news.html">News</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="contact.html">Contact</a>
+      <a href="membership-inquiry.html" class="nav-interested" data-mf-term="nav_inquiry_label">Become a Member</a>
+      <a href="member-login.html" class="nav-cta nav-login"><i class="fas fa-user-circle"></i> Member Login</a>
+    </div>
+    <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Menu -->
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-close" id="mobileClose" aria-label="Close menu">&times;</button>
+  <a href="index.html">Home</a>
+  <a href="about.html">About</a>
+  <a href="leadership.html">Leadership</a>
+  <a href="events.html">Events</a>
+  <a href="membership.html">Membership</a>
+  <a href="news.html">News</a>
+  <a href="gallery.html">Gallery</a>
+  <a href="contact.html">Contact</a>
+  <a href="membership-inquiry.html" class="nav-interested" data-mf-term="nav_inquiry_label">Become a Member</a>
+  <a href="member-login.html" class="nav-login-mobile">🔒 Member Login</a>
+</div>
+
+<div id="pageContent">
+<!-- ========================
+     HERO
+======================== -->
+<section class="hero" id="hero">
+  <div class="hero-bg" data-mf="hero_bg"></div>
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <p class="hero-org-line" id="heroEyebrow"></p>
+    <h1 id="heroHeadline">Welcome</h1>
+    <div id="edit-hero"><p class="hero-sub" id="heroSub">Building community through leadership, service, and connection.</p></div>
+    <div class="hero-actions">
+      <a href="events.html" class="btn btn-primary"><i class="fas fa-calendar-alt"></i> Upcoming Events</a>
+      <a href="membership-inquiry.html" class="btn btn-outline" data-mf-term="nav_inquiry_label">Become a Member</a>
+      <a href="fundraiser.html" class="btn btn-white" id="heroFundraiserLink" style="display:none;">Support Our Cause</a>
+    </div>
+    <div class="hero-stats" id="heroStats" style="display:none;"></div>
+  </div>
+</section>
+
+<!-- ========================
+     MARQUEE
+======================== -->
+<div class="marquee-strip">
+  <div class="marquee-track" id="marqueeTrack"></div>
+</div>
+
+<!-- ========================
+     LEADER'S MESSAGE
+======================== -->
+<section class="president-section" id="messageSection" style="display:none;">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:36px;" class="fade-up">
+      <span class="section-label" id="messageEyebrow">A Message From Our Leadership</span>
+      <h2 class="section-title" style="font-size:2.2rem;" id="messageTitle">Welcome</h2>
+      <div class="accent-bar"></div>
+    </div>
+    <div class="president-layout">
+      <div class="president-photo-wrap fade-up" id="messagePhotoWrap" style="display:none;">
+        <img src="" alt="" class="president-photo" id="messagePhoto" style="border: 3px solid color-mix(in srgb, var(--accent) 30%, transparent);" />
+      </div>
+      <div class="president-text fade-up" style="width:100%;max-width:680px;">
+        <div id="edit-president"><div id="messageBody"></div>
+        <div class="president-sig" id="messageSig" style="display:none;">
+          <strong id="messageAuthorName"></strong>
+          <span id="messageAuthorTitle"></span>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================
+     WHAT WE STAND FOR — PILLARS
+======================== -->
+<section class="pillars-section" id="pillars">
+  <div class="container">
+    <div class="pillars-header fade-up">
+      <span class="section-label" id="pillarsEyebrow">Our Foundation</span>
+      <h2 class="section-title" id="pillarsTitle">What We Stand For</h2>
+      <div class="accent-bar"></div>
+      <div id="edit-pillars"><p class="section-sub" id="pillarsSub">The values that guide our members and our community.</p></div>
+    </div>
+  </div>
+
+  <div class="pillars-grid" id="pillarsGrid"></div>
+</section>
+
+<!-- ========================
+     IMPACT NUMBERS
+======================== -->
+<section class="impact-section" id="impactSection" style="display:none;">
+  <div class="container">
+    <div class="impact-grid" id="impactGrid"></div>
+  </div>
+</section>
+
+<!-- ========================
+     UPCOMING EVENTS
+======================== -->
+<section class="events-section" id="events">
+  <div class="container">
+    <div class="events-layout">
+      <div class="events-feature fade-up" id="homeFeaturedEvent">
+        <div class="events-feature-bg" id="homeFeaturedBg"></div>
+        <div class="events-feature-content" id="homeFeaturedContent"></div>
+      </div>
+      <div class="events-list" id="homeEventsList"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================
+     NEWS PREVIEW
+======================== -->
+<section class="news-section">
+  <div class="container">
+
+    <div style="margin-bottom: 72px;" id="socialFollowBlock">
+      <div style="margin-bottom: 36px;">
+        <span class="section-label">Connect With Us</span>
+        <h2 class="section-title" style="margin-bottom: 10px;">Follow Our Journey</h2>
+        <div class="accent-bar"></div>
+      </div>
+      <div class="footer-social" id="socialFollowLinks" style="gap:14px;">
+        <a href="#" target="_blank" rel="noopener" data-mf-social="facebook" aria-label="Facebook" style="display:none;"><i class="fab fa-facebook-f"></i></a>
+        <a href="#" target="_blank" rel="noopener" data-mf-social="instagram" aria-label="Instagram" style="display:none;"><i class="fab fa-instagram"></i></a>
+        <a href="#" target="_blank" rel="noopener" data-mf-social="youtube" aria-label="YouTube" style="display:none;"><i class="fab fa-youtube"></i></a>
+        <a href="#" target="_blank" rel="noopener" data-mf-social="linkedin" aria-label="LinkedIn" style="display:none;"><i class="fab fa-linkedin-in"></i></a>
+        <a href="#" target="_blank" rel="noopener" data-mf-social="x" aria-label="X" style="display:none;"><i class="fab fa-x-twitter"></i></a>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 0;">
+      <div>
+        <span class="section-label">Latest News</span>
+        <h2 class="section-title" style="margin-bottom: 0;">Community Impact</h2>
+      </div>
+      <a href="news.html" class="btn btn-outline">All News <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="news-grid" id="homeNewsGrid"></div>
+  </div>
+</section>
+
+<!-- ========================
+     MEMBERSHIP CTA
+======================== -->
+<section class="membership-cta">
+  <div class="membership-cta-inner">
+    <span class="section-label">Join Our Ranks</span>
+    <h2 id="ctaTitle">Ready to Get Involved?</h2>
+    <div id="edit-cta-home"><p id="ctaBody">We're always looking for people who share our values and want to make a difference. Learn more about becoming a member.</p></div>
+    <div class="cta-actions">
+      <a href="membership.html" class="btn btn-primary"><i class="fas fa-user-plus"></i> Learn About Membership</a>
+      <a href="contact.html" class="btn btn-outline">Contact Us</a>
+    </div>
+    <div class="requirements" id="ctaRequirements"></div>
+  </div>
+</section>
+</div>
+
+<!-- ========================
+     FOOTER
+======================== -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo-row">
+          <img data-mf="org_logo" src="images/default-logo.svg" alt="Organization logo" class="footer-logo" />
+          <div>
+            <div class="footer-brand-name" data-mf="org_name">Organization</div>
+            <div class="footer-brand-sub" data-mf="org_tagline"></div>
+          </div>
+        </div>
+        <p data-mf="org_creed"></p>
+        <div class="footer-social">
+          <a href="#" target="_blank" rel="noopener" data-mf-social="facebook" aria-label="Facebook" style="display:none;"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="instagram" aria-label="Instagram" style="display:none;"><i class="fab fa-instagram"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="youtube" aria-label="YouTube" style="display:none;"><i class="fab fa-youtube"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="linkedin" aria-label="LinkedIn" style="display:none;"><i class="fab fa-linkedin-in"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="x" aria-label="X" style="display:none;"><i class="fab fa-x-twitter"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Navigate</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="events.html">Events</a></li>
+          <li><a href="membership.html">Membership</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="gallery.html">Gallery</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Get Involved</h4>
+        <ul>
+          <li><a href="membership-inquiry.html" data-mf-term="nav_inquiry_label">Become a Member</a></li>
+          <li><a href="fundraiser.html" id="footerFundraiserLink" style="display:none;">Support Us</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <div class="footer-contact-item">
+          <i class="fas fa-map-marker-alt"></i>
+          <span data-mf="org_address"></span>
+        </div>
+        <div class="footer-contact-item">
+          <i class="fas fa-envelope"></i>
+          <a href="#" data-mf="org_email" style="color: rgba(255,255,255,0.55);"></a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; <span data-mf="year"></span> <span data-mf="org_name">Organization</span>. All rights reserved. &nbsp;|&nbsp; <a href="admin-login.html" style="color:rgba(255,255,255,0.25); font-size:0.75rem; text-decoration:none;"><i class="fas fa-lock" style="margin-right:4px;"></i>Admin Login</a> &nbsp;|&nbsp; <a href="https://memberforge.app" style="color:rgba(255,255,255,0.35); font-size:0.75rem; text-decoration:none;">Powered by MemberForge</a></p>
+      <p class="footer-creed" data-mf="org_creed" style="display:none;"></p>
+    </div>
+  </div>
+</footer>
+</div>
+
+<script src="js/main.js"></script>
+<script src="js/news-articles.js"></script>
+<script>
+function homeEsc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function homeLocalTodayIso() {
+  const n = new Date();
+  return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+}
+
+function homeIsAbsoluteHttpUrl(url) { return /^https?:\/\//i.test(String(url || '').trim()); }
+
+function homeMapEventRow(ev) {
+  const fee = Math.max(0, parseInt(String(ev.registration_fee_cents ?? 0), 10) || 0);
+  const regUrlRaw = String(ev.registrationUrl || ev.reg_url || '').trim();
+  const regUrl = homeIsAbsoluteHttpUrl(regUrlRaw) ? regUrlRaw : '';
+  const freeUrlRaw = String(ev.free_registration_url || '').trim();
+  const freeUrl = homeIsAbsoluteHttpUrl(freeUrlRaw) ? freeUrlRaw : '';
+  const chapterOn = !!ev.chapter_registration_enabled;
+  let freeEnabled = ev.free_registration_enabled != null ? !!ev.free_registration_enabled : false;
+  let paidEnabled = ev.paid_registration_enabled != null ? !!ev.paid_registration_enabled : false;
+  if (chapterOn && !freeEnabled && !paidEnabled) {
+    if (regUrl) paidEnabled = true;
+    else if (fee > 0) paidEnabled = true;
+    else freeEnabled = true;
+  }
+  if (freeUrl) freeEnabled = true;
+  if (regUrl) paidEnabled = true;
+  const dtRaw = ev.datetime ? String(ev.datetime).trim() : '';
+  const datePart = dtRaw.split(' ')[0] || '';
+  const segs = datePart.split('/');
+  const fallbackDate = segs.length === 3 && /^\d{4}$/.test(String(segs[2] || ''))
+    ? String(segs[2]) + '-' + String(segs[0] || '').padStart(2, '0') + '-' + String(segs[1] || '').padStart(2, '0')
+    : '';
+  const normalizedDate = (ev.event_date ? String(ev.event_date) : '').trim() || fallbackDate;
+  return {
+    id: ev.id, name: ev.name || '', location: ev.location || '', datetime: ev.datetime || '',
+    eventDate: normalizedDate, featured: !!ev.featured,
+    flyer: ev.flyer || ev.flyer_url || ev.flyerUrl || '', description: ev.description || '',
+    registrationUrl: regUrl, freeRegistrationEnabled: freeEnabled, freeRegistrationUrl: freeUrl,
+    paidRegistrationEnabled: paidEnabled, registrationFeeCents: fee,
+    sponsorEnabled: !!ev.sponsor_enabled, sponsorUrl: String(ev.sponsor_url || '').trim(),
+    sponsorLabel: String(ev.sponsor_label || 'Become a Sponsor').trim() || 'Become a Sponsor'
+  };
+}
+
+function homeFeaturedActionButtons(featured) {
+  if (!featured) return '';
+  let html = '';
+  const freeUrl = homeIsAbsoluteHttpUrl(featured.freeRegistrationUrl) ? featured.freeRegistrationUrl.trim() : '';
+  const paidUrl = homeIsAbsoluteHttpUrl(featured.registrationUrl) ? featured.registrationUrl.trim() : '';
+  const hasId = featured.id != null && String(featured.id) !== '';
+  let optionCount = 0;
+  if (freeUrl || (featured.freeRegistrationEnabled && hasId)) optionCount++;
+  if (paidUrl || (featured.paidRegistrationEnabled && hasId && (featured.registrationFeeCents || 0) > 0)) optionCount++;
+
+  if (optionCount === 1 && paidUrl) {
+    html += '<a href="' + homeEsc(paidUrl) + '" target="_blank" class="btn btn-primary"><i class="fas fa-ticket-alt"></i> Register Now</a>';
+  } else if (optionCount === 1 && freeUrl) {
+    html += '<a href="' + homeEsc(freeUrl) + '" target="_blank" class="btn btn-primary"><i class="fas fa-ticket-alt"></i> Register Free</a>';
+  } else if (optionCount > 0 && hasId) {
+    html += '<a href="events.html?register=' + encodeURIComponent(featured.id) + '" class="btn btn-primary"><i class="fas fa-ticket-alt"></i> Register</a>';
+  }
+  if (featured.sponsorEnabled && featured.sponsorUrl) {
+    html += '<a href="' + homeEsc(featured.sponsorUrl) + '" target="_blank" class="btn btn-outline">' + homeEsc(featured.sponsorLabel || 'Become a Sponsor') + '</a>';
+  }
+  return html;
+}
+
+function homeToEventDateValue(ev) {
+  const raw = (ev && ev.eventDate ? String(ev.eventDate) : '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const dtRaw = (ev && ev.datetime ? String(ev.datetime) : '').trim();
+  const datePart = dtRaw.split(' ')[0] || '';
+  const segs = datePart.split('/');
+  if (segs.length === 3) {
+    const mm = String(segs[0] || '').padStart(2, '0');
+    const dd = String(segs[1] || '').padStart(2, '0');
+    const yyyy = String(segs[2] || '');
+    if (/^\d{4}$/.test(yyyy)) return yyyy + '-' + mm + '-' + dd;
+  }
+  return '';
+}
+
+function homeIsEventArchived(ev, todayIso) {
+  const d = homeToEventDateValue(ev);
+  if (!d) return false;
+  return d < todayIso;
+}
+
+async function homeGetEvents() {
+  const todayIso = homeLocalTodayIso();
+  function filterUpcoming(list) { return list.filter(function(ev) { return !homeIsEventArchived(ev, todayIso); }); }
+  try {
+    const rows = await sb.getAll('events', `${MF.scope('order=event_date.asc,sort_order.asc')}`);
+    if (!rows || !rows.length) return [];
+    const mapped = rows.map(homeMapEventRow);
+    const upcoming = filterUpcoming(mapped);
+    if (!upcoming.length) return [];
+    upcoming.sort(function(a, b) {
+      const ia = homeToEventDateValue(a) || '9999-99-99';
+      const ib = homeToEventDateValue(b) || '9999-99-99';
+      return ia < ib ? -1 : ia > ib ? 1 : 0;
+    });
+    return upcoming;
+  } catch (err) { return []; }
+}
+
+function homeParseDate(dtStr) {
+  if (!dtStr) return { day: '—', month: '—', year: '', time: '' };
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const rangeIdx = dtStr.search(/ - (?=\d{1,2}\/\d{1,2}\/\d{4})/);
+  let startStr = dtStr, endDateStr = '';
+  if (rangeIdx !== -1) { startStr = dtStr.slice(0, rangeIdx); endDateStr = dtStr.slice(rangeIdx + 3).trim().split(' ')[0]; }
+  const startParts = startStr.trim().split(' ');
+  const segs = (startParts[0] || '').split('/');
+  if (segs.length < 2) return { day: '?', month: dtStr, year: '', time: '' };
+  const m = parseInt(segs[0], 10);
+  const d = parseInt(segs[1], 10);
+  const y = segs[2] || '';
+  const timeRaw = startParts.slice(1).join(' ');
+  const timeSepIdx = timeRaw.indexOf(' - ');
+  const time = timeSepIdx !== -1 ? timeRaw.slice(0, timeSepIdx).trim() : timeRaw.trim();
+  let endDay = 0;
+  if (endDateStr) { const eSegs = endDateStr.split('/'); endDay = parseInt(eSegs[1], 10) || 0; }
+  const startDay = isNaN(d) ? '?' : String(d);
+  const day = (endDay && endDay !== d) ? startDay + '–' + endDay : startDay;
+  return { day, month: (!isNaN(m) && m >= 1 && m <= 12) ? months[m - 1] : segs[0], year: y, time };
+}
+
+function renderHomeFeatured(events) {
+  const featured = events.find(e => e.featured) || events[events.length - 1];
+  if (!featured) return;
+  const bg = document.getElementById('homeFeaturedBg');
+  const content = document.getElementById('homeFeaturedContent');
+  bg.style.backgroundImage = featured.flyer ? `url('${featured.flyer}')` : 'none';
+  const parsed = homeParseDate(featured.datetime);
+  const dateLabel = parsed.month !== '—' ? `${parsed.month} ${parsed.day}, ${parsed.year}` : featured.datetime;
+  const flyerHtml = featured.flyer ? `
+    <div style="margin-bottom:20px; border-radius:6px; overflow:hidden; max-height:220px;">
+      <img src="${homeEsc(featured.flyer)}" alt="${homeEsc(featured.name)} flyer" style="width:100%; object-fit:cover; display:block;" onerror="this.parentElement.style.display='none'" />
+    </div>` : '';
+  content.innerHTML = `
+    ${flyerHtml}
+    <span class="events-feature-badge">🏆 Featured Event</span>
+    <h3>${homeEsc(featured.name)}</h3>
+    <p>Join us for an evening of fellowship and community impact.</p>
+    ${dateLabel ? `<div class="event-detail"><i class="fas fa-calendar"></i> ${homeEsc(dateLabel)}</div>` : ''}
+    ${parsed.time ? `<div class="event-detail"><i class="fas fa-clock"></i> Doors open at ${homeEsc(parsed.time)}</div>` : ''}
+    ${featured.location ? `<div class="event-detail"><i class="fas fa-map-marker-alt"></i> ${homeEsc(featured.location)}</div>` : ''}
+    <div style="margin-top:28px; display:flex; gap:12px; flex-wrap:wrap;">${homeFeaturedActionButtons(featured)}</div>
+  `;
+}
+
+function renderHomeEventsList(events) {
+  const list = document.getElementById('homeEventsList');
+  if (!list) return;
+  const nonFeatured = events.filter(function(e) { return !e.featured; });
+  const listEvents = (nonFeatured.length ? nonFeatured : events).slice(0, 4);
+  const layout = list.parentElement;
+  if (!listEvents.length) { list.style.display = 'none'; if (layout) layout.classList.add('no-sidebar'); return; }
+  list.style.display = '';
+  if (layout) layout.classList.remove('no-sidebar');
+  list.innerHTML = `<div style="margin-bottom:20px;"><span class="section-label">Upcoming Events</span><h2 class="section-title" style="font-size:1.9rem; margin-bottom:0;">Events</h2></div>`;
+  listEvents.forEach(ev => {
+    const parsed = homeParseDate(ev.datetime);
+    const card = document.createElement('div');
+    card.className = 'event-card';
+    card.innerHTML = `
+      <div class="event-date-box"><div class="day">${homeEsc(parsed.day)}</div><div class="month">${homeEsc(parsed.month)}</div></div>
+      <div class="event-info">
+        <h4>${homeEsc(ev.name)}</h4>
+        ${ev.location ? `<p><i class="fas fa-map-marker-alt" style="color:var(--accent);font-size:0.8rem;"></i> ${homeEsc(ev.location.split(',')[0])} · ${homeEsc(ev.location.split(',').slice(-1)[0].trim())}</p>` : ''}
+        ${parsed.time ? `<p style="margin-top:4px;"><i class="fas fa-clock" style="color:var(--accent);font-size:0.8rem;"></i> ${homeEsc(parsed.time)}</p>` : ''}
+      </div>`;
+    list.appendChild(card);
+  });
+  const viewAll = document.createElement('a');
+  viewAll.href = 'events.html';
+  viewAll.className = 'btn btn-outline';
+  viewAll.style.cssText = 'margin-top:8px; align-self:flex-start;';
+  viewAll.innerHTML = 'View All Events <i class="fas fa-arrow-right"></i>';
+  list.appendChild(viewAll);
+}
+
+const PILLAR_ICONS = {
+  graduation: '<path d="M12 3L1 9l4 2.18V16.5c0 1.5 3.1 3.5 7 3.5s7-2 7-3.5v-5.32L23 9l-11-6zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99c-.32.6-2.33 1.51-5 1.51s-4.68-.91-5-1.51v-3.73l5 2.73 5-2.73v3.73z"/>',
+  hands: '<path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/>',
+  people: '<path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>',
+  star: '<path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>',
+  heart: '<path d="M12 21s-6.7-4.35-9.3-8.2C.6 9.6 1.5 6 4.9 5 7 4.4 9 5.3 12 8c3-2.7 5-3.6 7.1-3 3.4 1 4.3 4.6 2.2 7.8C18.7 16.65 12 21 12 21z"/>',
+  shield: '<path d="M12 2l8 4v6c0 5-3.4 9.4-8 10-4.6-.6-8-5-8-10V6l8-4z"/>'
+};
+
+const HOME_DEFAULTS = {
+  hero: { eyebrow: '', headline: 'Welcome to {{ORG_NAME}}', subheadline: 'Building community through leadership, service, and connection.', stats: [] },
+  message: { enabled: false, eyebrow: 'A Message From Our Leadership', title: 'Welcome', body: '<p>Thank you for visiting.</p>', author_name: '', author_title: '', photo_url: '' },
+  pillars: {
+    eyebrow: 'Our Foundation', title: 'What We Stand For', subtitle: 'The values that guide our members and our community.',
+    items: [
+      { title: 'Community', description: 'We bring members together to build lasting relationships and support one another.', icon: 'people' },
+      { title: 'Growth', description: 'We invest in the personal and professional development of every member.', icon: 'graduation' },
+      { title: 'Impact', description: 'We work together to make a meaningful difference where we live and serve.', icon: 'hands' }
+    ]
+  },
+  impact_stats: [],
+  marquee_words: [],
+  cta: { title: 'Ready to Get Involved?', body: 'We’re always looking for people who share our values and want to make a difference.', requirements: [] },
+  fundraiser_enabled: false
+};
+
+function renderHome(content, org) {
+  const c = Object.assign({}, HOME_DEFAULTS, content || {});
+  const orgName = org.name || 'Organization';
+  const fill = s => (s || '').replaceAll('{{ORG_NAME}}', orgName);
+
+  document.getElementById('heroEyebrow').textContent = c.hero.eyebrow || '';
+  document.getElementById('heroHeadline').textContent = fill(c.hero.headline);
+  document.getElementById('heroSub').textContent = fill(c.hero.subheadline);
+  if (c.hero.stats && c.hero.stats.length) {
+    const wrap = document.getElementById('heroStats');
+    wrap.style.display = '';
+    wrap.innerHTML = c.hero.stats.map(s => `<div class="hero-stat"><div class="num">${homeEsc(s.value)}</div><div class="label">${homeEsc(s.label)}</div></div>`).join('');
+  }
+
+  if (c.fundraiser_enabled) {
+    document.getElementById('heroFundraiserLink').style.display = '';
+    document.getElementById('footerFundraiserLink').style.display = '';
+  }
+
+  if (c.message && c.message.enabled) {
+    document.getElementById('messageSection').style.display = '';
+    document.getElementById('messageEyebrow').textContent = c.message.eyebrow || '';
+    document.getElementById('messageTitle').textContent = fill(c.message.title);
+    document.getElementById('messageBody').innerHTML = c.message.body || '';
+    if (c.message.photo_url) {
+      document.getElementById('messagePhotoWrap').style.display = '';
+      document.getElementById('messagePhoto').src = c.message.photo_url;
+      document.getElementById('messagePhoto').alt = c.message.author_name || 'Leadership';
+    }
+    if (c.message.author_name) {
+      document.getElementById('messageSig').style.display = '';
+      document.getElementById('messageAuthorName').textContent = c.message.author_name;
+      document.getElementById('messageAuthorTitle').textContent = c.message.author_title || '';
+    }
+  }
+
+  document.getElementById('pillarsEyebrow').textContent = c.pillars.eyebrow || '';
+  document.getElementById('pillarsTitle').textContent = c.pillars.title || '';
+  document.getElementById('pillarsSub').textContent = c.pillars.subtitle || '';
+  const grid = document.getElementById('pillarsGrid');
+  grid.innerHTML = (c.pillars.items || []).map((p, i) => {
+    const bg = p.image_url ? `<img src="${homeEsc(p.image_url)}" alt="${homeEsc(p.title)}" />` : '';
+    const iconPath = PILLAR_ICONS[p.icon] || PILLAR_ICONS.star;
+    return `
+    <div class="pillar-card fade-in" style="${p.image_url ? '' : 'background:linear-gradient(150deg, var(--ink) 0%, var(--ink-deep) 100%);'}">
+      ${bg}
+      <div class="pillar-card-overlay"></div>
+      <div class="pillar-card-content">
+        <div class="pillar-number">${String(i + 1).padStart(2, '0')}</div>
+        <div class="pillar-icon"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">${iconPath}</svg></div>
+        <div class="pillar-label">Pillar ${i + 1}</div>
+        <h3 class="pillar-title">${homeEsc(p.title)}</h3>
+        <p class="pillar-desc">${homeEsc(p.description)}</p>
+        ${p.link_url ? `<a href="${homeEsc(p.link_url)}" class="pillar-link">${homeEsc(p.link_text || 'Learn More')}</a>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  if (c.impact_stats && c.impact_stats.length) {
+    document.getElementById('impactSection').style.display = '';
+    document.getElementById('impactGrid').innerHTML = c.impact_stats.map(s => `
+      <div class="impact-item fade-up"><div class="impact-num">${homeEsc(s.value)}</div><div class="impact-label">${homeEsc(s.label)}</div></div>`).join('');
+  }
+
+  const words = (c.marquee_words && c.marquee_words.length) ? c.marquee_words : [orgName, 'Community', 'Leadership', 'Service', 'Excellence'];
+  const doubled = words.concat(words);
+  document.getElementById('marqueeTrack').innerHTML = doubled.map(w => `<span>${homeEsc(w)}</span>`).join('');
+
+  document.getElementById('ctaTitle').textContent = fill(c.cta.title);
+  document.getElementById('ctaBody').textContent = fill(c.cta.body);
+  if (c.cta.requirements && c.cta.requirements.length) {
+    document.getElementById('ctaRequirements').innerHTML = c.cta.requirements.map(r => `<span class="req-chip">${homeEsc(r)}</span>`).join('');
+  }
+}
+
+async function loadHomeAnnounce() {
+  try {
+    const rows = await sb.getAll('announcements', `${MF.scope('active=eq.true&order=id.desc&limit=1')}`);
+    const row = rows && rows.length ? rows[0] : null;
+    const bar = document.querySelector('.announce-bar');
+    if (bar && row && row.text) {
+      bar.innerHTML = `${row.text} &nbsp; <a href="${row.link_url || 'events.html'}">${row.link_text || 'Learn More →'}</a>`;
+      bar.style.display = '';
+    }
+  } catch (err) { /* No announcement — bar stays hidden. */ }
+}
+
+(async function() {
+  const org = await MF.ready;
+  if (!org) return;
+  await loadHomeAnnounce();
+  try {
+    const rows = await sb.getAll('site_content', `${MF.scope("content_key=eq.home&select=content_json")}`);
+    renderHome(rows && rows[0] ? rows[0].content_json : null, org);
+  } catch (err) {
+    renderHome(null, org);
+  }
+  const events = await homeGetEvents();
+  renderHomeFeatured(events);
+  renderHomeEventsList(events);
+  try {
+    const articles = await fetchNewsArticles();
+    renderHomeNewsGrid(document.getElementById('homeNewsGrid'), articles);
+  } catch (err) {
+    renderHomeNewsGrid(document.getElementById('homeNewsGrid'), []);
+  }
+})();
+</script>
+</body>
+</html>
