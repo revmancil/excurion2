@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard | {{ORG_NAME}}</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdn.quilljs.com/1.3.7/quill.snow.css" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <style>
+    /* =========================================================
+       MemberForge — Admin Dashboard shell
+       Ported from the original single-tenant admin dashboard.
+       Every color comes from the tenant brand tokens that
+       js/org-context.js sets at runtime (--accent, --ink, ...),
+       so this app shell is branded per organization.
+    ========================================================= */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Neutral admin surfaces (brand-independent) */
+      --a-shell: var(--ink, #0b0f19);
+      --a-shell-deep: var(--ink-deep, #05070c);
+      --a-brand: var(--accent, #4F46E5);
+      --a-brand-light: var(--accent-light, #7C74EF);
+      --a-brand-pale: var(--accent-pale, #EEF0FF);
+      --a-on-brand: var(--on-accent, #ffffff);
+      --white: #ffffff;
+      --gray-100: #f5f5f5;
+      --gray-200: #e5e5e5;
+      --gray-300: #d0d0d0;
+      --gray-400: #999;
+      --gray-500: #7a7a7a;
+      --gray-600: #666;
+      --gray-700: #444;
+      --gray-800: #333;
+      --sidebar-w: 270px;
+      --header-h: 64px;
+      --green: #27ae60;
+      --red: #e74c3c;
+      --blue: #3498db;
+      --amber: #f59e0b;
+      --radius: 8px;
+    }
+
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--gray-100);
+      color: var(--gray-800);
+      display: flex;
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    img { max-width: 100%; display: block; }
+    ul { list-style: none; }
+
+    /* ── Boot / access states ── */
+    #adminBoot {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--a-shell); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; padding: 24px;
+    }
+    #adminBoot .boot-inner { max-width: 460px; }
+    #adminBoot h1 { font-size: 1.25rem; margin-bottom: 10px; }
+    #adminBoot p { opacity: 0.75; font-size: 0.9rem; }
+    #adminBoot a { color: var(--a-brand-light); text-decoration: underline; }
+    body.admin-ready #adminBoot { display: none; }
+    body:not(.admin-ready) .sidebar,
+    body:not(.admin-ready) .main,
+    body:not(.admin-ready) .sidebar-toggle { visibility: hidden; }
+
+    /* ═══════════ SIDEBAR ═══════════ */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--a-shell);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+      border-right: 1px solid rgba(255,255,255,0.08);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      transition: transform 0.3s ease;
+    }
+    .sidebar-brand {
+      padding: 20px 20px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    }
+    .sidebar-brand img {
+      height: 42px; width: 42px; border-radius: 50%;
+      border: 1.5px solid color-mix(in srgb, var(--a-brand) 55%, transparent);
+      object-fit: contain; background: #fff;
+    }
+    .sidebar-brand-text .name {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 0.92rem; font-weight: 700; color: var(--a-brand-light); line-height: 1.2;
+    }
+    .sidebar-brand-text .sub {
+      font-size: 0.62rem; color: rgba(255,255,255,0.4);
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .sidebar-section { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; }
+
+    .nav-group { border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .nav-group-toggle {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 9px 18px; background: none; border: none;
+      color: rgba(255,255,255,0.42); font-size: 0.68rem; font-weight: 700;
+      letter-spacing: 0.13em; text-transform: uppercase; cursor: pointer;
+      transition: color 0.2s; text-align: left; font-family: inherit;
+    }
+    .nav-group-toggle:hover { color: rgba(255,255,255,0.75); }
+    .nav-group-toggle i.group-icon { font-size: 0.78rem; width: 16px; text-align: center; flex-shrink: 0; }
+    .nav-group-toggle .group-caret { margin-left: auto; font-size: 0.65rem; transition: transform 0.25s; color: rgba(255,255,255,0.25); }
+    .nav-group-toggle.open .group-caret { transform: rotate(180deg); }
+    .nav-group-toggle .group-badges { display: flex; gap: 4px; margin-left: auto; align-items: center; }
+    .nav-group-toggle.open .group-badges { display: none; }
+    .nav-group-body { display: none; }
+    .nav-group-body.open { display: block; }
+    .nav-group-toggle.open { color: var(--a-brand-light); }
+
+    .sidebar-link {
+      display: flex; align-items: center; gap: 11px;
+      padding: 9px 18px;
+      color: rgba(255,255,255,0.6);
+      font-size: 0.85rem; font-weight: 500;
+      text-decoration: none;
+      border: none; border-left: 3px solid transparent;
+      transition: all 0.2s ease; cursor: pointer;
+      background: none; width: 100%; text-align: left;
+      font-family: inherit;
+    }
+    .sidebar-link i { font-size: 0.88rem; width: 16px; text-align: center; flex-shrink: 0; }
+    .sidebar-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    .sidebar-link.active {
+      color: var(--a-brand-light);
+      background: color-mix(in srgb, var(--a-brand) 14%, transparent);
+      border-left-color: var(--a-brand);
+    }
+    .nav-badge {
+      display: none; background: var(--red); color: #fff; font-size: 0.65rem;
+      font-weight: 700; padding: 1px 6px; border-radius: 10px; margin-left: 4px; vertical-align: middle;
+    }
+    .grp-badge {
+      display: none; background: var(--red); color: #fff; font-size: 0.6rem;
+      padding: 1px 5px; border-radius: 8px; font-weight: 700;
+    }
+
+    .sidebar-footer { margin-top: auto; padding: 16px 18px; border-top: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; }
+    .sidebar-footer .user-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .user-avatar {
+      width: 34px; height: 34px; background: var(--a-brand); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; font-weight: 700; color: var(--a-on-brand); flex-shrink: 0;
+    }
+    .user-info { min-width: 0; }
+    .user-info .uname { font-size: 0.83rem; font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-info .urole { font-size: 0.7rem; color: rgba(255,255,255,0.4); }
+    .btn-logout {
+      width: 100%; padding: 9px;
+      background: rgba(231,76,60,0.12); border: 1px solid rgba(231,76,60,0.28);
+      border-radius: 5px; color: #e74c3c; font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; font-family: inherit;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+    }
+    .btn-logout:hover { background: rgba(231,76,60,0.22); }
+
+    /* ═══════════ MAIN / TOPBAR ═══════════ */
+    .main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+    .topbar {
+      height: var(--header-h); background: var(--white);
+      border-bottom: 1px solid var(--gray-200);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px; position: sticky; top: 0; z-index: 50;
+    }
+    .topbar-left h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 1.2rem; color: var(--gray-800); }
+    .topbar-left .breadcrumb { font-size: 0.73rem; color: var(--gray-400); margin-top: 1px; }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .topbar-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 16px; border-radius: 5px; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; border: none; transition: all 0.2s ease; text-decoration: none;
+      font-family: inherit;
+    }
+    .topbar-btn.brand { background: var(--a-brand); color: var(--a-on-brand); }
+    .topbar-btn.brand:hover { background: var(--a-brand-light); }
+    .topbar-btn.outline { background: transparent; border: 1.5px solid var(--gray-200); color: var(--gray-600); }
+    .topbar-btn.outline:hover { border-color: var(--a-brand); color: var(--a-brand); }
+
+    /* ═══════════ CONTENT / PANELS ═══════════ */
+    .content { flex: 1; padding: 24px 28px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    #panel-newsletter.active { display: flex; flex-direction: column; height: calc(100vh - 120px); }
+
+    .section-card {
+      background: var(--white); border: 1px solid var(--gray-200);
+      border-radius: var(--radius); margin-bottom: 22px; overflow: hidden;
+    }
+    .section-card-header {
+      padding: 15px 22px; border-bottom: 1px solid var(--gray-200);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    }
+    .section-card-header h3 { font-size: 0.95rem; font-weight: 700; color: var(--gray-800); font-family: inherit; }
+    .section-card-header > span { font-size: 0.78rem; color: var(--gray-400); }
+    .section-card-body { padding: 20px 22px; }
+    .hint-text { font-size: 0.82rem; color: var(--gray-500); margin-bottom: 18px; line-height: 1.5; }
+    .icon-brand { color: var(--a-brand); margin-right: 8px; }
+
+    .empty-state { text-align: center; padding: 30px 16px; color: var(--gray-400); }
+    .empty-state i { font-size: 1.8rem; display: block; margin-bottom: 10px; opacity: 0.6; }
+    .empty-state p { font-size: 0.86rem; }
+    .error-state { color: var(--red); font-size: 0.86rem; padding: 14px 0; }
+
+    /* ── Stats ── */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--white); border-radius: var(--radius); padding: 18px 20px;
+      border: 1px solid var(--gray-200); display: flex; align-items: center; gap: 14px;
+    }
+    .stat-icon {
+      width: 44px; height: 44px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;
+    }
+    .stat-icon.brand { background: color-mix(in srgb, var(--a-brand) 14%, transparent); color: var(--a-brand); }
+    .stat-icon.blue { background: rgba(52,152,219,0.12); color: var(--blue); }
+    .stat-icon.green { background: rgba(39,174,96,0.12); color: var(--green); }
+    .stat-icon.red  { background: rgba(231,76,60,0.12); color: var(--red); }
+    .stat-info .num { font-family: 'Playfair Display', Georgia, serif; font-size: 1.65rem; font-weight: 800; color: var(--gray-800); line-height: 1; }
+    .stat-info .lbl { font-size: 0.77rem; color: var(--gray-400); margin-top: 3px; }
+
+    /* ── Quick actions ── */
+    .action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .action-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 18px 10px; background: var(--gray-100);
+      border: 1.5px solid var(--gray-200); border-radius: var(--radius);
+      cursor: pointer; transition: all 0.2s ease; text-decoration: none; color: inherit;
+      font-family: inherit;
+    }
+    .action-btn:hover { border-color: var(--a-brand); background: var(--a-brand-pale); transform: translateY(-2px); }
+    .action-btn i { font-size: 1.3rem; color: var(--a-brand); }
+    .action-btn span { font-size: 0.75rem; font-weight: 600; color: var(--gray-700); text-align: center; }
+
+    /* ── Buttons ── */
+    .btn-sm {
+      padding: 7px 13px; border-radius: 5px; font-size: 0.78rem; font-weight: 600;
+      cursor: pointer; border: none; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 5px; text-decoration: none;
+      font-family: inherit; background: var(--gray-200); color: var(--gray-700);
+    }
+    .btn-sm.view { background: var(--gray-200); color: var(--gray-700); }
+    .btn-sm.view:hover { background: var(--gray-300); }
+    .btn-sm.edit { background: var(--a-brand); color: var(--a-on-brand); }
+    .btn-sm.edit:hover { background: var(--a-brand-light); }
+    .btn-sm.danger { background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.25); color: var(--red); }
+    .btn-sm.danger:hover { background: rgba(231,76,60,0.2); }
+    .btn-sm.success { background: rgba(39,174,96,0.1); border: 1.5px solid rgba(39,174,96,0.3); color: var(--green); }
+    .btn-sm.success:hover { background: rgba(39,174,96,0.2); }
+    .btn-sm.active { background: var(--a-brand); color: var(--a-on-brand); }
+    .btn-save {
+      padding: 10px 22px; background: var(--a-brand); color: var(--a-on-brand);
+      border: none; border-radius: 5px; font-weight: 700; font-size: 0.85rem;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+      transition: all 0.2s; font-family: inherit;
+    }
+    .btn-save:hover { background: var(--a-brand-light); }
+    .btn-save[disabled] { opacity: 0.6; cursor: not-allowed; }
+    .btn-cancel {
+      padding: 10px 22px; background: var(--gray-100); color: var(--gray-600);
+      border: 1.5px solid var(--gray-200); border-radius: 5px; font-weight: 600;
+      font-size: 0.85rem; cursor: pointer; font-family: inherit; transition: all 0.2s;
+    }
+    .btn-cancel:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── Page list ── */
+    .pages-list { display: flex; flex-direction: column; gap: 10px; }
+    .page-item {
+      background: var(--gray-100); border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius); padding: 13px 18px;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      transition: border-color 0.2s; flex-wrap: wrap;
+    }
+    .page-item:hover { border-color: var(--a-brand); }
+    .page-item-left { display: flex; align-items: center; gap: 12px; }
+    .page-icon {
+      width: 38px; height: 38px; background: var(--a-shell); border-radius: 6px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .page-icon i { color: var(--a-brand-light); font-size: 0.95rem; }
+    .page-item-info .title { font-weight: 700; font-size: 0.9rem; color: var(--gray-800); }
+    .page-item-info .url { font-size: 0.73rem; color: var(--gray-400); margin-top: 2px; }
+    .page-actions { display: flex; gap: 7px; flex-wrap: wrap; }
+
+    /* ── Form fields ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .field-group label {
+      display: block; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--gray-600); margin-bottom: 6px;
+    }
+    .field-group input, .field-group textarea, .field-group select {
+      width: 100%; padding: 10px 13px; border: 1.5px solid var(--gray-200);
+      border-radius: 5px; font-family: inherit; font-size: 0.88rem;
+      color: var(--gray-800); transition: border-color 0.2s; background: var(--white);
+    }
+    .field-group input:focus, .field-group textarea:focus, .field-group select:focus {
+      outline: none; border-color: var(--a-brand);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--a-brand) 12%, transparent);
+    }
+    .field-group .hint { font-size: 0.73rem; color: var(--gray-400); margin-top: 4px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+    .field-group.span2 { grid-column: span 2; }
+    .req { color: var(--red); }
+
+    /* ── Data tables ── */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .data-table thead tr { background: var(--gray-100); text-align: left; }
+    .data-table th { padding: 9px 12px; border-bottom: 1px solid var(--gray-200); font-weight: 700; color: var(--gray-600); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    .data-table td { padding: 10px 12px; border-bottom: 1px solid var(--gray-100); vertical-align: middle; }
+    .table-scroll { overflow-x: auto; }
+
+    .grid-table { width: 100%; border-collapse: collapse; }
+    .grid-table th {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--gray-400); padding: 0 10px 10px; text-align: left; border-bottom: 1px solid var(--gray-200);
+    }
+    .grid-table td { padding: 8px 6px; vertical-align: middle; }
+    .grid-table tr:not(:last-child) td { border-bottom: 1px solid var(--gray-200); }
+    .grid-table input[type="text"] {
+      width: 100%; padding: 8px 10px; border: 1.5px solid var(--gray-200);
+      border-radius: 5px; font-family: inherit; font-size: 0.84rem; color: var(--gray-800);
+    }
+    .grid-table input:focus { outline: none; border-color: var(--a-brand); }
+    .grid-table th.sortable-th { cursor: pointer; user-select: none; white-space: nowrap; }
+    .grid-table th.sortable-th:hover { color: var(--gray-600); }
+    .grid-table th.sortable-th .sort-icon { margin-left: 4px; font-size: 0.62rem; color: var(--gray-400); }
+    .grid-table th.sortable-th.active { color: var(--gray-800); }
+    .grid-table th.sortable-th.active .sort-icon { color: var(--a-brand); }
+
+    .dir-search-wrap { position: relative; max-width: 420px; margin-bottom: 12px; }
+    .dir-search-wrap i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--gray-400); font-size: 0.82rem; pointer-events: none; }
+    .dir-search {
+      width: 100%; padding: 9px 12px 9px 36px; border: 1.5px solid var(--gray-200);
+      border-radius: 6px; font-family: inherit; font-size: 0.86rem;
+    }
+    .dir-search:focus { outline: none; border-color: var(--a-brand); }
+
+    .row-num {
+      width: 28px; height: 28px; background: var(--a-shell); color: var(--a-brand-light);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+    }
+
+    /* ═══════════ EVENTS MANAGER ═══════════ */
+    .events-header-row, .event-row {
+      display: grid;
+      grid-template-columns: 2fr 1.5fr 110px 80px 110px 80px auto auto auto auto auto auto auto;
+      gap: 10px; align-items: center;
+    }
+    .events-header-row { padding: 0 0 8px; border-bottom: 1px solid var(--gray-200); margin-bottom: 4px; }
+    .events-header-row span { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray-400); }
+    .event-row { padding: 10px 0; border-bottom: 1px solid var(--gray-200); }
+    .event-row input {
+      width: 100%; padding: 8px 10px; border: 1.5px solid var(--gray-200);
+      border-radius: 5px; font-family: inherit; font-size: 0.84rem; color: var(--gray-800);
+    }
+    .event-row input:focus { outline: none; border-color: var(--a-brand); }
+    .icon-btn {
+      width: 34px; height: 34px; border-radius: 5px; border: 1.5px solid var(--gray-200);
+      background: var(--gray-100); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; transition: all 0.2s; flex-shrink: 0; color: var(--gray-600);
+    }
+    .icon-btn:hover { border-color: var(--a-brand); }
+    .icon-btn.featured-star.active { background: var(--a-brand-pale); border-color: var(--a-brand); color: var(--a-brand); }
+    .icon-btn.btn-flyer { color: var(--blue); }
+    .icon-btn.btn-flyer.has-flyer { background: rgba(52,152,219,0.1); border-color: var(--blue); }
+    .icon-btn.btn-reg { color: var(--green); }
+    .icon-btn.btn-reg.has-reg { background: rgba(39,174,96,0.1); border-color: var(--green); }
+    .icon-btn.btn-sponsor { color: #d4a017; }
+    .icon-btn.btn-sponsor.has-sponsor { background: var(--a-brand-pale); border-color: var(--a-brand); }
+    .icon-btn.btn-desc { color: #9b59b6; }
+    .icon-btn.btn-desc.has-desc { background: rgba(155,89,182,0.1); border-color: #9b59b6; }
+    .icon-btn.btn-del { color: var(--red); border-color: rgba(231,76,60,0.25); background: rgba(231,76,60,0.07); }
+    .icon-btn.btn-del:hover { background: rgba(231,76,60,0.2); }
+
+    .event-sub-row {
+      grid-column: 1 / -1; display: none; gap: 14px; align-items: flex-start;
+      background: var(--gray-100); border-radius: 6px; padding: 12px 14px;
+      margin-bottom: 6px; border-left: 3px solid var(--a-brand);
+    }
+    .event-sub-row.visible { display: flex; }
+    .event-sub-row.desc { border-left-color: #9b59b6; }
+    .event-sub-row.reg { border-left-color: var(--green); }
+    .sub-input-area { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .sub-input-area label { font-size: 0.78rem; font-weight: 700; color: var(--gray-700); text-transform: uppercase; letter-spacing: 0.06em; }
+    .sub-input-area textarea, .sub-input-area input {
+      background: var(--white); border: 1px solid var(--gray-200); color: var(--gray-800);
+      border-radius: 5px; padding: 8px 10px; font-size: 0.85rem;
+      font-family: inherit; width: 100%; resize: vertical; line-height: 1.5;
+    }
+    .flyer-preview-wrap {
+      width: 80px; height: 80px; border: 1.5px solid var(--gray-200); border-radius: 6px;
+      overflow: hidden; background: var(--gray-200); flex-shrink: 0;
+    }
+    .flyer-preview-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .flyer-preview-wrap .no-flyer { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--gray-400); font-size: 1.6rem; }
+    .flyer-or { font-size: 0.75rem; color: var(--gray-400); margin: 6px 0; }
+    .upload-btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px;
+      background: rgba(52,152,219,0.1); border: 1.5px solid rgba(52,152,219,0.3);
+      border-radius: 5px; color: var(--blue); font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+    }
+    .upload-btn:hover { background: rgba(52,152,219,0.2); }
+
+    /* ── News manager rows ── */
+    .news-header-row, .news-row {
+      display: grid; grid-template-columns: 2fr 1fr 1fr auto auto auto auto auto;
+      gap: 10px; align-items: center;
+    }
+    .news-header-row { padding: 0 0 8px; border-bottom: 1px solid var(--gray-200); margin-bottom: 4px; }
+    .news-header-row span { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray-400); }
+    .news-row { padding: 10px 0; border-bottom: 1px solid var(--gray-200); }
+    .news-row input {
+      width: 100%; padding: 8px 10px; border: 1.5px solid var(--gray-200);
+      border-radius: 5px; font-family: inherit; font-size: 0.84rem;
+    }
+    .news-row input:focus { outline: none; border-color: var(--a-brand); }
+    .icon-btn.btn-sidebar.active { border-color: var(--a-brand); background: var(--a-brand-pale); color: var(--a-brand); }
+    .news-sub-row {
+      grid-column: 1 / -1; display: none; gap: 16px;
+      padding: 14px; background: var(--gray-100); border-radius: 6px; margin-bottom: 6px;
+    }
+    .news-sub-row.visible { display: flex; }
+    .news-sub-row textarea {
+      width: 100%; padding: 10px 12px; border: 1.5px solid var(--gray-200);
+      border-radius: 6px; font-family: inherit; font-size: 0.84rem;
+      resize: vertical; background: var(--white); color: var(--gray-800);
+    }
+
+    /* ═══════════ RICH TEXT EDITOR ═══════════ */
+    .editor-panel { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius); overflow: hidden; }
+    .editor-toolbar { background: var(--a-shell); border: none; border-bottom: 1px solid rgba(255,255,255,0.1); padding: 8px 10px; }
+    .editor-toolbar .ql-formats { margin-right: 10px !important; }
+    .editor-toolbar .ql-picker-label, .editor-toolbar .ql-picker-item,
+    .editor-toolbar .ql-stroke, .editor-toolbar .ql-fill {
+      color: rgba(255,255,255,0.78); stroke: rgba(255,255,255,0.78);
+    }
+    .editor-toolbar button:hover .ql-stroke, .editor-toolbar button.ql-active .ql-stroke,
+    .editor-toolbar button:hover .ql-fill, .editor-toolbar button.ql-active .ql-fill,
+    .editor-toolbar .ql-picker-label:hover, .editor-toolbar .ql-picker-label.ql-active {
+      color: var(--a-brand-light); stroke: var(--a-brand-light);
+    }
+    .editor-toolbar .ql-picker-options { background: #1d1d1d; border-color: rgba(255,255,255,0.12) !important; }
+    .editor-toolbar .ql-picker-item:hover { color: var(--a-brand-light); }
+    .editor-panel .ql-container {
+      border: none; min-height: 260px; font-family: inherit; font-size: 0.95rem;
+      line-height: 1.7; color: var(--gray-800); background: #fff;
+    }
+    .editor-panel .ql-editor { min-height: 260px; padding: 18px 20px; }
+    .editor-panel .ql-editor h1, .editor-panel .ql-editor h2, .editor-panel .ql-editor h3 {
+      font-family: 'Playfair Display', Georgia, serif; color: var(--gray-800); margin: 0.35em 0;
+    }
+    .editor-panel .ql-editor img { max-width: 100%; height: auto; border-radius: 6px; margin: 12px 0; }
+    .editor-footer { padding: 12px 16px; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+
+    /* ── Tabs ── */
+    .section-tabs { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 18px; }
+    .section-tab {
+      padding: 7px 14px; border-radius: 5px; font-size: 0.78rem; font-weight: 600;
+      cursor: pointer; border: 1.5px solid var(--gray-200); background: var(--gray-100);
+      color: var(--gray-600); transition: all 0.2s; font-family: inherit;
+    }
+    .section-tab.active { background: var(--a-brand); color: var(--a-on-brand); border-color: var(--a-brand); }
+    .section-tab:hover:not(.active) { border-color: var(--a-brand); color: var(--a-brand); }
+
+    .tab-bar { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--gray-200); flex-wrap: wrap; }
+    .tab-bar button {
+      padding: 10px 20px; border: none; background: none; font-weight: 700; font-size: 0.88rem;
+      cursor: pointer; border-bottom: 3px solid transparent; color: var(--gray-400); font-family: inherit;
+    }
+    .tab-bar button.active { border-bottom-color: var(--a-brand); color: var(--a-brand); }
+
+    .filter-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+    .filter-row .count { font-size: 0.88rem; color: var(--gray-500); }
+    .filter-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .list-card { border: 1px solid var(--gray-200); border-radius: 8px; padding: 16px; margin-bottom: 12px; background: #fff; }
+    .status-pill { font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 10px; text-transform: capitalize; flex-shrink: 0; }
+
+    /* ── Modals ── */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 9000; align-items: flex-start; justify-content: center;
+      overflow-y: auto; padding: 40px 16px;
+    }
+    .modal-backdrop.centered { align-items: center; padding: 24px 16px; }
+    .modal-box {
+      background: #fff; border-radius: 12px; padding: 28px; width: 100%;
+      position: relative; margin: auto; max-height: 92vh; overflow-y: auto;
+    }
+    .modal-close {
+      position: absolute; top: 12px; right: 14px; background: none; border: none;
+      font-size: 1.4rem; cursor: pointer; color: var(--gray-400); line-height: 1;
+    }
+    .modal-box h3 { font-size: 1.05rem; color: var(--gray-800); margin-bottom: 16px; font-family: inherit; }
+
+    /* ── Settings ── */
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .pw-change-section {
+      background: rgba(231,76,60,0.04); border: 1px solid rgba(231,76,60,0.15);
+      border-radius: var(--radius); padding: 20px; margin-top: 8px;
+    }
+    .pw-change-section h4 { font-size: 0.9rem; font-weight: 700; color: var(--red); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; font-family: inherit; }
+    .pw-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .sub-head {
+      color: var(--gray-700); margin: 24px 0 16px; font-size: 0.82rem; letter-spacing: 0.08em;
+      text-transform: uppercase; border-bottom: 1px solid var(--gray-200); padding-bottom: 8px;
+      font-family: inherit; font-weight: 700;
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; background: var(--a-shell); color: #fff;
+      padding: 13px 18px; border-radius: var(--radius); font-size: 0.86rem;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25); z-index: 9999;
+      transform: translateY(20px); opacity: 0; transition: all 0.3s ease;
+      pointer-events: none; max-width: 380px;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-left: 4px solid var(--green); }
+    .toast.error { border-left: 4px solid var(--red); }
+    .toast.info { border-left: 4px solid var(--blue); }
+    .toast i { font-size: 1rem; flex-shrink: 0; }
+    .toast.success i { color: var(--green); }
+    .toast.error i { color: var(--red); }
+    .toast.info i { color: var(--blue); }
+
+    .sidebar-toggle {
+      display: none; position: fixed; bottom: 18px; left: 18px; z-index: 200;
+      background: var(--a-brand); color: var(--a-on-brand); border: none; border-radius: 50%;
+      width: 48px; height: 48px; font-size: 1.1rem; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      align-items: center; justify-content: center;
+    }
+
+    .notice { padding: 10px 12px; border-radius: 7px; font-size: 0.8rem; line-height: 1.45; margin-bottom: 14px; }
+    .notice.ok { border: 1px solid rgba(39,174,96,0.25); background: rgba(39,174,96,0.08); color: #1f6f45; }
+    .notice.warn { border: 1px solid rgba(231,76,60,0.3); background: rgba(231,76,60,0.08); color: #8f2a2a; }
+    .notice.info { border: 1px solid rgba(52,152,219,0.26); background: rgba(52,152,219,0.08); color: #245a88; }
+
+    @media (max-width: 1100px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .action-grid { grid-template-columns: repeat(2, 1fr); }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-grid .span2 { grid-column: span 1; }
+      .settings-grid { grid-template-columns: 1fr; }
+      .pw-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 900px) {
+      .events-header-row, .event-row { grid-template-columns: 1fr 1fr 110px 80px 110px 80px auto auto auto auto auto auto; }
+    }
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; }
+      .sidebar-toggle { display: flex; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .topbar { padding: 0 14px; }
+      .content { padding: 14px 16px; }
+      .events-header-row, .event-row { grid-template-columns: 1fr auto auto auto auto auto auto; }
+      .events-header-row span:nth-child(2), .events-header-row span:nth-child(3),
+      .events-header-row span:nth-child(4), .events-header-row span:nth-child(5),
+      .events-header-row span:nth-child(6) { display: none; }
+      .event-row input.ev-location, .event-row input.ev-start-date, .event-row input.ev-start-time,
+      .event-row input.ev-end-date, .event-row input.ev-end-time { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Boot / access-denied overlay (hidden once auth passes) -->
+<div id="adminBoot">
+  <div class="boot-inner">
+    <h1 id="bootTitle"><i class="fas fa-circle-notch fa-spin"></i> Loading admin dashboard…</h1>
+    <p id="bootMsg">Checking your permissions.</p>
+  </div>
+</div>
+
+<!-- ═══════════ SIDEBAR ═══════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <img data-mf="org_logo" src="images/default-logo.svg" alt="" onerror="this.style.visibility='hidden'" />
+    <div class="sidebar-brand-text">
+      <div class="name" data-mf="org_name">Organization</div>
+      <div class="sub">Admin</div>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <button class="sidebar-link active" data-section="dashboard" onclick="showPanel('dashboard')">
+      <i class="fas fa-th-large"></i> Dashboard
+    </button>
+    <a class="sidebar-link" id="viewSiteLink" href="home.html" target="_blank">
+      <i class="fas fa-external-link-alt"></i> View Website
+    </a>
+  </div>
+
+  <!-- Finance -->
+  <div class="nav-group" id="navgroup-finance">
+    <button class="nav-group-toggle open" onclick="toggleNavGroup('finance')">
+      <i class="fas fa-landmark group-icon"></i> Finance
+      <span class="group-badges"><span class="grp-badge" id="grpBadge-finance"></span></span>
+      <i class="fas fa-chevron-down group-caret"></i>
+    </button>
+    <div class="nav-group-body open" id="navbody-finance">
+      <button class="sidebar-link" data-section="dues-admin" onclick="showPanel('dues-admin')">
+        <i class="fas fa-dollar-sign"></i> Dues &amp; Payments <span class="nav-badge" id="navBadge-dues-admin"></span>
+      </button>
+      <button class="sidebar-link" data-section="requisitions" onclick="showPanel('requisitions')">
+        <i class="fas fa-file-invoice-dollar"></i> Requisitions <span class="nav-badge" id="reqPendingBadge"></span>
+      </button>
+      <button class="sidebar-link" data-section="reimbursements" onclick="showPanel('reimbursements')">
+        <i class="fas fa-receipt"></i> Reimbursements <span class="nav-badge" id="reimbPendingBadge"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Membership -->
+  <div class="nav-group" id="navgroup-membership">
+    <button class="nav-group-toggle" onclick="toggleNavGroup('membership')">
+      <i class="fas fa-users group-icon"></i> Membership
+      <span class="group-badges"><span class="grp-badge" id="grpBadge-membership"></span></span>
+      <i class="fas fa-chevron-down group-caret"></i>
+    </button>
+    <div class="nav-group-body" id="navbody-membership">
+      <button class="sidebar-link" data-section="members" onclick="showPanel('members')">
+        <i class="fas fa-user-check"></i> <span data-mf-term="member_noun">Member</span> Requests <span class="nav-badge" id="navBadge-members"></span>
+      </button>
+      <button class="sidebar-link" data-section="access" onclick="showPanel('access')">
+        <i class="fas fa-user-shield"></i> Access &amp; Permissions
+      </button>
+    </div>
+  </div>
+
+  <!-- Events & Programs -->
+  <div class="nav-group" id="navgroup-events">
+    <button class="nav-group-toggle" onclick="toggleNavGroup('events')">
+      <i class="fas fa-calendar-alt group-icon"></i> Events &amp; Programs
+      <i class="fas fa-chevron-down group-caret"></i>
+    </button>
+    <div class="nav-group-body" id="navbody-events">
+      <button class="sidebar-link" data-section="events" onclick="showPanel('events')">
+        <i class="fas fa-calendar-alt"></i> Events Manager
+      </button>
+      <button class="sidebar-link" data-section="fundraiser" onclick="showPanel('fundraiser')">
+        <i class="fas fa-hand-holding-heart"></i> Fundraiser Settings
+      </button>
+      <button class="sidebar-link" data-section="registrations" onclick="showPanel('registrations')">
+        <i class="fas fa-clipboard-list"></i> Event Registrations
+      </button>
+      <button class="sidebar-link" data-section="meetings" onclick="showPanel('meetings')">
+        <i class="fas fa-people-group"></i> Meetings
+      </button>
+    </div>
+  </div>
+
+  <!-- Communications -->
+  <div class="nav-group" id="navgroup-comms">
+    <button class="nav-group-toggle" onclick="toggleNavGroup('comms')">
+      <i class="fas fa-bullhorn group-icon"></i> Communications
+      <span class="group-badges"><span class="grp-badge" id="grpBadge-comms"></span></span>
+      <i class="fas fa-chevron-down group-caret"></i>
+    </button>
+    <div class="nav-group-body" id="navbody-comms">
+      <button class="sidebar-link" data-section="announcements" onclick="showPanel('announcements')">
+        <i class="fas fa-bullhorn"></i> Announcement Bar
+      </button>
+      <button class="sidebar-link" data-section="member-announcements" onclick="showPanel('member-announcements')">
+        <i class="fas fa-comment-dots"></i> <span data-mf-term="member_noun">Member</span> Announcements <span class="nav-badge" id="annPendingBadge"></span>
+      </button>
+      <button class="sidebar-link" data-section="news-submissions" onclick="showPanel('news-submissions')">
+        <i class="fas fa-newspaper"></i> News Submissions <span class="nav-badge" id="newsPendingBadge"></span>
+      </button>
+      <button class="sidebar-link" data-section="chapter-news" onclick="showPanel('chapter-news')">
+        <i class="fas fa-rss"></i> Organization News Feed
+      </button>
+      <button class="sidebar-link" data-section="newsletter" onclick="showPanel('newsletter')">
+        <i class="fas fa-envelope-open-text"></i> Newsletter Generator
+      </button>
+    </div>
+  </div>
+
+  <!-- Content & Media -->
+  <div class="nav-group" id="navgroup-content">
+    <button class="nav-group-toggle" onclick="toggleNavGroup('content')">
+      <i class="fas fa-photo-video group-icon"></i> Content &amp; Media
+      <span class="group-badges"><span class="grp-badge" id="grpBadge-content"></span></span>
+      <i class="fas fa-chevron-down group-caret"></i>
+    </button>
+    <div class="nav-group-body" id="navbody-content">
+      <button class="sidebar-link" data-section="news-manager" onclick="showPanel('news-manager')">
+        <i class="fas fa-newspaper"></i> News Manager
+      </button>
+      <button class="sidebar-link" data-section="documents" onclick="showPanel('documents')">
+        <i class="fas fa-folder-open"></i> Documents <span class="nav-badge" id="navBadge-documents"></span>
+      </button>
+      <button class="sidebar-link" data-section="gallery" onclick="showPanel('gallery')">
+        <i class="fas fa-camera-retro"></i> Event Photos
+      </button>
+      <button class="sidebar-link" data-section="store" onclick="showPanel('store')">
+        <i class="fas fa-store"></i> Store <span class="nav-badge" id="navBadge-store"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Organization Leadership -->
+  <div class="nav-group" id="navgroup-leadership">
+    <button class="nav-group-toggle" onclick="toggleNavGroup('leadership')">
+      <i class="fas fa-crown group-icon"></i> Leadership
+      <i class="fas fa-chevron-down group-caret"></i>
+    </button>
+    <div class="nav-group-body" id="navbody-leadership">
+      <button class="sidebar-link" data-section="officers" onclick="showPanel('officers')">
+        <i class="fas fa-users"></i> Officers Manager
+      </button>
+      <button class="sidebar-link" data-section="presidents" onclick="showPanel('presidents')">
+        <i class="fas fa-crown"></i> Past Leaders
+      </button>
+    </div>
+  </div>
+
+  <!-- Website Pages -->
+  <div class="nav-group" id="navgroup-site">
+    <button class="nav-group-toggle" onclick="toggleNavGroup('site')">
+      <i class="fas fa-globe group-icon"></i> Website Pages
+      <i class="fas fa-chevron-down group-caret"></i>
+    </button>
+    <div class="nav-group-body" id="navbody-site">
+      <button class="sidebar-link" data-section="pages" onclick="showPanel('pages'); loadPageSection('home')"><i class="fas fa-home"></i> Home</button>
+      <button class="sidebar-link" data-section="pages" onclick="showPanel('pages'); loadPageSection('about')"><i class="fas fa-book"></i> About</button>
+      <button class="sidebar-link" data-section="pages" onclick="showPanel('pages'); loadPageSection('events')"><i class="fas fa-calendar"></i> Events</button>
+      <button class="sidebar-link" data-section="pages" onclick="showPanel('pages'); loadPageSection('leadership')"><i class="fas fa-id-badge"></i> Leadership</button>
+      <button class="sidebar-link" data-section="pages" onclick="showPanel('pages'); loadPageSection('membership')"><i class="fas fa-user-plus"></i> Membership</button>
+      <button class="sidebar-link" data-section="pages" onclick="showPanel('pages'); loadPageSection('news')"><i class="fas fa-newspaper"></i> News</button>
+      <button class="sidebar-link" data-section="pages" onclick="showPanel('pages'); loadPageSection('gallery')"><i class="fas fa-images"></i> Gallery</button>
+      <button class="sidebar-link" data-section="pages" onclick="showPanel('pages'); loadPageSection('contact')"><i class="fas fa-envelope"></i> Contact</button>
+      <button class="sidebar-link" data-section="pages" onclick="showPanel('pages'); loadPageSection('membership-inquiry')"><i class="fas fa-paper-plane"></i> Membership Inquiry</button>
+      <button class="sidebar-link" data-section="pages" onclick="showPanel('pages'); loadPageSection('fundraiser')"><i class="fas fa-hand-holding-heart"></i> Fundraiser</button>
+    </div>
+  </div>
+
+  <!-- Account -->
+  <div class="nav-group" id="navgroup-account">
+    <button class="nav-group-toggle" onclick="toggleNavGroup('account')">
+      <i class="fas fa-cog group-icon"></i> Account
+      <i class="fas fa-chevron-down group-caret"></i>
+    </button>
+    <div class="nav-group-body" id="navbody-account">
+      <button class="sidebar-link" data-section="settings" onclick="showPanel('settings')">
+        <i class="fas fa-cog"></i> Settings
+      </button>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="user-row">
+      <div class="user-avatar" id="userAvatar">A</div>
+      <div class="user-info">
+        <div class="uname" id="userNameDisplay">Admin</div>
+        <div class="urole" id="userRoleDisplay">Administrator</div>
+      </div>
+    </div>
+    <button class="btn-logout" onclick="logout()">
+      <i class="fas fa-sign-out-alt"></i> Sign Out
+    </button>
+  </div>
+</aside>
+
+<!-- ═══════════ MAIN ═══════════ -->
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <h1 id="panelTitle">Dashboard</h1>
+      <div class="breadcrumb" id="panelBreadcrumb">Admin</div>
+    </div>
+    <div class="topbar-right">
+      <a id="viewSiteBtn" href="home.html" target="_blank" class="topbar-btn outline"><i class="fas fa-eye"></i> View Site</a>
+      <button class="topbar-btn brand" onclick="showPanel('events')"><i class="fas fa-plus"></i> Add Event</button>
+    </div>
+  </header>
+
+  <main class="content">
+
+    <!-- ══════ DASHBOARD ══════ -->
+    <div class="panel active" id="panel-dashboard">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon brand"><i class="fas fa-users"></i></div>
+          <div class="stat-info"><div class="num" id="statMemberCount">0</div><div class="lbl"><span data-mf-term="member_noun_plural">Members</span></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue"><i class="fas fa-calendar-alt"></i></div>
+          <div class="stat-info"><div class="num" id="statEventCount">0</div><div class="lbl">Events</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green"><i class="fas fa-id-badge"></i></div>
+          <div class="stat-info"><div class="num" id="statOfficerCount">0</div><div class="lbl">Officer Slots</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red"><i class="fas fa-crown"></i></div>
+          <div class="stat-info"><div class="num" id="statPresidentCount">0</div><div class="lbl">Past Leaders</div></div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-bolt icon-brand"></i>Quick Actions</h3></div>
+        <div class="section-card-body">
+          <div class="action-grid" id="quickActions">
+            <button class="action-btn" data-section="events" onclick="showPanel('events')"><i class="fas fa-calendar-plus"></i><span>Add / Edit Events</span></button>
+            <button class="action-btn" data-section="news-manager" onclick="showPanel('news-manager')"><i class="fas fa-newspaper"></i><span>Add / Edit News</span></button>
+            <button class="action-btn" data-section="members" onclick="showPanel('members')"><i class="fas fa-user-check"></i><span>Review Requests</span></button>
+            <button class="action-btn" data-section="officers" onclick="showPanel('officers')"><i class="fas fa-users"></i><span>Manage Officers</span></button>
+            <button class="action-btn" data-section="presidents" onclick="showPanel('presidents')"><i class="fas fa-crown"></i><span>Past Leaders</span></button>
+            <button class="action-btn" data-section="announcements" onclick="showPanel('announcements')"><i class="fas fa-bullhorn"></i><span>Announcement Bar</span></button>
+            <button class="action-btn" data-section="newsletter" onclick="showPanel('newsletter')"><i class="fas fa-envelope-open-text"></i><span>Build Newsletter</span></button>
+            <button class="action-btn" data-section="gallery" onclick="showPanel('gallery')"><i class="fas fa-images"></i><span>Event Photos</span></button>
+            <button class="action-btn" data-section="pages" onclick="showPanel('pages')"><i class="fas fa-edit"></i><span>Edit Page Content</span></button>
+            <button class="action-btn" data-section="settings" onclick="showPanel('settings')"><i class="fas fa-key"></i><span>Account Settings</span></button>
+            <button class="action-btn" data-section="documents" onclick="showPanel('documents')"><i class="fas fa-folder-open"></i><span>Documents</span></button>
+            <button class="action-btn" data-section="meetings" onclick="showPanel('meetings')"><i class="fas fa-people-group"></i><span>Meetings</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-sitemap icon-brand"></i>Site Pages</h3>
+          <span>Edit page content without leaving the dashboard</span>
+        </div>
+        <div class="section-card-body">
+          <div class="pages-list" id="dashboardPagesList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ PAGE EDITOR ══════ -->
+    <div class="panel" id="panel-pages">
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-edit icon-brand"></i>Page Content Editor</h3>
+          <span>Select a page section to edit</span>
+        </div>
+        <div class="section-card-body">
+          <p class="hint-text">Pick a page, then a section, and edit it with the rich-text editor. Use <strong>Advanced (Full Page Override)</strong> only when you need to replace an entire page with custom HTML.</p>
+          <div id="pageEditorNotice" style="display:none;"></div>
+
+          <div class="section-tabs" id="pageTabs"></div>
+          <div class="section-tabs" id="sectionTabs" style="margin-top:0;margin-bottom:18px;"></div>
+
+          <div class="editor-panel" id="editorPanel">
+            <div class="editor-toolbar" id="pageEditorToolbar">
+              <span class="ql-formats">
+                <select class="ql-header"><option selected></option><option value="1"></option><option value="2"></option><option value="3"></option></select>
+              </span>
+              <span class="ql-formats"><button class="ql-bold"></button><button class="ql-italic"></button><button class="ql-underline"></button></span>
+              <span class="ql-formats"><button class="ql-list" value="ordered"></button><button class="ql-list" value="bullet"></button></span>
+              <span class="ql-formats"><button class="ql-link"></button><button class="ql-image"></button></span>
+              <span class="ql-formats"><button class="ql-clean"></button></span>
+            </div>
+            <div class="editor-area" id="editorArea"></div>
+            <div class="editor-footer">
+              <button class="btn-sm danger" onclick="resetFullPageToDefault()" title="Remove full page override"><i class="fas fa-rotate-left"></i> Reset Full Page</button>
+              <button class="btn-cancel" onclick="cancelEdit()">Discard Changes</button>
+              <button class="btn-save" onclick="saveSection()"><i class="fas fa-save"></i> Save Changes</button>
+            </div>
+          </div>
+
+          <div id="fullPageVisualEditor" style="display:none;margin-top:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+              <div style="font-size:0.8rem;color:var(--gray-600);">Visual editor: click and type directly in the preview. Double-click images/links to update URLs.</div>
+              <button class="btn-sm edit" type="button" id="toggleHtmlSourceBtn" onclick="toggleFullPageSourceVisibility()"><i class="fas fa-code"></i> Show HTML Source</button>
+            </div>
+            <iframe id="fullPageEditorFrame" title="Full Page Visual Editor" style="width:100%;min-height:520px;border:1px solid var(--gray-200);border-radius:8px;background:#fff;"></iframe>
+            <div id="fullPageSourceWrap" style="margin-top:10px;display:none;">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-bottom:8px;">
+                <button class="btn-sm view" type="button" onclick="syncFullPageFromVisual()"><i class="fas fa-arrows-rotate"></i> Refresh Source</button>
+                <button class="btn-sm edit" type="button" onclick="applyFullPageSourceToVisual()"><i class="fas fa-code"></i> Apply Source</button>
+              </div>
+              <label style="display:block;font-size:0.73rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-500);margin-bottom:6px;">Full Page HTML Source</label>
+              <textarea id="fullPageSourceEditor" style="width:100%;min-height:200px;border:1px solid var(--gray-200);border-radius:8px;padding:10px 12px;font-family:Consolas,'Courier New',monospace;font-size:0.8rem;color:var(--gray-800);"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ EVENTS ══════ -->
+    <div class="panel" id="panel-events">
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-calendar-alt icon-brand"></i>Events Manager</h3>
+          <span id="eventsCountLabel">Loading…</span>
+        </div>
+        <div class="section-card-body">
+          <p class="hint-text">
+            Click the <strong><i class="fas fa-star" style="color:var(--a-brand);"></i> star</strong> to feature an event,
+            the <strong><i class="fas fa-image" style="color:var(--blue);"></i> image</strong> icon for a flyer,
+            the <strong><i class="fas fa-align-left" style="color:#9b59b6;"></i> text</strong> icon for a description,
+            the <strong><i class="fas fa-link" style="color:var(--green);"></i> link</strong> icon for registration options, and
+            the <strong><i class="fas fa-handshake"></i> handshake</strong> icon for a sponsor button.
+          </p>
+
+          <div class="events-header-row">
+            <span>Event Name</span><span>Location</span>
+            <span>Start Date <span class="req">*</span></span><span>Start Time <span class="req">*</span></span>
+            <span>End Date</span><span>End Time</span>
+            <span style="text-align:center;"><i class="fas fa-star" title="Featured"></i></span>
+            <span style="text-align:center;"><i class="fas fa-image" title="Flyer"></i></span>
+            <span style="text-align:center;"><i class="fas fa-align-left" title="Description"></i></span>
+            <span style="text-align:center;"><i class="fas fa-link" title="Registration"></i></span>
+            <span style="text-align:center;"><i class="fas fa-handshake" title="Sponsorship"></i></span>
+            <span style="text-align:center;"><i class="fas fa-qrcode" title="Check-In QR"></i></span>
+            <span></span>
+          </div>
+
+          <div id="eventsList"></div>
+
+          <button class="btn-sm success" onclick="addEvent()" style="margin-top:14px;"><i class="fas fa-plus-circle"></i> Add New Event</button>
+          <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px;">
+            <button class="btn-save" onclick="saveEvents()"><i class="fas fa-save"></i> Save All Events</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ NEWS MANAGER ══════ -->
+    <div class="panel" id="panel-news-manager">
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-newspaper icon-brand"></i>News Manager</h3>
+          <span id="newsCountLabel">Loading…</span>
+        </div>
+        <div class="section-card-body">
+          <p class="hint-text">
+            Add, edit, or remove the news articles shown on your public News page and homepage highlights.
+            Click the <strong><i class="fas fa-star" style="color:var(--a-brand);"></i> star</strong> to feature an article on the homepage, and the
+            <strong><i class="fas fa-list" style="color:var(--a-brand);"></i> list</strong> icon to move it to the News page sidebar.
+          </p>
+
+          <div class="news-header-row">
+            <span>Headline</span><span>Tag</span><span>Date</span>
+            <span style="text-align:center;"><i class="fas fa-star" title="Homepage"></i></span>
+            <span style="text-align:center;"><i class="fas fa-list" title="Sidebar"></i></span>
+            <span style="text-align:center;"><i class="fas fa-image" title="Image"></i></span>
+            <span style="text-align:center;"><i class="fas fa-align-left" title="Story"></i></span>
+            <span></span>
+          </div>
+
+          <div id="newsArticlesList"></div>
+
+          <button class="btn-sm success" onclick="addNewsArticle()" style="margin-top:14px;"><i class="fas fa-plus-circle"></i> Add News Article</button>
+          <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px;">
+            <button class="btn-save" onclick="saveNewsArticles()"><i class="fas fa-save"></i> Save All News</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ GALLERY ══════ -->
+    <div class="panel" id="panel-gallery">
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-images icon-brand"></i>Event Photo Gallery</h3>
+          <span>Shown on your public gallery page</span>
+        </div>
+        <div class="section-card-body">
+          <p class="hint-text">
+            Add photos from your events with optional titles and captions. Paste an image URL or upload from your
+            computer (uploads go to the <strong>org-media</strong> storage bucket, under this organization's own folder).
+            To edit the gallery page headline and intro text, open <strong>Website Pages → Gallery</strong>.
+          </p>
+          <div class="notice info">
+            <strong>Hosted image URL quick guide</strong><br />
+            1) Upload images to public storage (this dashboard, or your own cloud storage).<br />
+            2) Copy the direct image link and paste it into <strong>Photo URL</strong>.<br />
+            3) Confirm the URL opens the image by itself in a browser tab.
+          </div>
+          <div id="eventGalleryList" style="margin-top:18px;"></div>
+          <button class="btn-sm success" onclick="addEventGalleryRow()" style="margin-top:14px;"><i class="fas fa-plus-circle"></i> Add Photo</button>
+          <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:10px;">
+            <button class="btn-save" onclick="saveEventGallery()"><i class="fas fa-save"></i> Save Gallery</button>
+          </div>
+        </div>
+      </div>
+    </div>
+<!--PART2-->
