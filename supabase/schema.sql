@@ -140,6 +140,18 @@ grant execute on function public.current_user_can_manage(uuid, text) to authenti
 grant execute on function public.current_user_finance_role(uuid) to authenticated;
 grant execute on function public.org_admin_count(uuid) to authenticated;
 
+-- Org admins with the 'settings' section (or full admin) can edit their own
+-- org's branding/contact/terminology. Note: this deliberately does NOT allow
+-- changing `slug` or `custom_domain` via ordinary UPDATE — do that through a
+-- dedicated flow later if needed; for now those columns are effectively
+-- immutable post-signup since nothing in the app exposes editing them.
+drop policy if exists "organizations_update_settings_admin" on public.organizations;
+create policy "organizations_update_settings_admin"
+on public.organizations for update
+to authenticated
+using (public.current_user_can_manage(id, 'settings'))
+with check (public.current_user_can_manage(id, 'settings'));
+
 drop policy if exists "org_admins_select_self" on public.org_admins;
 create policy "org_admins_select_self"
 on public.org_admins for select

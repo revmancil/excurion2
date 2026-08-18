@@ -56,6 +56,7 @@ const ALLOWED_SECTIONS = [
   "news-submissions",
   "chapter-news",
   "news-manager",
+  "newsletter",
   "documents",
   "gallery",
   "store",

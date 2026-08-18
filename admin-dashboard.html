@@ -608,7 +608,7 @@
     <button class="sidebar-link active" data-section="dashboard" onclick="showPanel('dashboard')">
       <i class="fas fa-th-large"></i> Dashboard
     </button>
-    <a class="sidebar-link" id="viewSiteLink" href="home.html" target="_blank">
+    <a class="sidebar-link" id="viewSiteLink" href="index.html" target="_blank">
       <i class="fas fa-external-link-alt"></i> View Website
     </a>
   </div>
@@ -792,7 +792,7 @@
       <div class="breadcrumb" id="panelBreadcrumb">Admin</div>
     </div>
     <div class="topbar-right">
-      <a id="viewSiteBtn" href="home.html" target="_blank" class="topbar-btn outline"><i class="fas fa-eye"></i> View Site</a>
+      <a id="viewSiteBtn" href="index.html" target="_blank" class="topbar-btn outline"><i class="fas fa-eye"></i> View Site</a>
       <button class="topbar-btn brand" onclick="showPanel('events')"><i class="fas fa-plus"></i> Add Event</button>
     </div>
   </header>
@@ -2085,6 +2085,7 @@ const ADMIN_SECTIONS = [
   { key: 'news-submissions',     label: 'News Submissions' },
   { key: 'chapter-news',         label: 'Organization News Feed' },
   { key: 'news-manager',         label: 'News Manager' },
+  { key: 'newsletter',           label: 'Newsletter Generator' },
   { key: 'documents',            label: 'Documents' },
   { key: 'gallery',              label: 'Event Photo Gallery' },
   { key: 'store',                label: 'Store' },
@@ -2155,6 +2156,20 @@ function escHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
+/** Escape a value for embedding inside a single-quoted JS string that
+    itself lives inside an HTML attribute (e.g. onclick="fn('...')").
+    escHtml() alone is wrong there: the browser decodes &#39; back to a
+    real quote before the JS is parsed, which would break out of the string. */
+function esc1(str) {
+  return String(str == null ? '' : str)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function TERM(key, fallback) {
   const t = (ORG && ORG.terminology) || {};
   return (t[key] && String(t[key]).trim()) || fallback;
@@ -2422,7 +2437,7 @@ function bootFail(title, msg, linkHtml) {
   if (!org) return;                       // org-context.js already painted "not found"
   ORG = org;
 
-  const home = 'home.html' + orgQS();
+  const home = 'index.html' + orgQS();
   const vsLink = document.getElementById('viewSiteLink');
   const vsBtn = document.getElementById('viewSiteBtn');
   if (vsLink) vsLink.href = home;
@@ -2630,7 +2645,6 @@ function renderAccessTable() {
     const color = access === 'granted' ? 'var(--green)' : access === 'visiting' ? '#4ade80' : access === 'pending' ? 'var(--blue)' : 'var(--red)';
     const label = access === 'visiting' ? 'Guest' : access.charAt(0).toUpperCase() + access.slice(1);
     const mid = escHtml(String(m.id));
-    const memail = escHtml(m.email || '');
     let actions;
     if (access === 'pending') {
       actions = '<button class="btn-sm success" onclick="accessUpdateStatus(\'' + mid + '\',\'granted\')"><i class="fas fa-check"></i> Approve</button> ' +
@@ -2642,7 +2656,7 @@ function renderAccessTable() {
     } else if (access === 'granted') {
       actions = '<button class="btn-sm danger" onclick="accessUpdateStatus(\'' + mid + '\',\'revoked\')"><i class="fas fa-ban"></i> Revoke</button>';
       if (!isAdmin && MFAuth.canManage('access')) {
-        actions += ' <button class="btn-sm edit" onclick="prefillAdminGrant(\'' + memail + '\')"><i class="fas fa-user-shield"></i> Make Admin</button>';
+        actions += ' <button class="btn-sm edit" onclick="prefillAdminGrant(\'' + esc1(m.email || '') + '\')"><i class="fas fa-user-shield"></i> Make Admin</button>';
       }
     } else {
       actions = '<button class="btn-sm success" onclick="accessUpdateStatus(\'' + mid + '\',\'granted\')"><i class="fas fa-redo"></i> Restore</button> ' +
@@ -3065,7 +3079,7 @@ async function saveMemberCompliance(memberId) {
   }
 }
 
-/* ── Membership inquiries (was "visiting brothers requests") ── */
+/* ── Membership inquiries (generalized from the original visitor-request form) ── */
 async function loadMembershipInquiries() {
   const container = document.getElementById('inquiryRequestsList');
   const countEl = document.getElementById('inquiryPendingCount');
@@ -3133,7 +3147,7 @@ async function updateInquiryStatus(requestId, status) {
         ? await sb.getAll('members', MF.scope('email=eq.' + encodeURIComponent(email) + '&limit=1'))
         : [];
       if (existing && existing.length) {
-        await sb.update('members', existing[0].id, payload);
+        await sb.patchWhere('members', MF.scope('id=eq.' + encodeURIComponent(existing[0].id)), payload);
       } else {
         await sb.insert('members', MF.stamp(payload));
       }
@@ -3300,7 +3314,7 @@ function renderMemberDirectoryTable() {
       '<td' + (lifetime ? ' style="background:color-mix(in srgb, var(--a-brand) 12%, transparent);" title="Lifetime member"' : '') + '>' +
         directoryInput(rec.member_number, 'member_number', rowId) + '</td>' +
       DIRECTORY_FIELDS.slice(1).map(f => '<td>' + directoryInput(rec[f.key], f.key, rowId) + '</td>').join('') +
-      '<td style="text-align:center;"><button class="btn-sm danger" onclick="removeMemberDirectoryRow(\'' + escHtml(rowId) + '\')" title="Remove"><i class="fas fa-trash"></i></button></td>' +
+      '<td style="text-align:center;"><button class="btn-sm danger" onclick="removeMemberDirectoryRow(\'' + esc1(rowId) + '\')" title="Remove"><i class="fas fa-trash"></i></button></td>' +
       '</tr>';
   }).join('');
   updateDirectoryCount();
@@ -3447,7 +3461,7 @@ async function syncDirectoryToMembers(records) {
     try {
       const existing = await findMemberForDirectorySync(rec);
       if (existing && existing.id) {
-        await sb.update('members', existing.id, directoryToMemberPayload(rec));
+        await sb.patchWhere('members', MF.scope('id=eq.' + encodeURIComponent(existing.id)), directoryToMemberPayload(rec));
         updated++;
       } else if (rec.email) {
         await sb.insert('members', MF.stamp(directoryToMemberPayload(rec)));
@@ -3543,7 +3557,7 @@ async function handleComplianceCsvUpload(event) {
       });
       if (touched) payload.compliance = compliance;
       if (Object.keys(payload).length === 1) { skippedRows++; continue; }
-      await sb.update('members', member.id, payload);
+      await sb.patchWhere('members', MF.scope('id=eq.' + encodeURIComponent(member.id)), payload);
       matched++;
     }
     showToast('Updated ' + matched + ' record(s).' + (skippedRows ? ' ' + skippedRows + ' row(s) not matched.' : ''), matched ? 'success' : 'info');
@@ -3554,7 +3568,3311 @@ async function handleComplianceCsvUpload(event) {
     if (event && event.target) event.target.value = '';
   }
 }
-<!--PART6-->
+
+/* ══════════════════════════════════════════════
+   EVENTS MANAGER
+══════════════════════════════════════════════ */
+let eventsData = [];
+let activeFlyerIndex = -1;
+
+function parseDatetimeToFields(dt) {
+  const out = { start_date: '', start_time: '', end_date: '', end_time: '' };
+  if (!dt) return out;
+  function amPmTo24(s) {
+    if (!s) return '';
+    const m = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+    if (!m) return '';
+    let h = parseInt(m[1], 10);
+    const ampm = (m[3] || '').toUpperCase();
+    if (ampm === 'PM' && h < 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    return String(h).padStart(2, '0') + ':' + m[2];
+  }
+  function parseSection(str) {
+    str = str.trim();
+    const dateMatch = str.match(/^(\d{1,2}\/\d{1,2}\/\d{4})(.*)/);
+    const datePart = dateMatch ? dateMatch[1] : '';
+    const rest = (dateMatch ? dateMatch[2] : str).trim();
+    const dp = datePart.split('/');
+    const isoDate = dp.length === 3 ? dp[2] + '-' + dp[0].padStart(2, '0') + '-' + dp[1].padStart(2, '0') : '';
+    const sep = rest.indexOf(' - ');
+    return {
+      date: isoDate,
+      time: amPmTo24(sep !== -1 ? rest.slice(0, sep).trim() : rest.trim()),
+      endTime: amPmTo24(sep !== -1 ? rest.slice(sep + 3).trim() : '')
+    };
+  }
+  const rangeIdx = dt.search(/ - (?=\d{1,2}\/\d{1,2}\/\d{4})/);
+  let startSection = dt, endSection = '';
+  if (rangeIdx !== -1) { startSection = dt.slice(0, rangeIdx); endSection = dt.slice(rangeIdx + 3); }
+  const s = parseSection(startSection);
+  out.start_date = s.date; out.start_time = s.time;
+  if (s.endTime) out.end_time = s.endTime;
+  if (endSection) {
+    const e = parseSection(endSection);
+    if (e.date && e.date !== out.start_date) out.end_date = e.date;
+    if (e.time) out.end_time = e.time;
+  }
+  return out;
+}
+function buildDatetime(start_date, start_time, end_date, end_time) {
+  const isoToMdy = iso => { if (!iso) return ''; const [y, m, d] = iso.split('-'); return parseInt(m, 10) + '/' + parseInt(d, 10) + '/' + y; };
+  const to12 = t => {
+    if (!t) return '';
+    const [hs, min] = t.split(':');
+    let h = parseInt(hs, 10);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    if (h > 12) h -= 12;
+    if (h === 0) h = 12;
+    return h + ':' + min + ' ' + ampm;
+  };
+  let dt = isoToMdy(start_date);
+  if (!dt) return '';
+  if (start_time) dt += ' ' + to12(start_time);
+  const hasEndDate = end_date && end_date !== start_date;
+  if (hasEndDate) dt += ' - ' + isoToMdy(end_date);
+  if (end_time) dt += (hasEndDate ? ' ' : ' - ') + to12(end_time);
+  return dt;
+}
+function datetimeToIsoDate(dtStr) {
+  const s = String(dtStr || '').trim().split(' ')[0];
+  const segs = s.split('/');
+  if (segs.length === 3 && /^\d{4}$/.test(segs[2])) return segs[2] + '-' + segs[0].padStart(2, '0') + '-' + segs[1].padStart(2, '0');
+  return null;
+}
+function normalizeEventRecord(ev) {
+  const fee = Math.max(0, parseInt(String(ev.registration_fee_cents != null ? ev.registration_fee_cents : (ev.registrationFeeCents || 0)), 10) || 0);
+  const regUrl = String(ev.reg_url || ev.registrationUrl || '').trim();
+  const freeUrl = String(ev.free_registration_url || ev.freeRegistrationUrl || '').trim();
+  const orgRegOn = !!(ev.chapter_registration_enabled || ev.chapterRegistrationEnabled);
+  let freeEnabled = ev.free_registration_enabled != null ? !!ev.free_registration_enabled : !!ev.freeRegistrationEnabled;
+  let paidEnabled = ev.paid_registration_enabled != null ? !!ev.paid_registration_enabled : !!ev.paidRegistrationEnabled;
+  if (orgRegOn && !freeEnabled && !paidEnabled) {
+    if (regUrl || fee > 0) paidEnabled = true; else freeEnabled = true;
+  }
+  if (freeUrl) freeEnabled = true;
+  if (regUrl) paidEnabled = true;
+  const dtFields = parseDatetimeToFields(ev.datetime || '');
+  return {
+    id: ev.id,
+    name: ev.name || '',
+    location: ev.location || '',
+    start_date: ev.start_date || dtFields.start_date,
+    start_time: ev.start_time || dtFields.start_time,
+    end_date: ev.end_date || dtFields.end_date,
+    end_time: ev.end_time || dtFields.end_time,
+    datetime: ev.datetime || '',
+    featured: !!ev.featured,
+    flyer: ev.flyer || '',
+    description: ev.description || '',
+    registrationUrl: regUrl,
+    freeRegistrationEnabled: freeEnabled,
+    freeRegistrationUrl: freeUrl,
+    paidRegistrationEnabled: paidEnabled,
+    registrationFeeCents: fee,
+    sponsorEnabled: !!(ev.sponsor_enabled != null ? ev.sponsor_enabled : ev.sponsorEnabled),
+    sponsorUrl: String(ev.sponsor_url || ev.sponsorUrl || '').trim(),
+    sponsorLabel: String(ev.sponsor_label || ev.sponsorLabel || 'Become a Sponsor').trim() || 'Become a Sponsor',
+    membersOnly: !!(ev.members_only != null ? ev.members_only : ev.membersOnly)
+  };
+}
+function eventHasRegistrationOptions(ev) {
+  if (!ev) return false;
+  if ((ev.freeRegistrationUrl || '').trim() || (ev.registrationUrl || '').trim()) return true;
+  if (ev.freeRegistrationEnabled) return true;
+  if (ev.paidRegistrationEnabled && ((ev.registrationFeeCents || 0) > 0 || (ev.registrationUrl || '').trim())) return true;
+  return false;
+}
+
+async function loadEventsList() {
+  try {
+    const rows = await sb.getAll('events', MF.scope('order=sort_order.asc'));
+    eventsData = (rows || []).map(normalizeEventRecord);
+  } catch (err) {
+    eventsData = [];
+    document.getElementById('eventsList').innerHTML =
+      '<div class="error-state">Could not load events: ' + escHtml(errMsg(err)) + '</div>';
+    document.getElementById('eventsCountLabel').textContent = 'Error';
+    return;
+  }
+  renderEventsList();
+}
+
+function renderEventsList() {
+  const container = document.getElementById('eventsList');
+  container.innerHTML = '';
+  eventsData.forEach((ev, i) => {
+    const row = document.createElement('div');
+    row.className = 'event-row';
+    row.id = 'event-row-' + i;
+    row.innerHTML =
+      '<input type="text" class="ev-name" placeholder="Event name" value="' + escHtml(ev.name) + '" onchange="eventsData[' + i + '].name=this.value" />' +
+      '<input type="text" class="ev-location" placeholder="Location" value="' + escHtml(ev.location) + '" onchange="eventsData[' + i + '].location=this.value" />' +
+      '<input type="date" class="ev-start-date" id="ev-start-date-' + i + '" value="' + escHtml(ev.start_date) + '" title="Start Date (required)" onchange="syncEventDatetime(' + i + ')" />' +
+      '<input type="time" class="ev-start-time" id="ev-start-time-' + i + '" value="' + escHtml(ev.start_time) + '" title="Start Time" onchange="syncEventDatetime(' + i + ')" />' +
+      '<input type="date" class="ev-end-date" id="ev-end-date-' + i + '" value="' + escHtml(ev.end_date) + '" title="End Date (optional)" onchange="syncEventDatetime(' + i + ')" />' +
+      '<input type="time" class="ev-end-time" id="ev-end-time-' + i + '" value="' + escHtml(ev.end_time) + '" title="End Time (optional)" onchange="syncEventDatetime(' + i + ')" />' +
+      '<button class="icon-btn featured-star' + (ev.featured ? ' active' : '') + '" title="Featured event" onclick="toggleFeatured(' + i + ')"><i class="fas fa-star"></i></button>' +
+      '<button class="icon-btn btn-flyer' + (ev.flyer ? ' has-flyer' : '') + '" title="Flyer" onclick="toggleEventSubRow(' + i + ',\'flyer\')"><i class="fas fa-image"></i></button>' +
+      '<button class="icon-btn btn-desc' + (ev.description ? ' has-desc' : '') + '" title="Description" onclick="toggleEventSubRow(' + i + ',\'desc\')"><i class="fas fa-align-left"></i></button>' +
+      '<button class="icon-btn btn-reg' + (eventHasRegistrationOptions(ev) ? ' has-reg' : '') + '" title="Registration options" onclick="toggleEventSubRow(' + i + ',\'reg\')"><i class="fas fa-link"></i></button>' +
+      '<button class="icon-btn btn-sponsor' + (ev.sponsorEnabled ? ' has-sponsor' : '') + '" title="Sponsor button" onclick="toggleEventSubRow(' + i + ',\'sponsor\')"><i class="fas fa-handshake"></i></button>' +
+      '<button class="icon-btn" title="Check-In QR Code" onclick="showEvtQr(' + i + ')"><i class="fas fa-qrcode"></i></button>' +
+      '<button class="icon-btn btn-del" onclick="removeEvent(' + i + ')" title="Remove event"><i class="fas fa-trash"></i></button>';
+    container.appendChild(row);
+
+    const flyerRow = document.createElement('div');
+    flyerRow.className = 'event-sub-row';
+    flyerRow.id = 'flyer-row-' + i;
+    flyerRow.innerHTML =
+      '<div class="flyer-preview-wrap" id="flyer-preview-' + i + '">' +
+        (ev.flyer && !isInvalidImageUrl(ev.flyer)
+          ? '<img src="' + escHtml(ev.flyer) + '" alt="Event flyer" onerror="this.parentElement.innerHTML=\'<div class=&quot;no-flyer&quot;><i class=&quot;fas fa-image&quot;></i></div>\'" />'
+          : '<div class="no-flyer"><i class="fas fa-image"></i></div>') +
+      '</div>' +
+      '<div class="sub-input-area">' +
+        '<label>Event Flyer / Promo Image</label>' +
+        '<input type="text" placeholder="Paste image URL" value="' + escHtml(ev.flyer || '') + '" id="flyer-url-' + i + '" oninput="updateFlyerPreview(' + i + ')" />' +
+        '<div class="flyer-or">— or —</div>' +
+        '<button type="button" class="upload-btn" onclick="openFlyerUpload(' + i + ')"><i class="fas fa-upload"></i> Upload from Computer</button>' +
+        '<p style="font-size:0.72rem;color:var(--gray-500);margin-top:6px;">Uploads are stored in the <code>event-flyer-uploads</code> bucket under this organization\'s folder.</p>' +
+      '</div>';
+    container.appendChild(flyerRow);
+
+    const descRow = document.createElement('div');
+    descRow.className = 'event-sub-row desc';
+    descRow.id = 'desc-row-' + i;
+    descRow.innerHTML =
+      '<div class="sub-input-area">' +
+        '<label><i class="fas fa-align-left"></i> Event Description</label>' +
+        '<textarea id="desc-text-' + i + '" rows="4" placeholder="What to expect, dress code, special guests…" oninput="eventsData[' + i + '].description=this.value">' + escHtml(ev.description || '') + '</textarea>' +
+        '<p style="font-size:0.72rem;color:var(--gray-500);">This appears in the event detail popup on your public events page.</p>' +
+      '</div>';
+    container.appendChild(descRow);
+
+    const regRow = document.createElement('div');
+    regRow.className = 'event-sub-row reg';
+    regRow.id = 'reg-row-' + i;
+    regRow.innerHTML =
+      '<div class="sub-input-area">' +
+        '<label><i class="fas fa-link"></i> Registration Options</label>' +
+        '<p style="font-size:0.76rem;color:var(--gray-500);margin:0 0 12px;line-height:1.45;">Choose one or both registration paths. If both are enabled, visitors pick free or paid.</p>' +
+        '<div style="padding:10px 14px;border:1px solid #f59e0b44;border-radius:8px;background:#fef9ee;margin-bottom:12px;">' +
+          '<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:0.82rem;color:var(--gray-700);line-height:1.45;text-transform:none;letter-spacing:0;">' +
+          '<input type="checkbox" id="members-only-' + i + '" style="margin-top:3px;flex-shrink:0;width:auto;" ' + (ev.membersOnly ? 'checked' : '') + ' onchange="eventsData[' + i + '].membersOnly=this.checked" />' +
+          '<span><strong style="color:#b45309;">' + escHtml(memberNounPlural()) + ' only</strong> — hides the Register button on the public events page; registration happens in the member portal.</span></label>' +
+        '</div>' +
+        '<div style="padding:12px 14px;border:1px solid var(--gray-200);border-radius:8px;background:var(--white);margin-bottom:12px;">' +
+          '<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:0.82rem;color:var(--gray-700);margin-bottom:10px;text-transform:none;letter-spacing:0;">' +
+          '<input type="checkbox" id="free-reg-' + i + '" style="margin-top:3px;flex-shrink:0;width:auto;" ' + (ev.freeRegistrationEnabled ? 'checked' : '') + ' onchange="eventsData[' + i + '].freeRegistrationEnabled=this.checked" />' +
+          '<span><strong>Free registration</strong> — on-site form (name, phone, email) or the external link below.</span></label>' +
+          '<input type="url" placeholder="Optional free registration link" value="' + escHtml(ev.freeRegistrationUrl || '') + '" id="free-reg-url-' + i + '" oninput="eventsData[' + i + '].freeRegistrationUrl=this.value.trim()" />' +
+        '</div>' +
+        '<div style="padding:12px 14px;border:1px solid var(--gray-200);border-radius:8px;background:var(--white);">' +
+          '<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:0.82rem;color:var(--gray-700);margin-bottom:10px;text-transform:none;letter-spacing:0;">' +
+          '<input type="checkbox" id="paid-reg-' + i + '" style="margin-top:3px;flex-shrink:0;width:auto;" ' + (ev.paidRegistrationEnabled ? 'checked' : '') + ' onchange="eventsData[' + i + '].paidRegistrationEnabled=this.checked" />' +
+          '<span><strong>Paid registration</strong> — checkout on this site, or an external ticket link below.</span></label>' +
+          '<input type="url" placeholder="Optional paid ticket link" value="' + escHtml(ev.registrationUrl || '') + '" id="reg-url-' + i + '" oninput="eventsData[' + i + '].registrationUrl=this.value.trim()" />' +
+          '<div style="margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
+            '<label style="font-size:0.78rem;color:var(--gray-500);text-transform:none;letter-spacing:0;margin:0;">On-site registration fee (USD)</label>' +
+            '<input type="number" id="reg-fee-' + i + '" min="0" step="0.01" style="width:110px;" value="' + ((ev.registrationFeeCents || 0) / 100).toFixed(2) + '" oninput="eventsData[' + i + '].registrationFeeCents=Math.round((parseFloat(this.value)||0)*100)" />' +
+            '<span style="font-size:0.72rem;color:var(--gray-500);">Used when no paid link is set. 0.00 = free on-site only.</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    container.appendChild(regRow);
+
+    const sponsorRow = document.createElement('div');
+    sponsorRow.className = 'event-sub-row';
+    sponsorRow.id = 'sponsor-row-' + i;
+    sponsorRow.innerHTML =
+      '<div class="sub-input-area">' +
+        '<label><i class="fas fa-handshake"></i> Sponsor Button</label>' +
+        '<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:0.82rem;color:var(--gray-700);margin:8px 0 12px;text-transform:none;letter-spacing:0;">' +
+        '<input type="checkbox" id="sponsor-enabled-' + i + '" style="margin-top:3px;flex-shrink:0;width:auto;" ' + (ev.sponsorEnabled ? 'checked' : '') + ' onchange="eventsData[' + i + '].sponsorEnabled=this.checked" />' +
+        '<span>Show a <strong>sponsor button</strong> on the public events page for this event only.</span></label>' +
+        '<input type="text" placeholder="Become a Sponsor" value="' + escHtml(ev.sponsorLabel || 'Become a Sponsor') + '" id="sponsor-label-' + i + '" oninput="eventsData[' + i + '].sponsorLabel=this.value" />' +
+        '<input type="url" placeholder="Sponsor link (PDF or webpage)" value="' + escHtml(ev.sponsorUrl || '') + '" id="sponsor-url-' + i + '" oninput="eventsData[' + i + '].sponsorUrl=this.value.trim()" style="margin-top:8px;" />' +
+      '</div>';
+    container.appendChild(sponsorRow);
+  });
+  document.getElementById('eventsCountLabel').textContent = eventsData.length + ' event' + (eventsData.length !== 1 ? 's' : '');
+  const statEl = document.getElementById('statEventCount');
+  if (statEl) statEl.textContent = eventsData.length;
+}
+
+function syncEventDatetime(i) {
+  const ev = eventsData[i];
+  if (!ev) return;
+  const g = id => (document.getElementById(id) || {}).value || '';
+  ev.start_date = g('ev-start-date-' + i);
+  ev.start_time = g('ev-start-time-' + i);
+  ev.end_date = g('ev-end-date-' + i);
+  ev.end_time = g('ev-end-time-' + i);
+  ev.datetime = buildDatetime(ev.start_date, ev.start_time, ev.end_date, ev.end_time);
+}
+function toggleFeatured(i) {
+  const wasFeatured = eventsData[i].featured;
+  eventsData.forEach(e => { e.featured = false; });
+  if (!wasFeatured) eventsData[i].featured = true;
+  renderEventsList();
+  showToast(eventsData[i].featured ? '"' + eventsData[i].name + '" is now the featured event.' : 'Featured event cleared.', 'info');
+}
+function toggleEventSubRow(i, kind) {
+  const row = document.getElementById(kind + '-row-' + i);
+  if (!row) return;
+  const isVisible = row.classList.contains('visible');
+  document.querySelectorAll('.event-sub-row').forEach(r => r.classList.remove('visible'));
+  if (!isVisible) row.classList.add('visible');
+  activeFlyerIndex = (!isVisible && kind === 'flyer') ? i : -1;
+}
+function updateFlyerPreview(i) {
+  const url = (document.getElementById('flyer-url-' + i).value || '').trim();
+  eventsData[i].flyer = url;
+  const wrap = document.getElementById('flyer-preview-' + i);
+  wrap.innerHTML = (url && !isInvalidImageUrl(url))
+    ? '<img src="' + escHtml(url) + '" alt="Flyer preview" />'
+    : '<div class="no-flyer"><i class="fas fa-image"></i></div>';
+  const btn = document.querySelector('#event-row-' + i + ' .btn-flyer');
+  if (btn) btn.classList.toggle('has-flyer', !!url);
+}
+function openFlyerUpload(i) { activeFlyerIndex = i; document.getElementById('flyerFileInput').click(); }
+function handleFlyerFile(e) {
+  const file = e.target.files[0];
+  const idx = activeFlyerIndex;
+  e.target.value = '';
+  if (!file || idx < 0) return;
+  (async () => {
+    try {
+      showToast('Uploading flyer…', 'info');
+      const uploaded = await uploadFlyerImage(file);
+      eventsData[idx].flyer = uploaded.url;
+      const input = document.getElementById('flyer-url-' + idx);
+      if (input) input.value = uploaded.url;
+      updateFlyerPreview(idx);
+      showToast('Flyer uploaded. Click "Save All Events" to publish.', 'info');
+    } catch (err) {
+      showToast(errMsg(err), 'error');
+    }
+  })();
+}
+function addEvent() {
+  eventsData.push(normalizeEventRecord({ name: 'New Event', location: '', datetime: '', featured: false, flyer: '', description: '' }));
+  renderEventsList();
+  showToast('New event row added. Fill in the details and save.');
+}
+function removeEvent(i) {
+  if (!confirm('Remove "' + (eventsData[i].name || 'this event') + '"?')) return;
+  eventsData.splice(i, 1);
+  renderEventsList();
+  showToast('Event removed. Click "Save All Events" to confirm.', 'info');
+}
+function buildEventsPayload() {
+  return eventsData.map((ev, idx) => {
+    if (!ev.id) ev.id = uuid();
+    const freeUrl = String(ev.freeRegistrationUrl || '').trim();
+    const paidUrl = String(ev.registrationUrl || '').trim();
+    const freeOnSite = !!ev.freeRegistrationEnabled && !freeUrl;
+    const paidOnSite = !!ev.paidRegistrationEnabled && !paidUrl;
+    return MF.stamp({
+      id: ev.id,
+      name: ev.name || '',
+      location: ev.location || '',
+      datetime: ev.datetime || '',
+      event_date: datetimeToIsoDate(ev.datetime),
+      featured: !!ev.featured,
+      flyer: ev.flyer || '',
+      description: ev.description || '',
+      reg_url: paidUrl,
+      sort_order: idx + 1,
+      free_registration_enabled: !!ev.freeRegistrationEnabled,
+      free_registration_url: freeUrl,
+      paid_registration_enabled: !!ev.paidRegistrationEnabled,
+      chapter_registration_enabled: freeOnSite || paidOnSite,
+      registration_fee_cents: paidOnSite ? Math.max(0, parseInt(String(ev.registrationFeeCents || 0), 10) || 0) : 0,
+      members_only: !!ev.membersOnly,
+      sponsor_enabled: !!ev.sponsorEnabled,
+      sponsor_url: String(ev.sponsorUrl || '').trim(),
+      sponsor_label: String(ev.sponsorLabel || 'Become a Sponsor').trim() || 'Become a Sponsor',
+      updated_at: nowIso()
+    });
+  });
+}
+async function saveEvents() {
+  // Pull any values still sitting in inputs.
+  eventsData.forEach((ev, i) => {
+    const row = document.getElementById('event-row-' + i);
+    if (row) {
+      const nameEl = row.querySelector('.ev-name');
+      const locEl = row.querySelector('.ev-location');
+      if (nameEl) ev.name = nameEl.value;
+      if (locEl) ev.location = locEl.value;
+    }
+    syncEventDatetime(i);
+    const g = id => document.getElementById(id);
+    const free = g('free-reg-' + i), paid = g('paid-reg-' + i), freeUrl = g('free-reg-url-' + i);
+    const fee = g('reg-fee-' + i), mo = g('members-only-' + i);
+    const sEn = g('sponsor-enabled-' + i), sUrl = g('sponsor-url-' + i), sLbl = g('sponsor-label-' + i);
+    const regInput = g('reg-url-' + i), descInput = g('desc-text-' + i), flyerInput = g('flyer-url-' + i);
+    if (free) ev.freeRegistrationEnabled = free.checked;
+    if (paid) ev.paidRegistrationEnabled = paid.checked;
+    if (freeUrl) ev.freeRegistrationUrl = freeUrl.value.trim();
+    if (fee) ev.registrationFeeCents = Math.round((parseFloat(fee.value) || 0) * 100);
+    if (mo) ev.membersOnly = mo.checked;
+    if (sEn) ev.sponsorEnabled = sEn.checked;
+    if (sUrl) ev.sponsorUrl = sUrl.value.trim();
+    if (sLbl) ev.sponsorLabel = sLbl.value.trim() || 'Become a Sponsor';
+    if (regInput) ev.registrationUrl = regInput.value.trim();
+    if (descInput) ev.description = descInput.value.trim();
+    if (flyerInput) ev.flyer = flyerInput.value.trim();
+  });
+
+  try {
+    // Move any inline data: flyers into storage first.
+    for (let i = 0; i < eventsData.length; i++) {
+      const val = String(eventsData[i].flyer || '').trim();
+      if (!val.startsWith('data:image/')) continue;
+      showToast('Moving inline flyer images to storage…', 'info');
+      const uploaded = await uploadToBucket(dataUrlToFile(val, 'flyer'), EVENT_FLYER_BUCKET, 'flyers');
+      eventsData[i].flyer = uploaded.url;
+    }
+    const payload = buildEventsPayload();
+    if (payload.length) {
+      await sb.upsert('events', payload, 'id');
+      const keptIds = payload.map(r => r.id).filter(Boolean);
+      await sb.deleteWhere('events', MF.scope('id=not.in.(' + keptIds.join(',') + ')'));
+    } else {
+      await sb.deleteWhere('events', MF.scope(''));
+    }
+    await loadEventsList();
+    showToast('Events saved.');
+  } catch (err) {
+    showToast('Could not save events: ' + errMsg(err), 'error');
+  }
+}
+
+/* ── Event check-in QR + attendance ── */
+function checkinUrl(page, id) {
+  const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
+  return base + page + '?id=' + encodeURIComponent(id) + (ORG ? '&org=' + encodeURIComponent(ORG.slug) : '');
+}
+function qrImageUrl(target) {
+  return 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(target);
+}
+let _currentEvtQrIndex = null;
+function showEvtQr(i) {
+  const ev = eventsData[i];
+  if (!ev || !ev.id) { showToast('Save events first to generate a QR code.', 'info'); return; }
+  _currentEvtQrIndex = i;
+  document.getElementById('evtQrTitle').textContent = ev.name || 'Event';
+  document.getElementById('evtQrSub').textContent = ev.start_date ? fmtDate(ev.start_date + 'T12:00:00', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '';
+  document.getElementById('evtQrImg').src = qrImageUrl(checkinUrl('event-checkin.html', ev.id));
+  openModal('evtQrModal');
+}
+function printQr(prefix) {
+  const title = document.getElementById(prefix + 'Title').textContent;
+  const sub = document.getElementById(prefix + 'Sub').textContent;
+  const src = document.getElementById(prefix + 'Img').src;
+  const w = window.open('', '_blank', 'width=520,height=640');
+  if (!w) return;
+  w.document.write('<html><head><title>Check-In QR</title><style>body{font-family:Arial,sans-serif;text-align:center;padding:40px;}h2{margin:0 0 6px;}p{color:#666;margin:0 0 20px;}img{border:1px solid #ddd;border-radius:8px;}</style></head><body>');
+  w.document.write('<h2>' + escHtml(title) + '</h2><p>' + escHtml(sub) + '</p><img src="' + src + '" width="250" height="250"/><br><br><p style="font-size:0.85rem;">Scan to check in</p></body></html>');
+  w.document.close(); w.focus();
+  setTimeout(() => w.print(), 500);
+}
+function showEvtAttendanceFromQr() {
+  if (_currentEvtQrIndex === null) return;
+  const ev = eventsData[_currentEvtQrIndex];
+  if (!ev || !ev.id) return;
+  closeModal('evtQrModal');
+  showEvtAttendance(ev.id, ev.name || 'Event');
+}
+async function showEvtAttendance(eventId, title) {
+  try {
+    const attended = await sb.getAll('event_attendance', MF.scope('event_id=eq.' + encodeURIComponent(eventId) + '&order=checked_in_at.asc'));
+    document.getElementById('evtAttTitle').textContent = 'Attendance — ' + title;
+    const listEl = document.getElementById('evtAttList');
+    listEl.innerHTML = (attended && attended.length)
+      ? attended.map(r => '<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--gray-100);">' +
+          '<span style="font-size:0.85rem;color:var(--gray-700);">' + escHtml(r.member_name || r.member_email || 'Unknown') + '</span>' +
+          '<span style="font-size:0.75rem;color:var(--gray-400);">' + (r.checked_in_at ? new Date(r.checked_in_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '') + '</span></div>').join('')
+      : '<p style="color:var(--gray-400);font-size:0.82rem;padding:4px 0;">No check-ins recorded yet.</p>';
+    document.getElementById('evtAttModal')._attendData = { title: title, attended: attended || [] };
+    openModal('evtAttModal');
+  } catch (err) {
+    showToast('Could not load event attendance: ' + errMsg(err), 'error');
+  }
+}
+function downloadEvtAttCsv() {
+  const d = document.getElementById('evtAttModal')._attendData;
+  if (!d) return;
+  const rows = [['Name', 'Email', 'Checked In At']];
+  (d.attended || []).forEach(r => rows.push([r.member_name || '', r.member_email || '', r.checked_in_at ? new Date(r.checked_in_at).toLocaleString() : '']));
+  downloadCsv('attendance-' + (d.title || 'event').replace(/[^a-z0-9]/gi, '-').toLowerCase() + '.csv', rows);
+}
+
+/* ══════════════════════════════════════════════
+   EVENT REGISTRATIONS
+══════════════════════════════════════════════ */
+let allRegistrations = [];
+let allRegistrationEvents = {};
+
+async function loadRegistrationsPanel() {
+  const tbody = document.getElementById('registrationsTableBody');
+  tbody.innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--gray-400);">Loading…</td></tr>';
+  try {
+    const [regs, events] = await Promise.all([
+      sb.getAll('event_registrations', MF.scope('order=created_at.desc')),
+      sb.getAll('events', MF.scope('select=id,name'))
+    ]);
+    allRegistrationEvents = {};
+    (events || []).forEach(e => { allRegistrationEvents[e.id] = e.name; });
+    allRegistrations = regs || [];
+    const sel = document.getElementById('regEventFilter');
+    sel.innerHTML = '<option value="">— All Events —</option>';
+    Object.keys(allRegistrationEvents).forEach(id => {
+      const opt = document.createElement('option');
+      opt.value = id; opt.textContent = allRegistrationEvents[id];
+      sel.appendChild(opt);
+    });
+    renderRegistrationsTable(allRegistrations);
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="7" class="error-state" style="padding:24px;text-align:center;">Could not load registrations: ' + escHtml(errMsg(err)) + '</td></tr>';
+  }
+}
+function filterRegistrations() {
+  const eventId = document.getElementById('regEventFilter').value;
+  renderRegistrationsTable(eventId ? allRegistrations.filter(r => String(r.event_id) === eventId) : allRegistrations);
+}
+function renderRegistrationsTable(rows) {
+  const tbody = document.getElementById('registrationsTableBody');
+  document.getElementById('regCount').textContent = rows.length + ' registration' + (rows.length !== 1 ? 's' : '');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--gray-400);">No registrations found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => {
+    const statusColor = r.payment_status === 'paid' ? 'var(--green)' : 'var(--blue)';
+    return '<tr>' +
+      '<td>' + escHtml(r.full_name || '—') + '</td>' +
+      '<td>' + escHtml(r.email || '—') + '</td>' +
+      '<td>' + escHtml(r.phone || '—') + '</td>' +
+      '<td>' + escHtml(allRegistrationEvents[r.event_id] || '—') + '</td>' +
+      '<td><span style="color:' + statusColor + ';font-weight:600;text-transform:capitalize;">' + escHtml(r.payment_status || 'free') + '</span></td>' +
+      '<td>' + fmtDate(r.created_at) + '</td>' +
+      '<td style="text-align:center;"><button class="btn-sm danger" onclick="deleteRegistration(\'' + escHtml(String(r.id)) + '\')" title="Delete"><i class="fas fa-trash"></i></button></td>' +
+      '</tr>';
+  }).join('');
+}
+function exportRegistrationsCsv() {
+  const eventId = document.getElementById('regEventFilter').value;
+  const rows = eventId ? allRegistrations.filter(r => String(r.event_id) === eventId) : allRegistrations;
+  if (!rows.length) { showToast('No registrations to export.', 'info'); return; }
+  const out = [['Name', 'Email', 'Phone', 'Event', 'Status', 'Date Registered']];
+  rows.forEach(r => out.push([r.full_name, r.email, r.phone, allRegistrationEvents[r.event_id] || '', r.payment_status || 'free', fmtDate(r.created_at)]));
+  const label = eventId && allRegistrationEvents[eventId] ? allRegistrationEvents[eventId].replace(/[^a-z0-9]/gi, '-') : 'all-events';
+  downloadCsv('registrations-' + label + '.csv', out);
+}
+async function deleteRegistration(id) {
+  if (!id || !confirm('Delete this registration? This cannot be undone.')) return;
+  try {
+    await sb.deleteWhere('event_registrations', MF.scope('id=eq.' + encodeURIComponent(id)));
+    allRegistrations = allRegistrations.filter(r => String(r.id) !== String(id));
+    filterRegistrations();
+    showToast('Registration deleted.');
+  } catch (err) {
+    showToast('Could not delete registration: ' + errMsg(err), 'error');
+  }
+}
+
+/* ══════════════════════════════════════════════
+   MEETINGS
+══════════════════════════════════════════════ */
+function time24ToAmPm(t) {
+  if (!t) return '';
+  const parts = String(t).split(':');
+  let h = parseInt(parts[0], 10);
+  const min = parts[1] || '00';
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return h + ':' + min + ' ' + ampm;
+}
+
+async function loadMeetingsPanel() {
+  const el = document.getElementById('meetingsList');
+  if (!el) return;
+  el.innerHTML = '<div class="hint-text">Loading…</div>';
+  try {
+    const meetings = await sb.getAll('meetings', MF.scope('order=meeting_date.desc'));
+    if (!meetings || !meetings.length) {
+      el.innerHTML = '<div class="hint-text">No meetings scheduled yet.</div>';
+      return;
+    }
+    const [rsvps, attendance, allDocs] = await Promise.all([
+      sb.getAll('meeting_rsvps', MF.scope('select=meeting_id,response')).catch(() => []),
+      sb.getAll('meeting_attendance', MF.scope('select=meeting_id,id')).catch(() => []),
+      sb.getAll('documents', MF.scope('meeting_id=not.is.null&order=created_at.desc')).catch(() => [])
+    ]);
+    const rsvpMap = {}, attMap = {}, docsByMtg = {};
+    (rsvps || []).forEach(r => {
+      if (!rsvpMap[r.meeting_id]) rsvpMap[r.meeting_id] = { yes: 0, no: 0, maybe: 0 };
+      if (rsvpMap[r.meeting_id][r.response] !== undefined) rsvpMap[r.meeting_id][r.response]++;
+    });
+    (attendance || []).forEach(a => { attMap[a.meeting_id] = (attMap[a.meeting_id] || 0) + 1; });
+    (allDocs || []).forEach(d => { (docsByMtg[d.meeting_id] = docsByMtg[d.meeting_id] || []).push(d); });
+
+    el.innerHTML = meetings.map(m => {
+      const id = escHtml(String(m.id));
+      const dateStr = m.meeting_date ? fmtDate(m.meeting_date + 'T12:00:00', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' }) : '—';
+      const timeStr = m.start_time ? time24ToAmPm(m.start_time) + (m.end_time ? ' – ' + time24ToAmPm(m.end_time) : '') : '';
+      const r = rsvpMap[m.id] || { yes: 0, no: 0, maybe: 0 };
+      const checked = attMap[m.id] || 0;
+      const mDocs = docsByMtg[m.id] || [];
+      const pendingDocs = mDocs.filter(d => (d.status || 'approved') === 'pending');
+      const approvedDocs = mDocs.filter(d => (d.status || 'approved') !== 'pending');
+      const docsHtml =
+        '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--gray-100);">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">' +
+        '<span style="font-size:0.8rem;font-weight:700;color:var(--gray-600);text-transform:uppercase;letter-spacing:0.06em;"><i class="fas fa-paperclip"></i> Meeting Documents</span>' +
+        '<button class="btn-sm view" onclick="triggerMtgDocUpload(\'' + id + '\')"><i class="fas fa-upload"></i> Attach Doc</button></div>' +
+        '<input type="file" id="mtgDocFile-' + id + '" style="display:none;" onchange="handleMtgDocUpload(event,\'' + id + '\')" />' +
+        (pendingDocs.length
+          ? '<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:10px 12px;margin-bottom:8px;">' +
+            '<div style="font-size:0.75rem;font-weight:700;color:#92400e;margin-bottom:6px;"><i class="fas fa-clock"></i> Pending Approval (' + pendingDocs.length + ')</div>' +
+            pendingDocs.map(d => '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0;flex-wrap:wrap;">' +
+              '<span style="font-size:0.82rem;">' + escHtml(d.title) + (d.uploaded_by_name ? ' <span style="color:var(--gray-500);">— ' + escHtml(d.uploaded_by_name) + '</span>' : '') + '</span>' +
+              '<div style="display:flex;gap:4px;">' +
+              '<button class="btn-sm success" onclick="approveDocument(\'' + escHtml(String(d.id)) + '\')"><i class="fas fa-check"></i></button>' +
+              '<button class="btn-sm danger" onclick="rejectDocument(\'' + escHtml(String(d.id)) + '\',\'' + esc1(d.title) + '\')"><i class="fas fa-times"></i></button>' +
+              '</div></div>').join('') + '</div>'
+          : '') +
+        (approvedDocs.length
+          ? approvedDocs.map(d => '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--gray-100);">' +
+              '<i class="fas fa-file-alt" style="color:var(--a-brand);"></i>' +
+              '<span style="flex:1;font-size:0.83rem;">' + escHtml(d.title) + '</span>' +
+              (d.file_url ? '<a href="' + escHtml(d.file_url) + '" target="_blank" rel="noopener" class="btn-sm view"><i class="fas fa-download"></i></a>' : '') +
+              '<button class="btn-sm danger" onclick="deleteDocument(\'' + escHtml(String(d.id)) + '\',\'' + esc1(d.title) + '\')"><i class="fas fa-trash"></i></button></div>').join('')
+          : '<div style="font-size:0.8rem;color:var(--gray-400);padding:4px 0;">No documents attached yet.</div>') +
+        '</div>';
+
+      return '<div class="list-card">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">' +
+        '<div><div style="font-size:0.95rem;font-weight:700;color:var(--gray-800);">' + escHtml(m.title) + '</div>' +
+        '<div style="font-size:0.82rem;color:var(--gray-500);margin-top:3px;"><i class="fas fa-calendar"></i> ' + escHtml(dateStr) +
+        (timeStr ? ' · <i class="fas fa-clock"></i> ' + escHtml(timeStr) : '') + '</div>' +
+        (m.location ? '<div style="font-size:0.82rem;color:var(--gray-500);margin-top:2px;"><i class="fas fa-map-marker-alt"></i> ' + escHtml(m.location) + '</div>' : '') +
+        '</div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
+        '<button class="btn-sm view" onclick="showMtgQr(\'' + id + '\',\'' + esc1(m.title) + '\',\'' + esc1(dateStr) + '\')"><i class="fas fa-qrcode"></i> QR Check-In</button>' +
+        '<button class="btn-sm view" onclick="showMtgAttendance(\'' + id + '\',\'' + esc1(m.title) + '\')"><i class="fas fa-clipboard-check"></i> Attendance</button>' +
+        '<button class="btn-sm danger" onclick="deleteMeeting(\'' + id + '\',\'' + esc1(m.title) + '\')"><i class="fas fa-trash"></i></button>' +
+        '</div></div>' +
+        '<div style="display:flex;gap:16px;margin-top:12px;padding-top:10px;border-top:1px solid var(--gray-100);font-size:0.8rem;flex-wrap:wrap;">' +
+        '<span style="color:var(--green);"><i class="fas fa-check"></i> ' + r.yes + ' Yes</span>' +
+        '<span style="color:var(--gray-400);"><i class="fas fa-question"></i> ' + r.maybe + ' Maybe</span>' +
+        '<span style="color:var(--red);"><i class="fas fa-times"></i> ' + r.no + ' No</span>' +
+        '<span style="color:var(--a-brand);margin-left:auto;"><i class="fas fa-door-open"></i> ' + checked + ' Checked In</span>' +
+        '</div>' +
+        (m.agenda ? '<div style="margin-top:10px;font-size:0.8rem;color:var(--gray-500);white-space:pre-wrap;">' + escHtml(m.agenda) + '</div>' : '') +
+        docsHtml + '</div>';
+    }).join('');
+  } catch (err) {
+    el.innerHTML = '<div class="error-state">Could not load meetings: ' + escHtml(errMsg(err)) + '</div>';
+  }
+}
+
+async function saveMeeting() {
+  const g = id => ((document.getElementById(id) || {}).value || '').trim();
+  const title = g('mtgTitle'), date = g('mtgDate');
+  const msgEl = document.getElementById('mtgFormMsg');
+  const mtgMsg = (text, ok) => {
+    if (!msgEl) return;
+    msgEl.style.display = 'block';
+    msgEl.style.color = ok ? 'var(--green)' : 'var(--red)';
+    msgEl.textContent = text;
+  };
+  if (!title) { mtgMsg('Please enter a meeting title.', false); return; }
+  if (!date) { mtgMsg('Please select a date.', false); return; }
+  try {
+    await sb.insert('meetings', MF.stamp({
+      title, meeting_date: date,
+      start_time: g('mtgStart') || null,
+      end_time: g('mtgEnd') || null,
+      location: g('mtgLocation') || null,
+      agenda: g('mtgAgenda') || null,
+      created_by: (MFAuth.session.user && MFAuth.session.user.email) || null
+    }));
+    mtgMsg('Meeting scheduled!', true);
+    ['mtgTitle', 'mtgDate', 'mtgStart', 'mtgEnd', 'mtgLocation', 'mtgAgenda'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    loadMeetingsPanel();
+  } catch (err) {
+    mtgMsg('Error: ' + errMsg(err), false);
+  }
+}
+async function deleteMeeting(id, title) {
+  if (!confirm('Delete meeting "' + title + '"? This also removes its RSVPs and attendance records.')) return;
+  try {
+    await sb.deleteWhere('meetings', MF.scope('id=eq.' + encodeURIComponent(id)));
+    showToast('Meeting deleted.');
+    loadMeetingsPanel();
+  } catch (err) {
+    showToast('Could not delete: ' + errMsg(err), 'error');
+  }
+}
+function showMtgQr(id, title, dateStr) {
+  document.getElementById('mtgQrTitle').textContent = title;
+  document.getElementById('mtgQrSub').textContent = dateStr;
+  document.getElementById('mtgQrImg').src = qrImageUrl(checkinUrl('meeting-checkin.html', id));
+  openModal('mtgQrModal');
+}
+async function showMtgAttendance(meetingId, title) {
+  try {
+    const [attended, rsvps] = await Promise.all([
+      sb.getAll('meeting_attendance', MF.scope('meeting_id=eq.' + encodeURIComponent(meetingId) + '&order=checked_in_at.asc')),
+      sb.getAll('meeting_rsvps', MF.scope('meeting_id=eq.' + encodeURIComponent(meetingId) + '&response=in.(yes,maybe)&select=member_id,member_name,member_email,response'))
+    ]);
+    const checkedIds = new Set((attended || []).map(r => String(r.member_id || '')));
+    const checkedEmails = new Set((attended || []).map(r => (r.member_email || '').toLowerCase()));
+    const notCheckedIn = (rsvps || []).filter(r =>
+      !checkedIds.has(String(r.member_id || '__none__')) && !(r.member_email && checkedEmails.has(r.member_email.toLowerCase())));
+    document.getElementById('mtgAttTitle').textContent = 'Attendance — ' + title;
+    const ciEl = document.getElementById('mtgAttCheckedIn');
+    ciEl.innerHTML = (attended && attended.length)
+      ? attended.map(r => '<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--gray-100);">' +
+          '<span style="font-size:0.85rem;color:var(--gray-700);">' + escHtml(r.member_name || r.member_email || 'Unknown') + '</span>' +
+          '<span style="font-size:0.75rem;color:var(--gray-400);">' + (r.checked_in_at ? new Date(r.checked_in_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '') + '</span></div>').join('')
+      : '<p style="color:var(--gray-400);font-size:0.82rem;padding:4px 0;">No check-ins yet.</p>';
+    const ncEl = document.getElementById('mtgAttNotChecked');
+    ncEl.innerHTML = notCheckedIn.length
+      ? notCheckedIn.map(r => '<div style="padding:5px 0;border-bottom:1px solid var(--gray-100);font-size:0.85rem;color:var(--gray-600);">' + escHtml(r.member_name || r.member_email || 'Unknown') + '</div>').join('')
+      : '<p style="color:var(--gray-400);font-size:0.82rem;padding:4px 0;">Everyone who RSVP\'d has checked in.</p>';
+    document.getElementById('mtgAttModal')._attendData = { title, attended: attended || [], notCheckedIn };
+    openModal('mtgAttModal');
+  } catch (err) {
+    showToast('Could not load attendance: ' + errMsg(err), 'error');
+  }
+}
+function downloadMtgAttCsv() {
+  const d = document.getElementById('mtgAttModal')._attendData;
+  if (!d) return;
+  const rows = [['Name', 'Email', 'Status', 'Checked In At']];
+  (d.attended || []).forEach(r => rows.push([r.member_name || '', r.member_email || '', 'Checked In', r.checked_in_at ? new Date(r.checked_in_at).toLocaleString() : '']));
+  (d.notCheckedIn || []).forEach(r => rows.push([r.member_name || '', r.member_email || '', "RSVP'd — Not Checked In", '']));
+  downloadCsv('attendance-' + (d.title || 'meeting').replace(/[^a-z0-9]/gi, '-').toLowerCase() + '.csv', rows);
+}
+function triggerMtgDocUpload(meetingId) {
+  const input = document.getElementById('mtgDocFile-' + meetingId);
+  if (input) input.click();
+}
+async function handleMtgDocUpload(e, meetingId) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const title = prompt('Document title:', file.name.replace(/\.[^.]+$/, ''));
+  if (!title) return;
+  const category = prompt('Category (General, Minutes, Financial, Bylaws, Forms, Policy, Announcements):', 'General') || 'General';
+  showToast('Uploading…', 'info');
+  try {
+    const uploaded = await uploadDocumentFile(file);
+    await sb.insert('documents', MF.stamp({
+      title, category, file_url: uploaded.url, members_only: true,
+      meeting_id: meetingId, status: 'approved',
+      uploaded_by_name: (MFAuth.session.user && MFAuth.session.user.email) || null
+    }));
+    showToast('Document attached to meeting.');
+    loadMeetingsPanel();
+  } catch (err) {
+    showToast('Upload failed: ' + errMsg(err), 'error');
+  }
+}
+
+/* ══════════════════════════════════════════════
+   ORG NEWS FEED (org_news_posts)
+══════════════════════════════════════════════ */
+const CN_CAT_COLORS = { General: 'var(--blue)', Announcement: 'var(--a-brand)', Reminder: '#f59e0b', 'Event Update': '#8b5cf6', Financial: 'var(--green)' };
+
+async function loadOrgNewsPanel() {
+  const el = document.getElementById('orgNewsList');
+  if (!el) return;
+  el.innerHTML = '<div class="hint-text">Loading…</div>';
+  try {
+    const posts = await sb.getAll('org_news_posts', MF.scope('order=pinned.desc,created_at.desc'));
+    if (!posts || !posts.length) {
+      el.innerHTML = '<div class="hint-text">No posts yet. Use the form above to post the first update.</div>';
+      return;
+    }
+    el.innerHTML = posts.map(p => {
+      const color = CN_CAT_COLORS[p.category] || 'var(--blue)';
+      const id = escHtml(String(p.id));
+      return '<div class="list-card">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">' +
+        '<div style="flex:1;min-width:200px;">' +
+        (p.pinned ? '<span style="background:var(--a-brand);color:var(--a-on-brand);font-size:0.65rem;font-weight:800;padding:2px 7px;border-radius:4px;margin-right:7px;"><i class="fas fa-thumbtack"></i> PINNED</span>' : '') +
+        '<span style="background:color-mix(in srgb,' + color + ' 15%, transparent);color:' + color + ';font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:10px;">' + escHtml(p.category || 'General') + '</span>' +
+        '<div style="font-size:0.95rem;font-weight:700;color:var(--gray-800);margin-top:6px;">' + escHtml(p.title) + '</div>' +
+        '<div style="font-size:0.78rem;color:var(--gray-400);margin-top:2px;">Posted ' + fmtDate(p.created_at, { month: 'long', day: 'numeric', year: 'numeric' }) + (p.created_by ? ' by ' + escHtml(p.created_by) : '') + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+        '<button class="btn-sm view" onclick="togglePinNews(\'' + id + '\',' + (p.pinned ? 'false' : 'true') + ')" title="' + (p.pinned ? 'Unpin' : 'Pin') + '"><i class="fas fa-thumbtack"></i></button>' +
+        '<button class="btn-sm danger" onclick="deleteOrgNews(\'' + id + '\',\'' + esc1(p.title) + '\')"><i class="fas fa-trash"></i></button>' +
+        '</div></div>' +
+        '<div style="margin-top:12px;font-size:0.88rem;color:var(--gray-600);line-height:1.65;white-space:pre-wrap;">' + escHtml(p.body) + '</div>' +
+        '</div>';
+    }).join('');
+  } catch (err) {
+    el.innerHTML = '<div class="error-state">Could not load posts: ' + escHtml(errMsg(err)) +
+      ' <button class="btn-sm danger" onclick="loadOrgNewsPanel()">Retry</button></div>';
+  }
+}
+async function postOrgNews() {
+  const g = id => ((document.getElementById(id) || {}).value || '').trim();
+  const title = g('cnTitle'), body = g('cnBody');
+  const category = (document.getElementById('cnCategory') || {}).value || 'General';
+  const pinned = !!(document.getElementById('cnPinned') || {}).checked;
+  const msgEl = document.getElementById('cnPostMsg');
+  const msg = (text, ok) => {
+    if (!msgEl) return;
+    msgEl.style.display = 'block';
+    msgEl.style.color = ok ? 'var(--green)' : 'var(--red)';
+    msgEl.textContent = text;
+  };
+  if (!title) { msg('Please enter a title.', false); return; }
+  if (!body) { msg('Please enter a message.', false); return; }
+  try {
+    await sb.insert('org_news_posts', MF.stamp({
+      title, body, category, pinned,
+      created_by: (MFAuth.session.user && MFAuth.session.user.email) || null
+    }));
+    msg('Posted!', true);
+    document.getElementById('cnTitle').value = '';
+    document.getElementById('cnBody').value = '';
+    document.getElementById('cnPinned').checked = false;
+    loadOrgNewsPanel();
+    setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+  } catch (err) {
+    msg('Error: ' + errMsg(err), false);
+  }
+}
+async function togglePinNews(id, pinned) {
+  try {
+    await sb.patchWhere('org_news_posts', MF.scope('id=eq.' + encodeURIComponent(id)), { pinned });
+    loadOrgNewsPanel();
+  } catch (err) {
+    showToast('Could not update pin: ' + errMsg(err), 'error');
+  }
+}
+async function deleteOrgNews(id, title) {
+  if (!confirm('Delete "' + title + '"?')) return;
+  try {
+    await sb.deleteWhere('org_news_posts', MF.scope('id=eq.' + encodeURIComponent(id)));
+    showToast('Post deleted.');
+    loadOrgNewsPanel();
+  } catch (err) {
+    showToast('Could not delete: ' + errMsg(err), 'error');
+  }
+}
+
+/* ══════════════════════════════════════════════
+   ANNOUNCEMENT BAR
+══════════════════════════════════════════════ */
+let currentAnnouncementId = null;
+
+async function loadAnnouncement() {
+  let row = null;
+  try {
+    const rows = await sb.getAll('announcements', MF.scope('order=id.desc&limit=1'));
+    row = (rows && rows[0]) || null;
+  } catch (err) {
+    showToast('Could not load the announcement: ' + errMsg(err), 'error');
+  }
+  currentAnnouncementId = row ? row.id : null;
+  document.getElementById('announceText').value = row ? (row.text || '') : '';
+  document.getElementById('announceLinkText').value = row ? (row.link_text || '') : '';
+  document.getElementById('announceLinkUrl').value = row ? (row.link_url || '') : '';
+  document.getElementById('announceActive').checked = row ? !!row.active : true;
+  updateAnnouncePreview();
+}
+function updateAnnouncePreview() {
+  const t = document.getElementById('announceText').value;
+  const lt = document.getElementById('announceLinkText').value;
+  document.getElementById('announcePreview').innerHTML =
+    (escHtml(t) || 'Preview will appear here') + (lt ? ' &nbsp; <u>' + escHtml(lt) + '</u>' : '');
+}
+async function saveAnnouncement() {
+  const data = {
+    text: document.getElementById('announceText').value,
+    link_text: document.getElementById('announceLinkText').value,
+    link_url: document.getElementById('announceLinkUrl').value,
+    active: document.getElementById('announceActive').checked,
+    updated_at: nowIso()
+  };
+  try {
+    if (currentAnnouncementId) {
+      await sb.patchWhere('announcements', MF.scope('id=eq.' + encodeURIComponent(currentAnnouncementId)), data);
+    } else {
+      const created = await sb.insert('announcements', MF.stamp(data));
+      currentAnnouncementId = Array.isArray(created) && created[0] ? created[0].id : null;
+    }
+    showToast('Announcement saved.');
+  } catch (err) {
+    showToast('Could not save announcement: ' + errMsg(err), 'error');
+  }
+}
+
+/* ══════════════════════════════════════════════
+   NEWS MANAGER (site_content.news_articles)
+══════════════════════════════════════════════ */
+let newsArticlesData = [];
+let activeNewsImageIndex = -1;
+
+function sanitizeNewsArticle(a) {
+  if (!a || typeof a !== 'object') return null;
+  return {
+    title: String(a.title || '').trim(),
+    tag: String(a.tag || '').trim(),
+    date: String(a.date || '').trim(),
+    image: String(a.image || '').trim(),
+    excerpt: String(a.excerpt || '').trim(),
+    body: String(a.body || '').trim(),
+    placement: a.placement === 'sidebar' ? 'sidebar' : 'main',
+    featured: !!a.featured,
+    published: a.published !== false
+  };
+}
+async function loadNewsArticlesPanel() {
+  try {
+    const raw = await getContentJson(KEY_NEWS_ARTICLES, []);
+    newsArticlesData = Array.isArray(raw) ? raw.map(sanitizeNewsArticle).filter(a => a && a.title) : [];
+    _panelLoaded.newsManager = true;
+    renderNewsArticlesList();
+  } catch (err) {
+    document.getElementById('newsArticlesList').innerHTML =
+      '<div class="error-state">Could not load news articles: ' + escHtml(errMsg(err)) + '</div>';
+  }
+}
+function renderNewsArticlesList() {
+  const container = document.getElementById('newsArticlesList');
+  if (!container) return;
+  container.innerHTML = '';
+  newsArticlesData.forEach((article, i) => {
+    const row = document.createElement('div');
+    row.className = 'news-row';
+    row.id = 'news-row-' + i;
+    row.innerHTML =
+      '<input type="text" placeholder="Headline" value="' + escHtml(article.title) + '" oninput="newsArticlesData[' + i + '].title=this.value" />' +
+      '<input type="text" placeholder="Tag" value="' + escHtml(article.tag) + '" oninput="newsArticlesData[' + i + '].tag=this.value" />' +
+      '<input type="text" placeholder="Date" value="' + escHtml(article.date) + '" oninput="newsArticlesData[' + i + '].date=this.value" />' +
+      '<button class="icon-btn featured-star' + (article.featured ? ' active' : '') + '" title="Feature on homepage" onclick="toggleNewsFeatured(' + i + ')"><i class="fas fa-star"></i></button>' +
+      '<button class="icon-btn btn-sidebar' + (article.placement === 'sidebar' ? ' active' : '') + '" title="Sidebar / main placement" onclick="toggleNewsPlacement(' + i + ')"><i class="fas fa-list"></i></button>' +
+      '<button class="icon-btn btn-flyer' + (article.image ? ' has-flyer' : '') + '" title="Article image" onclick="toggleNewsSubRow(' + i + ',\'image\')"><i class="fas fa-image"></i></button>' +
+      '<button class="icon-btn btn-desc' + ((article.excerpt || article.body) ? ' has-desc' : '') + '" title="Story text" onclick="toggleNewsSubRow(' + i + ',\'body\')"><i class="fas fa-align-left"></i></button>' +
+      '<button class="icon-btn btn-del" onclick="removeNewsArticle(' + i + ')" title="Remove article"><i class="fas fa-trash"></i></button>';
+    container.appendChild(row);
+
+    const imageRow = document.createElement('div');
+    imageRow.className = 'news-sub-row';
+    imageRow.id = 'news-image-row-' + i;
+    imageRow.innerHTML =
+      '<div class="flyer-preview-wrap" id="news-preview-' + i + '">' +
+        (article.image && !isInvalidImageUrl(article.image)
+          ? '<img src="' + escHtml(article.image) + '" alt="News image" />'
+          : '<div class="no-flyer"><i class="fas fa-image"></i></div>') +
+      '</div>' +
+      '<div class="sub-input-area">' +
+        '<label>Article Image</label>' +
+        '<input type="text" placeholder="Paste image URL" value="' + escHtml(article.image || '') + '" id="news-image-url-' + i + '" oninput="updateNewsImagePreview(' + i + ')" />' +
+        '<div class="flyer-or">— or —</div>' +
+        '<button type="button" class="upload-btn" onclick="openNewsPhotoUpload(' + i + ')"><i class="fas fa-upload"></i> Upload from Computer</button>' +
+      '</div>';
+    container.appendChild(imageRow);
+
+    const bodyRow = document.createElement('div');
+    bodyRow.className = 'news-sub-row';
+    bodyRow.id = 'news-body-row-' + i;
+    bodyRow.innerHTML =
+      '<div class="sub-input-area" style="width:100%;">' +
+        '<label>Short Summary</label>' +
+        '<textarea id="news-excerpt-' + i + '" rows="3" placeholder="Short summary for cards and sidebar items." oninput="newsArticlesData[' + i + '].excerpt=this.value">' + escHtml(article.excerpt || '') + '</textarea>' +
+        '<label style="margin-top:14px;">Full Story</label>' +
+        '<textarea id="news-body-' + i + '" rows="6" placeholder="Full article text. Use blank lines between paragraphs." oninput="newsArticlesData[' + i + '].body=this.value">' + escHtml(article.body || '') + '</textarea>' +
+        '<label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:0.82rem;color:var(--gray-600);text-transform:none;letter-spacing:0;">' +
+          '<input type="checkbox" id="news-published-' + i + '" ' + (article.published !== false ? 'checked' : '') + ' onchange="newsArticlesData[' + i + '].published=this.checked" style="width:auto;" /> Published (visible on website)' +
+        '</label>' +
+      '</div>';
+    container.appendChild(bodyRow);
+  });
+  const label = document.getElementById('newsCountLabel');
+  if (label) label.textContent = newsArticlesData.length + ' article' + (newsArticlesData.length !== 1 ? 's' : '');
+}
+function toggleNewsFeatured(i) {
+  const was = newsArticlesData[i].featured;
+  newsArticlesData.forEach(a => { a.featured = false; });
+  if (!was) newsArticlesData[i].featured = true;
+  renderNewsArticlesList();
+}
+function toggleNewsPlacement(i) {
+  newsArticlesData[i].placement = newsArticlesData[i].placement === 'sidebar' ? 'main' : 'sidebar';
+  renderNewsArticlesList();
+}
+function toggleNewsSubRow(i, kind) {
+  const row = document.getElementById('news-' + kind + '-row-' + i);
+  if (!row) return;
+  const wasVisible = row.classList.contains('visible');
+  document.querySelectorAll('.news-sub-row').forEach(r => r.classList.remove('visible'));
+  if (!wasVisible) row.classList.add('visible');
+}
+function updateNewsImagePreview(i) {
+  const input = document.getElementById('news-image-url-' + i);
+  const url = input ? input.value.trim() : '';
+  if (newsArticlesData[i]) newsArticlesData[i].image = url;
+  const wrap = document.getElementById('news-preview-' + i);
+  if (wrap) {
+    wrap.innerHTML = (url && !isInvalidImageUrl(url))
+      ? '<img src="' + escHtml(url) + '" alt="News image" />'
+      : '<div class="no-flyer"><i class="fas fa-image"></i></div>';
+  }
+  const btn = document.querySelector('#news-row-' + i + ' .btn-flyer');
+  if (btn) btn.classList.toggle('has-flyer', !!url);
+}
+function openNewsPhotoUpload(i) { activeNewsImageIndex = i; document.getElementById('newsPhotoInput').click(); }
+function handleNewsPhotoUpload(e) {
+  const file = e.target.files[0];
+  const idx = activeNewsImageIndex;
+  e.target.value = '';
+  activeNewsImageIndex = -1;
+  if (!file || idx < 0) return;
+  (async () => {
+    try {
+      showToast('Uploading news image…', 'info');
+      const uploaded = await uploadNewsImage(file);
+      if (newsArticlesData[idx]) newsArticlesData[idx].image = uploaded.url;
+      const input = document.getElementById('news-image-url-' + idx);
+      if (input) input.value = uploaded.url;
+      updateNewsImagePreview(idx);
+      showToast('Image uploaded. Click "Save All News" to publish.', 'info');
+    } catch (err) { showToast(errMsg(err), 'error'); }
+  })();
+}
+function addNewsArticle() {
+  newsArticlesData.push({ title: 'New Article', tag: 'News', date: '', image: '', excerpt: '', body: '', placement: 'main', featured: false, published: true });
+  renderNewsArticlesList();
+}
+function removeNewsArticle(i) {
+  if (!confirm('Remove "' + newsArticlesData[i].title + '"?')) return;
+  newsArticlesData.splice(i, 1);
+  renderNewsArticlesList();
+}
+function syncNewsArticlesFromDom() {
+  newsArticlesData.forEach((article, i) => {
+    const row = document.getElementById('news-row-' + i);
+    if (row) {
+      const inputs = row.querySelectorAll('input[type="text"]');
+      if (inputs[0]) article.title = inputs[0].value.trim();
+      if (inputs[1]) article.tag = inputs[1].value.trim();
+      if (inputs[2]) article.date = inputs[2].value.trim();
+    }
+    const g = id => document.getElementById(id);
+    const img = g('news-image-url-' + i), ex = g('news-excerpt-' + i), bd = g('news-body-' + i), pub = g('news-published-' + i);
+    if (img) article.image = img.value.trim();
+    if (ex) article.excerpt = ex.value.trim();
+    if (bd) article.body = bd.value.trim();
+    if (pub) article.published = pub.checked;
+  });
+}
+async function saveNewsArticles() {
+  syncNewsArticlesFromDom();
+  const cleaned = newsArticlesData.map(sanitizeNewsArticle).filter(a => a && a.title);
+  if (!cleaned.length) { showToast('Add at least one article with a headline before saving.', 'error'); return; }
+  try {
+    for (let i = 0; i < cleaned.length; i++) {
+      if (String(cleaned[i].image || '').startsWith('data:image/')) {
+        showToast('Moving inline images to storage…', 'info');
+        cleaned[i].image = await materializePhoto(cleaned[i].image, 'news');
+      }
+    }
+    await saveContentJson(KEY_NEWS_ARTICLES, cleaned);
+    newsArticlesData = cleaned;
+    renderNewsArticlesList();
+    showToast('News articles saved.');
+  } catch (err) {
+    showToast('Could not save news articles: ' + errMsg(err), 'error');
+  }
+}
+
+/* ══════════════════════════════════════════════
+   OFFICERS + PAST LEADERS (site_content)
+══════════════════════════════════════════════ */
+const STARTER_OFFICERS = [
+  'Vice President', 'Recording Secretary', 'Treasurer', 'Corresponding Secretary',
+  'Financial Secretary', 'Membership Chair', 'Chaplain', 'Director of Programs',
+  'Historian', 'Parliamentarian', 'Communications Chair', 'Sergeant-at-Arms'
+].map(title => ({ title, name: '', photo: '' }));
+
+let officersData = [];
+let presidentsData = [];
+let activeOfficerPhotoIndex = -1;
+let activePresidentPhotoIndex = -1;
+
+async function loadOfficersPanel() {
+  try {
+    const [p, officers] = await Promise.all([
+      getContentJson(KEY_PRESIDENT, {}),
+      getContentJson(KEY_OFFICERS, [])
+    ]);
+    const pres = p || {};
+    document.getElementById('presName').value = pres.name || '';
+    document.getElementById('presTitle').value = pres.title || '';
+    document.getElementById('presBadge').value = pres.badge || '';
+    document.getElementById('presYear').value = pres.adminYear || '';
+    document.getElementById('presPhoto').value = pres.photo || '';
+    document.getElementById('presBio').value = pres.bio || '';
+    updatePresPhotoPreview();
+    officersData = Array.isArray(officers) ? officers.map(o => ({ title: o.title || '', name: o.name || '', photo: o.photo || '' })) : [];
+    _panelLoaded.officers = true;
+    renderOfficersTable();
+  } catch (err) {
+    showToast('Could not load leadership data: ' + errMsg(err), 'error');
+    document.getElementById('officersTableBody').innerHTML =
+      '<tr><td colspan="6" class="error-state">Could not load officers: ' + escHtml(errMsg(err)) + '</td></tr>';
+  }
+}
+function renderOfficersTable() {
+  const tbody = document.getElementById('officersTableBody');
+  if (!tbody) return;
+  if (!officersData.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--gray-500);">No officers yet. Click <strong>Restore Starter Positions</strong> or add a row.</td></tr>';
+    document.getElementById('officerCountBadge').textContent = '0';
+    return;
+  }
+  tbody.innerHTML = officersData.map((o, i) =>
+    '<tr>' +
+    '<td><div class="row-num">' + (i + 2) + '</div></td>' +
+    '<td><input type="text" value="' + escHtml(o.title) + '" placeholder="Position title" onchange="officersData[' + i + '].title=this.value" /></td>' +
+    '<td><input type="text" value="' + escHtml(o.name) + '" placeholder="Full name" onchange="officersData[' + i + '].name=this.value" /></td>' +
+    '<td><div style="display:flex;align-items:center;gap:5px;">' +
+      '<div id="officer-photo-preview-' + i + '" style="width:30px;height:30px;border-radius:50%;border:1.5px solid var(--gray-200);background:var(--gray-100);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--gray-400);font-size:0.8rem;">' +
+      ((o.photo && !isInvalidImageUrl(o.photo)) ? '<img src="' + escHtml(o.photo) + '" style="width:100%;height:100%;object-fit:cover;" />' : '<i class="fas fa-user"></i>') +
+      '</div>' +
+      '<input type="text" value="' + escHtml(o.photo) + '" placeholder="Photo URL" id="officer-photo-url-' + i + '" onchange="officersData[' + i + '].photo=this.value; updateOfficerPhotoPreview(' + i + ')" style="flex:1;" />' +
+    '</div></td>' +
+    '<td style="text-align:center;"><button class="upload-btn" onclick="openOfficerPhotoUpload(' + i + ')" title="Upload photo" style="padding:5px 8px;font-size:0.75rem;"><i class="fas fa-upload"></i></button></td>' +
+    '<td><button class="btn-sm danger" onclick="removeOfficer(' + i + ')" title="Remove"><i class="fas fa-trash"></i></button></td>' +
+    '</tr>').join('');
+  document.getElementById('officerCountBadge').textContent = officersData.length;
+}
+function addOfficer() { officersData.push({ title: 'New Position', name: '', photo: '' }); renderOfficersTable(); }
+function restoreOfficerDefaults() {
+  if (!confirm('Replace all officer rows with a generic starter list? Unsaved names and photos will be cleared.')) return;
+  officersData = STARTER_OFFICERS.map(o => Object.assign({}, o));
+  renderOfficersTable();
+  showToast('Starter positions restored. Click "Save All Officers" to publish.', 'info');
+}
+function removeOfficer(i) {
+  if (!confirm('Remove the "' + officersData[i].title + '" slot?')) return;
+  officersData.splice(i, 1);
+  renderOfficersTable();
+}
+function updatePresPhotoPreview() {
+  const url = (document.getElementById('presPhoto').value || '').trim();
+  const wrap = document.getElementById('presPhotoPreview');
+  if (!wrap) return;
+  wrap.innerHTML = (url && !isInvalidImageUrl(url))
+    ? '<img src="' + escHtml(url) + '" style="width:100%;height:100%;object-fit:cover;" />'
+    : '<i class="fas fa-user"></i>';
+}
+function handlePresPhotoUpload(e) {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  (async () => {
+    try {
+      showToast('Uploading photo…', 'info');
+      const uploaded = await uploadLeadershipPhoto(file);
+      document.getElementById('presPhoto').value = uploaded.url;
+      updatePresPhotoPreview();
+      showToast('Photo uploaded. Click "Save Lead Officer" to keep it.', 'info');
+    } catch (err) { showToast(errMsg(err), 'error'); }
+  })();
+}
+function openOfficerPhotoUpload(i) { activeOfficerPhotoIndex = i; document.getElementById('officerPhotoInput').click(); }
+function updateOfficerPhotoPreview(i) {
+  const urlEl = document.getElementById('officer-photo-url-' + i);
+  const wrap = document.getElementById('officer-photo-preview-' + i);
+  if (!urlEl || !wrap) return;
+  const url = urlEl.value.trim();
+  wrap.innerHTML = (url && !isInvalidImageUrl(url))
+    ? '<img src="' + escHtml(url) + '" style="width:100%;height:100%;object-fit:cover;" />' : '<i class="fas fa-user"></i>';
+  if (officersData[i]) officersData[i].photo = url;
+}
+function handleOfficerPhotoUpload(e) {
+  const file = e.target.files[0];
+  const i = activeOfficerPhotoIndex;
+  e.target.value = '';
+  if (!file || i < 0) return;
+  (async () => {
+    try {
+      showToast('Uploading officer photo…', 'info');
+      const uploaded = await uploadLeadershipPhoto(file);
+      if (officersData[i]) officersData[i].photo = uploaded.url;
+      const urlEl = document.getElementById('officer-photo-url-' + i);
+      if (urlEl) urlEl.value = uploaded.url;
+      updateOfficerPhotoPreview(i);
+      showToast('Officer photo uploaded. Click "Save All Officers" to keep it.', 'info');
+    } catch (err) { showToast(errMsg(err), 'error'); }
+  })();
+}
+async function savePresident() {
+  const g = id => (document.getElementById(id).value || '').trim();
+  const p = { name: g('presName'), title: g('presTitle'), badge: g('presBadge'), adminYear: g('presYear'), photo: g('presPhoto'), bio: g('presBio') };
+  try {
+    if (p.photo.startsWith('data:image/')) {
+      showToast('Uploading photo to storage…', 'info');
+      p.photo = await materializePhoto(p.photo, 'leadership');
+      document.getElementById('presPhoto').value = p.photo;
+      updatePresPhotoPreview();
+    }
+    await saveContentJson(KEY_PRESIDENT, p);
+    showToast('Lead officer info saved.');
+  } catch (err) {
+    showToast('Could not save: ' + errMsg(err), 'error');
+  }
+}
+async function saveOfficers() {
+  for (let i = 0; i < officersData.length; i++) {
+    const photoEl = document.getElementById('officer-photo-url-' + i);
+    if (photoEl) officersData[i].photo = photoEl.value.trim();
+    if (String(officersData[i].photo || '').startsWith('data:image/')) {
+      officersData[i].photo = await materializePhoto(officersData[i].photo, 'leadership');
+      if (photoEl) photoEl.value = officersData[i].photo;
+    }
+  }
+  try {
+    await saveContentJson(KEY_OFFICERS, officersData);
+    renderOfficersTable();
+    updateDashboardStats();
+    showToast('Officers saved.');
+  } catch (err) {
+    showToast('Could not save officers: ' + errMsg(err), 'error');
+  }
+}
+
+const ORDINALS = ['1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th','11th','12th','13th','14th','15th',
+  '16th','17th','18th','19th','20th','21st','22nd','23rd','24th','25th','26th','27th','28th','29th','30th'];
+function ordinalSuffix(n) {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
+}
+function ordinalFor(idx) { return ORDINALS[idx] || (idx + 1) + ordinalSuffix(idx + 1); }
+
+async function loadPresidentsPanel() {
+  try {
+    const data = await getContentJson(KEY_PAST_PRESIDENTS, []);
+    presidentsData = Array.isArray(data)
+      ? data.map(p => ({ num: p.num || '', name: p.name || '', years: p.years || '', photo: p.photo || '' })) : [];
+    _panelLoaded.presidents = true;
+    renderPresidentsTable();
+  } catch (err) {
+    document.getElementById('presidentsTableBody').innerHTML =
+      '<tr><td colspan="6" class="error-state">Could not load past leaders: ' + escHtml(errMsg(err)) + '</td></tr>';
+  }
+}
+function renderPresidentsTable() {
+  const tbody = document.getElementById('presidentsTableBody');
+  if (!tbody) return;
+  if (!presidentsData.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--gray-500);">No past leaders yet. Click <strong>Add Row</strong> to start.</td></tr>';
+    document.getElementById('presidentsCountLabel').textContent = '0 leaders';
+    return;
+  }
+  tbody.innerHTML = presidentsData.map((p, i) =>
+    '<tr>' +
+    '<td><input type="text" value="' + escHtml(p.num) + '" placeholder="1st" onchange="presidentsData[' + i + '].num=this.value" /></td>' +
+    '<td><input type="text" value="' + escHtml(p.name) + '" placeholder="Full name" onchange="presidentsData[' + i + '].name=this.value" /></td>' +
+    '<td><input type="text" value="' + escHtml(p.years) + '" placeholder="1984 – 1986" onchange="presidentsData[' + i + '].years=this.value" /></td>' +
+    '<td><div style="display:flex;align-items:center;gap:5px;">' +
+      '<div id="pres-photo-preview-' + i + '" style="width:30px;height:30px;border-radius:50%;border:1.5px solid var(--gray-200);background:var(--gray-100);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--gray-400);font-size:0.8rem;">' +
+      ((p.photo && !isInvalidImageUrl(p.photo)) ? '<img src="' + escHtml(p.photo) + '" style="width:100%;height:100%;object-fit:cover;" />' : '<i class="fas fa-user"></i>') +
+      '</div>' +
+      '<input type="text" value="' + escHtml(p.photo) + '" placeholder="Photo URL" id="pres-photo-url-' + i + '" onchange="presidentsData[' + i + '].photo=this.value; updatePresidentPhotoPreview(' + i + ')" style="flex:1;" />' +
+    '</div></td>' +
+    '<td style="text-align:center;"><button class="upload-btn" onclick="openPresidentPhotoUpload(' + i + ')" title="Upload photo" style="padding:5px 8px;font-size:0.75rem;"><i class="fas fa-upload"></i></button></td>' +
+    '<td><button class="btn-sm danger" onclick="removePresident(' + i + ')" title="Remove"><i class="fas fa-trash"></i></button></td>' +
+    '</tr>').join('');
+  document.getElementById('presidentsCountLabel').textContent = presidentsData.length + ' leader' + (presidentsData.length !== 1 ? 's' : '');
+}
+function addPresident() {
+  presidentsData.push({ num: ordinalFor(presidentsData.length), name: '', years: '', photo: '' });
+  renderPresidentsTable();
+}
+function removePresident(i) {
+  if (!confirm('Remove "' + (presidentsData[i].name || 'this row') + '"?')) return;
+  presidentsData.splice(i, 1);
+  renderPresidentsTable();
+}
+function openPresidentPhotoUpload(i) { activePresidentPhotoIndex = i; document.getElementById('presidentPhotoInput').click(); }
+function updatePresidentPhotoPreview(i) {
+  const urlEl = document.getElementById('pres-photo-url-' + i);
+  const wrap = document.getElementById('pres-photo-preview-' + i);
+  if (!urlEl || !wrap) return;
+  const url = urlEl.value.trim();
+  wrap.innerHTML = (url && !isInvalidImageUrl(url))
+    ? '<img src="' + escHtml(url) + '" style="width:100%;height:100%;object-fit:cover;" />' : '<i class="fas fa-user"></i>';
+  if (presidentsData[i]) presidentsData[i].photo = url;
+}
+function handlePresidentPhotoUpload(e) {
+  const file = e.target.files[0];
+  const i = activePresidentPhotoIndex;
+  e.target.value = '';
+  if (!file || i < 0) return;
+  (async () => {
+    try {
+      showToast('Uploading photo…', 'info');
+      const uploaded = await uploadLeadershipPhoto(file);
+      if (presidentsData[i]) presidentsData[i].photo = uploaded.url;
+      const urlEl = document.getElementById('pres-photo-url-' + i);
+      if (urlEl) urlEl.value = uploaded.url;
+      updatePresidentPhotoPreview(i);
+      showToast('Photo uploaded. Click "Save All Past Leaders" to keep it.', 'info');
+    } catch (err) { showToast(errMsg(err), 'error'); }
+  })();
+}
+async function savePresidents() {
+  for (let i = 0; i < presidentsData.length; i++) {
+    const photoEl = document.getElementById('pres-photo-url-' + i);
+    if (photoEl) presidentsData[i].photo = photoEl.value.trim();
+    if (String(presidentsData[i].photo || '').startsWith('data:image/')) {
+      presidentsData[i].photo = await materializePhoto(presidentsData[i].photo, 'leadership');
+      if (photoEl) photoEl.value = presidentsData[i].photo;
+    }
+  }
+  try {
+    await saveContentJson(KEY_PAST_PRESIDENTS, presidentsData);
+    renderPresidentsTable();
+    updateDashboardStats();
+    showToast('Past leaders saved.');
+  } catch (err) {
+    showToast('Could not save past leaders: ' + errMsg(err), 'error');
+  }
+}
+
+/* ── Install new leader ── */
+function openInstallLeaderModal() {
+  const name = (document.getElementById('presName') || {}).value || 'Current ' + leaderNoun();
+  const title = (document.getElementById('presTitle') || {}).value || '';
+  document.getElementById('ipOutgoingName').textContent = name;
+  document.getElementById('ipOutgoingTitle').textContent = title ? '· ' + title : '';
+  const match = title.match(/(\d+)/);
+  const nextNum = match ? parseInt(match[1], 10) + 1 : '';
+  document.getElementById('ipNewOrdinal').value = nextNum ? nextNum + ordinalSuffix(nextNum) + ' ' + leaderNoun() : '';
+  document.getElementById('ipStartYear').value = new Date().getFullYear();
+  document.getElementById('ipEndYear').value = '';
+  document.getElementById('ipNewName').value = '';
+  document.getElementById('ipNewBio').value = '';
+  document.getElementById('ipNewPhoto').value = '';
+  document.getElementById('ipNewBadge').value = (document.getElementById('presBadge') || {}).value || '';
+  ipUpdatePhotoPreview();
+  openModal('installLeaderModal');
+}
+function ipUpdatePhotoPreview() {
+  const url = (document.getElementById('ipNewPhoto') || {}).value || '';
+  const preview = document.getElementById('ipNewPhotoPreview');
+  if (!preview) return;
+  preview.innerHTML = (url && !isInvalidImageUrl(url))
+    ? '<img src="' + escHtml(url) + '" style="width:100%;height:100%;object-fit:cover;" />' : '<i class="fas fa-user"></i>';
+}
+function ipHandlePhotoFile(e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  (async () => {
+    try {
+      showToast('Uploading photo…', 'info');
+      const uploaded = await uploadLeadershipPhoto(file);
+      document.getElementById('ipNewPhoto').value = uploaded.url;
+      ipUpdatePhotoPreview();
+    } catch (err) { showToast(errMsg(err), 'error'); }
+  })();
+}
+async function confirmInstallLeader() {
+  const outgoingName = document.getElementById('ipOutgoingName').textContent.trim();
+  const outgoingTitle = document.getElementById('ipOutgoingTitle').textContent.trim();
+  const g = id => (document.getElementById(id).value || '').trim();
+  const endYear = g('ipEndYear'), newName = g('ipNewName'), newOrdinal = g('ipNewOrdinal');
+  const startYear = g('ipStartYear'), newBadge = g('ipNewBadge'), newBio = g('ipNewBio'), newPhoto = g('ipNewPhoto');
+  if (!endYear) { showToast('Enter the year the current term ended.', 'error'); return; }
+  if (!newName) { showToast('Enter the new leader\'s name.', 'error'); return; }
+  if (!startYear) { showToast('Enter the new leader\'s start year.', 'error'); return; }
+  try {
+    const existing = await getContentJson(KEY_PAST_PRESIDENTS, []);
+    const list = Array.isArray(existing) ? existing.slice() : [];
+    const startMatch = outgoingTitle.match(/(\d{4})/);
+    const outgoingYears = (startMatch ? startMatch[1] : '????') + ' – ' + endYear;
+    const numMatch = outgoingTitle.match(/(\d+)/);
+    const outgoingNum = numMatch ? numMatch[1] + ordinalSuffix(parseInt(numMatch[1], 10)) : ordinalFor(list.length);
+    const currentPhoto = (document.getElementById('presPhoto') || {}).value || '';
+    const record = { num: outgoingNum, name: outgoingName, years: outgoingYears, photo: currentPhoto };
+    const slotIdx = list.findIndex(p => p.num === outgoingNum);
+    if (slotIdx !== -1) list[slotIdx] = record; else list.push(record);
+    await saveContentJson(KEY_PAST_PRESIDENTS, list);
+
+    const newPres = {
+      name: newName, title: newOrdinal, badge: newBadge,
+      adminYear: startYear + '–' + (parseInt(startYear, 10) + 2) + ' Administration',
+      bio: newBio, photo: await materializePhoto(newPhoto, 'leadership')
+    };
+    await saveContentJson(KEY_PRESIDENT, newPres);
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    set('presName', newPres.name); set('presTitle', newPres.title); set('presBadge', newPres.badge);
+    set('presYear', newPres.adminYear); set('presBio', newPres.bio); set('presPhoto', newPres.photo);
+    updatePresPhotoPreview();
+    presidentsData = list;
+    if (_panelLoaded.presidents) renderPresidentsTable();
+    closeModal('installLeaderModal');
+    showToast(outgoingName + ' archived to Past Leaders. ' + newName + ' is now the lead officer.');
+  } catch (err) {
+    showToast('Error during installation: ' + errMsg(err), 'error');
+  }
+}
+
+/* ══════════════════════════════════════════════
+   WEBSITE PAGES EDITOR (page_sections)
+══════════════════════════════════════════════ */
+const ADVANCED_SECTIONS = {
+  full_shell: { label: 'Visual Page Editor (Recommended)', default: '<p><strong>Advanced mode:</strong> paste the full page shell HTML (navigation + page body + footer).</p>' },
+  full_page:  { label: 'Visual Body Editor (No Nav/Footer)', default: '<p><strong>Advanced mode:</strong> paste the full HTML for this page\'s content area.</p>' }
+};
+const SITE_PAGES = [
+  { id: 'home', label: 'Home', file: 'index.html', icon: 'fa-home', editSection: 'pages',
+    sections: { hero: 'Hero / Banner Text', leader_message: 'Leader Message', pillars: 'What We Stand For', cta: 'Membership Call-to-Action' } },
+  { id: 'about', label: 'About', file: 'about.html', icon: 'fa-book', editSection: 'pages',
+    sections: { hero: 'Page Header', story: 'Our Story', mission: 'Mission & Vision' } },
+  { id: 'events', label: 'Events', file: 'events.html', icon: 'fa-calendar-alt', editSection: 'events', editLabel: 'Events',
+    sections: { hero: 'Page Header', intro: 'Intro Text' } },
+  { id: 'leadership', label: 'Leadership', file: 'leadership.html', icon: 'fa-id-badge', editSection: 'officers', editLabel: 'Officers',
+    sections: { hero: 'Page Header', intro: 'Intro Text' } },
+  { id: 'membership', label: 'Membership', file: 'membership.html', icon: 'fa-user-plus', editSection: 'pages',
+    sections: { hero: 'Page Header', requirements: 'Requirements', process: 'Process Info' } },
+  { id: 'news', label: 'News', file: 'news.html', icon: 'fa-newspaper', editSection: 'news-manager', editLabel: 'Articles',
+    sections: { hero: 'Page Header', intro: 'Intro Text' } },
+  { id: 'gallery', label: 'Gallery', file: 'gallery.html', icon: 'fa-images', editSection: 'gallery', editLabel: 'Photos',
+    sections: { hero: 'Page Header Intro' } },
+  { id: 'contact', label: 'Contact', file: 'contact.html', icon: 'fa-envelope', editSection: 'pages',
+    sections: { hero: 'Page Header', details: 'Contact Details Note' } },
+  { id: 'membership-inquiry', label: 'Membership Inquiry', file: 'membership-inquiry.html', icon: 'fa-paper-plane', editSection: 'pages',
+    sections: { hero: 'Page Header', intro: 'Form Intro' } },
+  { id: 'fundraiser', label: 'Fundraiser', file: 'fundraiser.html', icon: 'fa-hand-holding-heart', editSection: 'fundraiser', editLabel: 'Settings',
+    sections: { hero: 'Page Header', about: 'About the Fundraiser' } }
+];
+function pageConfig(pageId) { return SITE_PAGES.find(p => p.id === pageId) || null; }
+function pageSectionLabel(pageId, key) {
+  if (ADVANCED_SECTIONS[key]) return ADVANCED_SECTIONS[key].label;
+  const cfg = pageConfig(pageId);
+  return (cfg && cfg.sections[key]) || key;
+}
+function pageSectionDefault(pageId, key) {
+  if (ADVANCED_SECTIONS[key]) return ADVANCED_SECTIONS[key].default;
+  return '<p></p>';
+}
+
+let currentPage = 'home';
+let currentSection = 'hero';
+let pageEditorQuill = null;
+let _pageEditorInitialized = false;
+
+function setPageEditorNotice(kind, msg) {
+  const box = document.getElementById('pageEditorNotice');
+  if (!box) return;
+  if (!msg) { box.style.display = 'none'; box.textContent = ''; return; }
+  box.className = 'notice ' + (kind || 'info');
+  box.style.display = 'block';
+  box.innerHTML = msg;
+}
+function sanitizeEditorHtml(rawHtml) {
+  const doc = new DOMParser().parseFromString('<div id="root">' + (rawHtml || '') + '</div>', 'text/html');
+  const root = doc.getElementById('root');
+  if (!root) return '';
+  const allowed = { P:1, BR:1, STRONG:1, B:1, EM:1, I:1, U:1, UL:1, OL:1, LI:1, A:1, IMG:1, H1:1, H2:1, H3:1, H4:1, BLOCKQUOTE:1, SPAN:1, DIV:1, SECTION:1, FIGURE:1, FIGCAPTION:1 };
+  Array.from(root.querySelectorAll('*')).forEach(node => {
+    const tag = node.tagName;
+    if (!allowed[tag]) {
+      const parent = node.parentNode;
+      if (parent) { while (node.firstChild) parent.insertBefore(node.firstChild, node); parent.removeChild(node); }
+      return;
+    }
+    Array.from(node.attributes || []).forEach(attr => {
+      const name = (attr.name || '').toLowerCase();
+      const value = attr.value || '';
+      if (name.indexOf('on') === 0) { node.removeAttribute(attr.name); return; }
+      if (tag === 'A') {
+        if (!['href', 'target', 'rel', 'title'].includes(name)) node.removeAttribute(attr.name);
+        if (name === 'href' && !/^https?:\/\//i.test(value) && value.charAt(0) !== '/' && value.charAt(0) !== '#') node.removeAttribute('href');
+      } else if (tag === 'IMG') {
+        if (!['src', 'alt', 'title'].includes(name)) node.removeAttribute(attr.name);
+        if (name === 'src' && !/^https?:\/\//i.test(value) && !/^data:image\//i.test(value) && value.charAt(0) !== '/') node.removeAttribute('src');
+      } else if (['style', 'class', 'id'].includes(name)) {
+        node.removeAttribute(attr.name);
+      }
+    });
+    if (tag === 'A') { node.setAttribute('target', '_blank'); node.setAttribute('rel', 'noopener noreferrer'); }
+  });
+  return root.innerHTML;
+}
+function ensurePageEditorQuill() {
+  if (pageEditorQuill || typeof Quill === 'undefined') return;
+  pageEditorQuill = new Quill('#editorArea', {
+    theme: 'snow',
+    modules: {
+      toolbar: {
+        container: '#pageEditorToolbar',
+        handlers: { image: () => document.getElementById('pageEditorImageInput').click() }
+      },
+      clipboard: { matchVisual: false }
+    },
+    formats: ['header', 'bold', 'italic', 'underline', 'list', 'link', 'image']
+  });
+  pageEditorQuill.root.addEventListener('drop', e => {
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!file || !/^image\//i.test(file.type)) return;
+    e.preventDefault();
+    uploadAndInsertEditorImage(file);
+  });
+  pageEditorQuill.root.addEventListener('paste', e => {
+    const items = e.clipboardData && e.clipboardData.items ? Array.from(e.clipboardData.items) : [];
+    const imageItem = items.find(i => i && i.type && /^image\//i.test(i.type));
+    if (!imageItem) return;
+    const file = imageItem.getAsFile && imageItem.getAsFile();
+    if (!file) return;
+    e.preventDefault();
+    uploadAndInsertEditorImage(file);
+  });
+}
+function getPageEditorHtml() {
+  if (pageEditorQuill) return pageEditorQuill.root.innerHTML;
+  const editor = document.getElementById('editorArea');
+  return editor ? editor.innerHTML : '';
+}
+function setPageEditorHtml(html) {
+  const safe = sanitizeEditorHtml(html || '');
+  if (pageEditorQuill) { pageEditorQuill.clipboard.dangerouslyPasteHTML(safe || '<p><br></p>'); return; }
+  const editor = document.getElementById('editorArea');
+  if (editor) editor.innerHTML = safe;
+}
+async function uploadAndInsertEditorImage(file) {
+  ensurePageEditorQuill();
+  if (!pageEditorQuill) return;
+  try {
+    showToast('Uploading image…', 'info');
+    const uploaded = await uploadPageImage(file);
+    const range = pageEditorQuill.getSelection(true) || { index: pageEditorQuill.getLength(), length: 0 };
+    pageEditorQuill.insertEmbed(range.index, 'image', uploaded.url, 'user');
+    pageEditorQuill.setSelection(range.index + 1, 0, 'silent');
+    showToast('Image uploaded and inserted.');
+  } catch (err) {
+    showToast(errMsg(err), 'error');
+  }
+}
+function handlePageEditorImageUpload(e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (file) uploadAndInsertEditorImage(file);
+}
+function toggleFullPageVisualEditor(showVisual) {
+  ensurePageEditorQuill();
+  const visualWrap = document.getElementById('fullPageVisualEditor');
+  const editorArea = document.getElementById('editorArea');
+  const toolbar = document.querySelector('#editorPanel .editor-toolbar');
+  const sourceWrap = document.getElementById('fullPageSourceWrap');
+  if (visualWrap) visualWrap.style.display = showVisual ? 'block' : 'none';
+  if (editorArea) editorArea.style.display = showVisual ? 'none' : 'block';
+  if (toolbar) toolbar.style.display = showVisual ? 'none' : 'block';
+  if (!showVisual && sourceWrap) sourceWrap.style.display = 'none';
+}
+function toggleFullPageSourceVisibility(forceVisible) {
+  const sourceWrap = document.getElementById('fullPageSourceWrap');
+  const sourceBtn = document.getElementById('toggleHtmlSourceBtn');
+  if (!sourceWrap || !sourceBtn) return;
+  const show = typeof forceVisible === 'boolean' ? forceVisible : sourceWrap.style.display === 'none';
+  sourceWrap.style.display = show ? 'block' : 'none';
+  sourceBtn.innerHTML = show ? '<i class="fas fa-eye-slash"></i> Hide HTML Source' : '<i class="fas fa-code"></i> Show HTML Source';
+}
+function buildFullPageEditorSrcDoc(contentHtml) {
+  const editorScript = 'document.addEventListener("dblclick",function(e){var t=e.target;if(t&&t.tagName==="IMG"){e.preventDefault();var s=prompt("Image URL",t.getAttribute("src")||"");if(s!==null){t.setAttribute("src",s);}var a=prompt("Image alt text",t.getAttribute("alt")||"");if(a!==null){t.setAttribute("alt",a);}return;}if(t&&t.tagName==="A"){e.preventDefault();var h=prompt("Link URL",t.getAttribute("href")||"");if(h!==null){t.setAttribute("href",h);}}});';
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8" />' +
+    '<link rel="stylesheet" href="css/theme.css" />' +
+    '<style>body{margin:0;padding:18px;background:#fff;color:#111;font-family:Inter,Arial,sans-serif;}#visualRoot{outline:none;}#visualRoot img{max-width:100%;height:auto;cursor:pointer;}.helper{position:sticky;top:0;background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;padding:8px 10px;margin-bottom:12px;font-size:12px;color:#3730a3;z-index:10;}</style>' +
+    '</head><body><div class="helper">Edit text directly. Double-click images to change src/alt, links to change href.</div>' +
+    '<div id="visualRoot" contenteditable="true">' + (contentHtml || '') + '</div>' +
+    '<' + 'script>' + editorScript + '<' + '/script></body></html>';
+}
+function syncFullPageFromVisual() {
+  const frame = document.getElementById('fullPageEditorFrame');
+  const source = document.getElementById('fullPageSourceEditor');
+  if (!frame || !source || !frame.contentDocument) return;
+  const root = frame.contentDocument.getElementById('visualRoot');
+  if (!root) return;
+  source.value = root.innerHTML;
+  setPageEditorHtml(root.innerHTML);
+}
+function applyFullPageSourceToVisual() {
+  const source = document.getElementById('fullPageSourceEditor');
+  const frame = document.getElementById('fullPageEditorFrame');
+  if (!source || !frame) return;
+  setPageEditorHtml(source.value || '');
+  frame.srcdoc = buildFullPageEditorSrcDoc(source.value || '');
+}
+function initializeVisualEditorForSection(html) {
+  const source = document.getElementById('fullPageSourceEditor');
+  const frame = document.getElementById('fullPageEditorFrame');
+  setPageEditorHtml(html);
+  if (source) source.value = html;
+  if (frame) frame.srcdoc = buildFullPageEditorSrcDoc(html);
+}
+
+function buildPageTabs() {
+  const tabs = document.getElementById('pageTabs');
+  if (!tabs) return;
+  tabs.innerHTML = SITE_PAGES.map(p =>
+    '<button class="section-tab" data-page-tab="' + p.id + '" onclick="loadPageSection(\'' + p.id + '\')">' + escHtml(p.label) + '</button>'
+  ).join('');
+}
+function loadPageSection(pageId) {
+  _pageEditorInitialized = true;
+  ensurePageEditorQuill();
+  setPageEditorNotice('', '');
+  const page = pageConfig(pageId);
+  if (!page) return;
+  currentPage = pageId;
+  if (!document.getElementById('pageTabs').childElementCount) buildPageTabs();
+  document.querySelectorAll('#pageTabs .section-tab').forEach(t => {
+    t.classList.toggle('active', t.getAttribute('data-page-tab') === pageId);
+  });
+
+  const sectTabs = document.getElementById('sectionTabs');
+  sectTabs.innerHTML = '';
+  const normalKeys = Object.keys(page.sections);
+  normalKeys.forEach(key => {
+    const btn = document.createElement('button');
+    btn.className = 'section-tab';
+    btn.textContent = page.sections[key];
+    btn.onclick = () => loadSectionContent(pageId, key);
+    sectTabs.appendChild(btn);
+  });
+  const advWrap = document.createElement('div');
+  advWrap.style.cssText = 'margin-top:6px;width:100%;';
+  const advToggle = document.createElement('button');
+  advToggle.className = 'section-tab';
+  advToggle.style.cssText = 'font-size:0.72rem;border-style:dashed;';
+  advToggle.innerHTML = '<i class="fas fa-code"></i> Advanced (Full Page Override)';
+  const advInner = document.createElement('div');
+  advInner.style.cssText = 'display:none;gap:6px;flex-wrap:wrap;margin-top:4px;';
+  Object.keys(ADVANCED_SECTIONS).forEach(key => {
+    const btn = document.createElement('button');
+    btn.className = 'section-tab';
+    btn.style.cssText = 'font-size:0.72rem;';
+    btn.textContent = ADVANCED_SECTIONS[key].label;
+    btn.onclick = () => loadSectionContent(pageId, key);
+    advInner.appendChild(btn);
+  });
+  advToggle.onclick = () => {
+    const hidden = advInner.style.display === 'none';
+    advInner.style.display = hidden ? 'flex' : 'none';
+    advToggle.classList.toggle('active', hidden);
+  };
+  advWrap.appendChild(advToggle); advWrap.appendChild(advInner);
+  sectTabs.appendChild(advWrap);
+
+  loadSectionContent(pageId, normalKeys[0]);
+}
+async function loadSectionContent(pageId, sectionKey) {
+  ensurePageEditorQuill();
+  currentPage = pageId;
+  currentSection = sectionKey;
+  const activeLabel = pageSectionLabel(pageId, sectionKey);
+  document.getElementById('sectionTabs').querySelectorAll('.section-tab').forEach(t => {
+    t.classList.toggle('active', t.textContent.trim() === activeLabel.trim());
+  });
+  const isFullPage = !!ADVANCED_SECTIONS[sectionKey];
+  toggleFullPageVisualEditor(isFullPage);
+  try {
+    const rows = await sb.getAll('page_sections', MF.scope(
+      'page_id=eq.' + encodeURIComponent(pageId) + '&section_key=eq.' + encodeURIComponent(sectionKey) + '&limit=1'));
+    const html = (rows && rows.length && rows[0].content_html) ? rows[0].content_html : pageSectionDefault(pageId, sectionKey);
+    setPageEditorHtml(html);
+    if (isFullPage) initializeVisualEditorForSection(html);
+  } catch (err) {
+    setPageEditorHtml(pageSectionDefault(pageId, sectionKey));
+    if (isFullPage) initializeVisualEditorForSection('');
+    setPageEditorNotice('warn', 'Could not load saved content for this section: ' + escHtml(errMsg(err)) +
+      ' — saving now would overwrite it with the default. Refresh and try again.');
+  }
+}
+async function saveSection() {
+  if (ADVANCED_SECTIONS[currentSection]) syncFullPageFromVisual();
+  const content = sanitizeEditorHtml(getPageEditorHtml());
+  try {
+    await sb.upsert('page_sections', MF.stamp({
+      page_id: currentPage,
+      section_key: currentSection,
+      content_html: content,
+      updated_at: nowIso()
+    }), 'org_id,page_id,section_key');
+    setPageEditorNotice('ok', 'Saved.');
+    showToast('Content saved.');
+  } catch (err) {
+    setPageEditorNotice('warn', 'Could not save: ' + escHtml(errMsg(err)));
+    showToast('Could not save section content: ' + errMsg(err), 'error');
+  }
+}
+async function cancelEdit() {
+  await loadSectionContent(currentPage, currentSection);
+  showToast('Changes discarded.', 'info');
+}
+async function resetFullPageToDefault() {
+  if (!confirm('Reset the full-page override for "' + (pageConfig(currentPage) || {}).label + '"? Section-based content will be used again.')) return;
+  try {
+    await sb.deleteWhere('page_sections', MF.scope(
+      'page_id=eq.' + encodeURIComponent(currentPage) + '&section_key=in.(full_page,full_shell)'));
+    if (ADVANCED_SECTIONS[currentSection]) {
+      setPageEditorHtml(pageSectionDefault(currentPage, currentSection));
+      initializeVisualEditorForSection('');
+    }
+    showToast('Full page override removed.');
+  } catch (err) {
+    showToast('Could not reset the override: ' + errMsg(err), 'error');
+  }
+}
+
+/* ══════════════════════════════════════════════
+   EVENT PHOTO GALLERY (site_content.event_gallery)
+══════════════════════════════════════════════ */
+let eventGalleryData = [];
+let activeEventGalleryPhotoIndex = -1;
+
+function galleryStoragePath(url) {
+  const value = String(url || '').trim();
+  const marker = '/storage/v1/object/public/' + ORG_MEDIA_BUCKET + '/';
+  const idx = value.indexOf(marker);
+  return idx !== -1 ? decodeURIComponent(value.slice(idx + marker.length)) : '';
+}
+async function loadEventGalleryPanel() {
+  try {
+    const raw = await getContentJson(KEY_EVENT_GALLERY, []);
+    eventGalleryData = Array.isArray(raw) ? raw.map(r => ({
+      photo: r && r.photo ? String(r.photo) : '',
+      path: r && r.path ? String(r.path) : '',
+      title: r && r.title ? String(r.title) : '',
+      caption: r && r.caption ? String(r.caption) : ''
+    })) : [];
+    _panelLoaded.gallery = true;
+    renderEventGalleryList();
+  } catch (err) {
+    document.getElementById('eventGalleryList').innerHTML =
+      '<div class="error-state">Could not load the gallery: ' + escHtml(errMsg(err)) + '</div>';
+  }
+}
+function renderEventGalleryList() {
+  const wrap = document.getElementById('eventGalleryList');
+  if (!wrap) return;
+  if (!eventGalleryData.length) {
+    wrap.innerHTML = '<p class="hint-text" style="margin:0;">No photos yet. Click "Add Photo" to begin.</p>';
+    return;
+  }
+  wrap.innerHTML = eventGalleryData.map((row, i) => {
+    const thumb = (row.photo && !isInvalidImageUrl(row.photo))
+      ? '<img src="' + escHtml(row.photo) + '" alt="" style="width:76px;height:76px;object-fit:cover;border-radius:6px;border:1px solid var(--gray-200);" />'
+      : '<div style="width:76px;height:76px;border-radius:6px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fas fa-image"></i></div>';
+    return '<div style="display:grid;grid-template-columns:76px 1fr auto;gap:12px;align-items:start;padding:14px;border:1px solid var(--gray-200);border-radius:8px;margin-bottom:10px;background:var(--white);">' +
+      thumb +
+      '<div style="min-width:0;" class="field-group">' +
+        '<label>Title / event</label>' +
+        '<input type="text" id="eg-title-' + i + '" value="' + escHtml(row.title) + '" placeholder="e.g. Annual Gala 2026" style="margin-bottom:8px;" />' +
+        '<label>Caption</label>' +
+        '<input type="text" id="eg-caption-' + i + '" value="' + escHtml(row.caption) + '" placeholder="Short description" style="margin-bottom:8px;" />' +
+        '<label>Photo URL</label>' +
+        '<textarea id="eg-photo-' + i + '" rows="2" placeholder="Paste image URL" style="font-family:Consolas,monospace;font-size:0.78rem;">' + escHtml(row.photo) + '</textarea>' +
+        '<button type="button" class="upload-btn" onclick="openEventGalleryPhotoUpload(' + i + ')" style="margin-top:6px;font-size:0.75rem;padding:5px 10px;"><i class="fas fa-upload"></i> Upload</button>' +
+      '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:6px;">' +
+        '<button type="button" class="btn-sm view" onclick="moveEventGalleryRow(' + i + ',-1)"' + (i === 0 ? ' disabled' : '') + '><i class="fas fa-arrow-up"></i></button>' +
+        '<button type="button" class="btn-sm view" onclick="moveEventGalleryRow(' + i + ',1)"' + (i === eventGalleryData.length - 1 ? ' disabled' : '') + '><i class="fas fa-arrow-down"></i></button>' +
+        '<button type="button" class="btn-sm danger" onclick="removeEventGalleryRow(' + i + ')"><i class="fas fa-trash"></i></button>' +
+      '</div></div>';
+  }).join('');
+  eventGalleryData.forEach((_, i) => {
+    const t = document.getElementById('eg-title-' + i);
+    const c = document.getElementById('eg-caption-' + i);
+    const p = document.getElementById('eg-photo-' + i);
+    if (t) t.oninput = () => { eventGalleryData[i].title = t.value; };
+    if (c) c.oninput = () => { eventGalleryData[i].caption = c.value; };
+    if (p) p.oninput = () => { eventGalleryData[i].photo = p.value; eventGalleryData[i].path = galleryStoragePath(p.value); };
+  });
+}
+function syncEventGalleryFromDom() {
+  eventGalleryData.forEach((_, i) => {
+    const t = document.getElementById('eg-title-' + i);
+    const c = document.getElementById('eg-caption-' + i);
+    const p = document.getElementById('eg-photo-' + i);
+    if (t) eventGalleryData[i].title = t.value;
+    if (c) eventGalleryData[i].caption = c.value;
+    if (p) { eventGalleryData[i].photo = p.value; eventGalleryData[i].path = galleryStoragePath(p.value); }
+  });
+}
+function addEventGalleryRow() { syncEventGalleryFromDom(); eventGalleryData.push({ photo: '', path: '', title: '', caption: '' }); renderEventGalleryList(); }
+function removeEventGalleryRow(i) { syncEventGalleryFromDom(); eventGalleryData.splice(i, 1); renderEventGalleryList(); }
+function moveEventGalleryRow(i, delta) {
+  syncEventGalleryFromDom();
+  const j = i + delta;
+  if (j < 0 || j >= eventGalleryData.length) return;
+  const tmp = eventGalleryData[i]; eventGalleryData[i] = eventGalleryData[j]; eventGalleryData[j] = tmp;
+  renderEventGalleryList();
+}
+function openEventGalleryPhotoUpload(i) {
+  activeEventGalleryPhotoIndex = i;
+  syncEventGalleryFromDom();
+  document.getElementById('eventGalleryPhotoInput').click();
+}
+function handleEventGalleryPhotoUpload(e) {
+  const file = e.target.files[0];
+  const i = activeEventGalleryPhotoIndex;
+  e.target.value = '';
+  activeEventGalleryPhotoIndex = -1;
+  if (!file || i < 0) return;
+  (async () => {
+    try {
+      showToast('Uploading photo…', 'info');
+      const uploaded = await uploadGalleryImage(file);
+      syncEventGalleryFromDom();
+      if (eventGalleryData[i]) { eventGalleryData[i].photo = uploaded.url; eventGalleryData[i].path = uploaded.path; }
+      renderEventGalleryList();
+      showToast('Photo uploaded. Click Save Gallery to publish.');
+    } catch (err) { showToast(errMsg(err), 'error'); }
+  })();
+}
+async function saveEventGallery() {
+  syncEventGalleryFromDom();
+  const cleaned = eventGalleryData
+    .filter(r => (r.photo || '').trim())
+    .map(r => ({ photo: r.photo.trim(), path: (r.path || '').trim(), title: (r.title || '').trim(), caption: (r.caption || '').trim() }));
+  try {
+    await saveContentJson(KEY_EVENT_GALLERY, cleaned);
+    eventGalleryData = cleaned;
+    renderEventGalleryList();
+    showToast('Gallery saved.');
+  } catch (err) {
+    showToast('Could not save the gallery: ' + errMsg(err), 'error');
+  }
+}
+
+/* ══════════════════════════════════════════════
+   DOCUMENTS
+══════════════════════════════════════════════ */
+const DOC_CAT_COLORS = { General: 'var(--blue)', Bylaws: 'var(--a-brand)', Minutes: '#8b5cf6', Financial: 'var(--green)', Forms: '#f59e0b', Policy: '#ef4444', Announcements: '#06b6d4' };
+
+async function handleDocumentUpload(e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const title = (document.getElementById('docTitle').value || '').trim();
+  if (!title) { showToast('Please enter a title before uploading.', 'error'); return; }
+  const description = (document.getElementById('docDescription').value || '').trim();
+  const category = document.getElementById('docCategory').value || 'General';
+  const statusEl = document.getElementById('docUploadStatus');
+  statusEl.style.display = 'block';
+  statusEl.style.background = 'rgba(59,130,246,0.1)';
+  statusEl.style.color = 'var(--blue)';
+  statusEl.textContent = 'Uploading ' + file.name + '…';
+  try {
+    const uploaded = await uploadDocumentFile(file);
+    await sb.insert('documents', MF.stamp({
+      title, description, category, file_url: uploaded.url,
+      members_only: true, status: 'approved',
+      uploaded_by_name: (MFAuth.session.user && MFAuth.session.user.email) || null
+    }));
+    statusEl.style.background = 'rgba(34,197,94,0.1)';
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = '✓ ' + file.name + ' uploaded successfully.';
+    document.getElementById('docTitle').value = '';
+    document.getElementById('docDescription').value = '';
+    document.getElementById('docCategory').value = 'General';
+    await loadAdminDocuments();
+  } catch (err) {
+    statusEl.style.background = 'rgba(239,68,68,0.1)';
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = 'Error: ' + errMsg(err);
+  }
+}
+function renderDocRow(doc, opts) {
+  opts = opts || {};
+  const color = DOC_CAT_COLORS[doc.category] || 'var(--blue)';
+  const id = escHtml(String(doc.id));
+  return '<div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--gray-100);flex-wrap:wrap;">' +
+    '<div style="width:42px;height:42px;border-radius:8px;background:color-mix(in srgb,' + color + ' 14%, transparent);display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+    '<i class="fas fa-file-alt" style="color:' + color + ';font-size:1.1rem;"></i></div>' +
+    '<div style="flex:1;min-width:180px;">' +
+      '<div style="font-weight:600;color:var(--gray-800);margin-bottom:2px;">' + escHtml(doc.title) + '</div>' +
+      '<div style="font-size:0.8rem;color:var(--gray-500);">' +
+        '<span style="background:color-mix(in srgb,' + color + ' 14%, transparent);color:' + color + ';padding:1px 8px;border-radius:10px;font-weight:600;font-size:0.72rem;margin-right:8px;">' + escHtml(doc.category || 'General') + '</span>' +
+        (doc.description ? escHtml(doc.description) + ' · ' : '') + fmtDate(doc.created_at) +
+        (doc.uploaded_by_name ? ' · By ' + escHtml(doc.uploaded_by_name) : '') +
+        (doc.meeting_id ? ' · <span style="color:var(--a-brand);font-size:0.72rem;">Meeting Doc</span>' : '') +
+      '</div>' +
+    '</div>' +
+    '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+    (opts.approve
+      ? '<button class="btn-sm success" onclick="approveDocument(\'' + id + '\')"><i class="fas fa-check"></i> Approve</button>' +
+        '<button class="btn-sm danger" onclick="rejectDocument(\'' + id + '\',\'' + esc1(doc.title) + '\')"><i class="fas fa-times"></i> Reject</button>'
+      : (doc.file_url ? '<a href="' + escHtml(doc.file_url) + '" target="_blank" rel="noopener" class="btn-sm view" title="Download"><i class="fas fa-download"></i></a>' : '') +
+        '<button class="btn-sm danger" onclick="deleteDocument(\'' + id + '\',\'' + esc1(doc.title) + '\')" title="Delete"><i class="fas fa-trash"></i></button>') +
+    '</div></div>';
+}
+async function loadAdminDocuments() {
+  const listEl = document.getElementById('adminDocumentsList');
+  const countEl = document.getElementById('docCountLabel');
+  const pendEl = document.getElementById('pendingDocsList');
+  const pendCt = document.getElementById('pendingDocCount');
+  const pendCard = document.getElementById('pendingDocsCard');
+  if (!listEl) return;
+  try {
+    const docs = await sb.getAll('documents', MF.scope('order=created_at.desc'));
+    const pending = (docs || []).filter(d => (d.status || 'approved') === 'pending');
+    const approved = (docs || []).filter(d => (d.status || 'approved') !== 'pending');
+    if (pending.length) {
+      pendEl.innerHTML = pending.map(d => renderDocRow(d, { approve: true })).join('');
+      pendCt.textContent = pending.length + ' awaiting review';
+      pendCard.style.display = '';
+    } else {
+      pendCard.style.display = 'none';
+    }
+    if (!approved.length) {
+      listEl.innerHTML = '<div class="empty-state"><i class="fas fa-folder-open"></i><p>No documents uploaded yet.</p></div>';
+      countEl.textContent = '0 documents';
+      return;
+    }
+    countEl.textContent = approved.length + ' document' + (approved.length !== 1 ? 's' : '');
+    listEl.innerHTML = approved.map(doc => renderDocRow(doc, {})).join('');
+  } catch (err) {
+    listEl.innerHTML = '<div class="error-state">Could not load documents: ' + escHtml(errMsg(err)) + '</div>';
+  }
+}
+async function approveDocument(id) {
+  try {
+    await sb.patchWhere('documents', MF.scope('id=eq.' + encodeURIComponent(id)), { status: 'approved' });
+    showToast('Document approved.');
+    loadAdminDocuments();
+    loadAllPendingCounts();
+  } catch (err) { showToast('Could not approve: ' + errMsg(err), 'error'); }
+}
+async function rejectDocument(id, title) {
+  if (!confirm('Reject and delete "' + title + '"? This cannot be undone.')) return;
+  try {
+    await sb.deleteWhere('documents', MF.scope('id=eq.' + encodeURIComponent(id)));
+    showToast('Submission rejected and removed.');
+    loadAdminDocuments();
+    loadAllPendingCounts();
+  } catch (err) { showToast('Could not reject: ' + errMsg(err), 'error'); }
+}
+async function deleteDocument(id, title) {
+  if (!confirm('Delete "' + title + '"? This cannot be undone.')) return;
+  try {
+    await sb.deleteWhere('documents', MF.scope('id=eq.' + encodeURIComponent(id)));
+    showToast('Document deleted.');
+    await loadAdminDocuments();
+  } catch (err) { showToast('Could not delete: ' + errMsg(err), 'error'); }
+}
+
+/* ══════════════════════════════════════════════
+   MEMBER ANNOUNCEMENTS (moderation)
+══════════════════════════════════════════════ */
+let _allAnnouncements = [];
+let _annFilter = 'all';
+
+async function loadMemberAnnouncements() {
+  const el = document.getElementById('annAdminList');
+  try {
+    _allAnnouncements = await sb.getAll('member_announcements', MF.scope('order=created_at.desc')) || [];
+    setNavBadge('annPendingBadge', _allAnnouncements.filter(r => r.status === 'pending').length);
+    renderAnnouncements();
+  } catch (err) {
+    el.innerHTML = '<div class="error-state">Could not load announcements: ' + escHtml(errMsg(err)) + '</div>';
+  }
+}
+function setAnnFilter(f, btn) {
+  _annFilter = f;
+  document.querySelectorAll('#panel-member-announcements .filter-btns .btn-sm').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderAnnouncements();
+}
+function statusColorFor(status) {
+  return status === 'approved' ? 'var(--green)' : status === 'rejected' || status === 'denied' ? 'var(--red)' : 'var(--a-brand)';
+}
+function renderAnnouncements() {
+  const list = _allAnnouncements.filter(r => _annFilter === 'all' || r.status === _annFilter);
+  document.getElementById('annAdminCount').textContent = list.length + ' announcement' + (list.length !== 1 ? 's' : '');
+  const el = document.getElementById('annAdminList');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-state"><i class="fas fa-bullhorn"></i><p>No announcements' + (_annFilter !== 'all' ? ' with status "' + escHtml(_annFilter) + '"' : '') + '.</p></div>';
+    return;
+  }
+  el.innerHTML = list.map(r => {
+    const color = statusColorFor(r.status);
+    const id = escHtml(String(r.id));
+    let actions;
+    if (r.status === 'pending') {
+      actions = '<button class="btn-sm success" onclick="updateAnnStatus(\'' + id + '\',\'approved\')"><i class="fas fa-check"></i> Approve</button> ' +
+        '<button class="btn-sm danger" onclick="updateAnnStatus(\'' + id + '\',\'rejected\')"><i class="fas fa-times"></i> Reject</button>';
+    } else {
+      actions = '<button class="btn-sm view" onclick="updateAnnStatus(\'' + id + '\',\'pending\')"><i class="fas fa-undo"></i> Reset to Pending</button>';
+      if (r.status === 'approved' && canAccessSection('events')) {
+        actions += ' <button class="btn-sm edit" onclick="addAnnouncementToEvents(\'' + id + '\')"><i class="fas fa-calendar-plus"></i> Add to Events</button>';
+      }
+    }
+    let meta = escHtml(r.member_name || 'Unknown') + ' · ' + escHtml(r.category || 'General') + ' · Submitted ' + fmtDate(r.created_at);
+    if (r.event_date && r.event_date !== 'TBD') meta += ' | <i class="fas fa-calendar"></i> ' + escHtml(r.event_date);
+    if (r.event_time && r.event_time !== 'TBD') meta += ' <i class="fas fa-clock"></i> ' + escHtml(r.event_time);
+    if (r.event_location && r.event_location !== 'TBD') meta += ' | <i class="fas fa-map-marker-alt"></i> ' + escHtml(r.event_location);
+    return '<div class="list-card">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px;">' +
+        '<div style="flex:1;min-width:200px;">' +
+          '<div style="font-weight:700;font-size:0.95rem;color:var(--gray-800);">' + escHtml(r.title || 'Untitled') + '</div>' +
+          '<div style="font-size:0.78rem;color:var(--gray-500);margin-top:3px;">' + meta + '</div>' +
+        '</div>' +
+        '<span class="status-pill" style="background:color-mix(in srgb,' + color + ' 15%, transparent);color:' + color + ';">' + escHtml(r.status || 'pending') + '</span>' +
+      '</div>' +
+      '<p style="margin:0 0 12px;font-size:0.85rem;color:var(--gray-600);line-height:1.6;white-space:pre-wrap;">' + escHtml(r.body || '') + '</p>' +
+      (r.flyer_url ? '<div style="margin-bottom:12px;"><img src="' + escHtml(r.flyer_url) + '" alt="Flyer" style="max-width:100%;max-height:300px;border-radius:8px;border:1px solid var(--gray-200);object-fit:contain;" /></div>' : '') +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + actions + '</div></div>';
+  }).join('');
+}
+async function updateAnnStatus(id, status) {
+  try {
+    const updated = await sb.patchWhere('member_announcements', MF.scope('id=eq.' + encodeURIComponent(id)),
+      { status: status });
+    if (!updated || (Array.isArray(updated) && !updated.length)) {
+      showToast('Permission denied — your admin account cannot change this status.', 'error');
+      return;
+    }
+    const r = _allAnnouncements.find(x => String(x.id) === String(id));
+    if (r) r.status = status;
+    renderAnnouncements();
+    setNavBadge('annPendingBadge', _allAnnouncements.filter(x => x.status === 'pending').length);
+    showToast('Announcement ' + status + '.');
+  } catch (err) { showToast('Could not update: ' + errMsg(err), 'error'); }
+}
+async function addAnnouncementToEvents(id) {
+  const r = _allAnnouncements.find(x => String(x.id) === String(id));
+  if (!r) { showToast('Announcement not found.', 'error'); return; }
+  try {
+    let dtStr = '';
+    if (r.event_date && r.event_date !== 'TBD') {
+      const d = new Date(r.event_date);
+      dtStr = isNaN(d.getTime())
+        ? r.event_date
+        : String(d.getMonth() + 1).padStart(2, '0') + '/' + String(d.getDate()).padStart(2, '0') + '/' + d.getFullYear();
+      if (r.event_time && r.event_time !== 'TBD') dtStr += ' ' + r.event_time;
+    }
+    await sb.insert('events', MF.stamp({
+      name: r.title || 'Untitled Event',
+      location: (r.event_location && r.event_location !== 'TBD') ? r.event_location : '',
+      datetime: dtStr,
+      event_date: datetimeToIsoDate(dtStr),
+      description: r.body || '',
+      flyer: r.flyer_url || '',
+      featured: false,
+      members_only: false
+    }));
+    showToast('Event "' + (r.title || 'Untitled') + '" added. Open Events Manager to set registration options.');
+    if (document.getElementById('panel-events').classList.contains('active')) loadEventsList();
+  } catch (err) { showToast('Could not create event: ' + errMsg(err), 'error'); }
+}
+
+/* ══════════════════════════════════════════════
+   NEWS SUBMISSIONS (moderation)
+══════════════════════════════════════════════ */
+let _allNewsSubmissions = [];
+let _newsSubFilter = 'all';
+let _newsSubModalRow = null;
+
+async function loadNewsSubmissions() {
+  const el = document.getElementById('newsSubAdminList');
+  try {
+    _allNewsSubmissions = await sb.getAll('member_news_submissions', MF.scope('order=submitted_at.desc')) || [];
+    setNavBadge('newsPendingBadge', _allNewsSubmissions.filter(r => r.status === 'pending').length);
+    renderNewsSubmissions();
+  } catch (err) {
+    el.innerHTML = '<div class="error-state">Could not load news submissions: ' + escHtml(errMsg(err)) + '</div>';
+  }
+}
+function setNewsSubFilter(f, btn) {
+  _newsSubFilter = f;
+  document.querySelectorAll('#panel-news-submissions .filter-btns .btn-sm').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderNewsSubmissions();
+}
+function renderNewsSubmissions() {
+  const list = _allNewsSubmissions.filter(r => _newsSubFilter === 'all' || r.status === _newsSubFilter);
+  document.getElementById('newsSubAdminCount').textContent = list.length + ' submission' + (list.length !== 1 ? 's' : '');
+  const el = document.getElementById('newsSubAdminList');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-state"><i class="fas fa-newspaper"></i><p>No submissions' + (_newsSubFilter !== 'all' ? ' with status "' + escHtml(_newsSubFilter) + '"' : '') + '.</p></div>';
+    return;
+  }
+  el.innerHTML = list.map(r => {
+    const color = statusColorFor(r.status);
+    const id = escHtml(String(r.id));
+    const actions = r.status === 'pending'
+      ? '<button class="btn-sm success" onclick="openNewsSubModal(\'' + id + '\')"><i class="fas fa-eye"></i> Review</button>'
+      : '<button class="btn-sm view" onclick="resetNewsSubStatus(\'' + id + '\')"><i class="fas fa-undo"></i> Reset to Pending</button>';
+    return '<div class="list-card">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:8px;">' +
+        '<div style="flex:1;min-width:200px;">' +
+          '<div style="font-weight:700;font-size:0.95rem;color:var(--gray-800);">' + escHtml(r.title || 'Untitled') + '</div>' +
+          '<div style="font-size:0.78rem;color:var(--gray-500);margin-top:3px;">' + escHtml(r.member_name || 'Unknown') + ' · ' + escHtml(r.tag || 'News') + ' · Submitted ' + fmtDate(r.submitted_at) + '</div>' +
+        '</div>' +
+        '<span class="status-pill" style="background:color-mix(in srgb,' + color + ' 15%, transparent);color:' + color + ';">' + escHtml(r.status || 'pending') + '</span>' +
+      '</div>' +
+      '<p style="margin:0 0 12px;font-size:0.85rem;color:var(--gray-600);line-height:1.5;">' + escHtml((r.excerpt || '').substring(0, 200)) + ((r.excerpt || '').length > 200 ? '…' : '') + '</p>' +
+      (r.image_url ? '<div style="margin-bottom:12px;"><img src="' + escHtml(r.image_url) + '" alt="" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--gray-200);object-fit:contain;" /></div>' : '') +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + actions + '</div></div>';
+  }).join('');
+}
+function openNewsSubModal(id) {
+  const r = _allNewsSubmissions.find(x => String(x.id) === String(id));
+  if (!r) return;
+  _newsSubModalRow = r;
+  document.getElementById('nsModalId').value = String(r.id);
+  document.getElementById('nsModalTitle').value = r.title || '';
+  document.getElementById('nsModalTag').value = r.tag || 'Community';
+  document.getElementById('nsModalExcerpt').value = r.excerpt || '';
+  document.getElementById('nsModalBody').value = r.body || '';
+  document.getElementById('nsModalNote').value = '';
+  document.getElementById('nsModalPlacement').value = r.placement || 'main';
+  const imgWrap = document.getElementById('nsModalImageWrap');
+  if (r.image_url) { document.getElementById('nsModalImage').src = r.image_url; imgWrap.style.display = ''; }
+  else imgWrap.style.display = 'none';
+  openModal('newsSubModal');
+}
+async function approveNewsSubmission() {
+  const id = (document.getElementById('nsModalId').value || '').trim();
+  if (!id) return;
+  const g = i => (document.getElementById(i).value || '').trim();
+  const title = g('nsModalTitle'), excerpt = g('nsModalExcerpt'), body = g('nsModalBody');
+  const tag = g('nsModalTag'), note = g('nsModalNote');
+  const placement = document.getElementById('nsModalPlacement').value || 'main';
+  const imageUrl = _newsSubModalRow ? (_newsSubModalRow.image_url || '') : '';
+  if (!title) { showToast('Headline is required.', 'error'); return; }
+  if (!excerpt) { showToast('Excerpt is required.', 'error'); return; }
+  if (!body) { showToast('Article body is required.', 'error'); return; }
+  try {
+    const now = new Date();
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    let existing = await getContentJson(KEY_NEWS_ARTICLES, []);
+    if (!Array.isArray(existing)) existing = [];
+    existing.unshift({
+      title, tag, date: months[now.getMonth()] + ' ' + now.getFullYear(),
+      image: imageUrl, excerpt, body, placement,
+      featured: false, published: true
+    });
+    await saveContentJson(KEY_NEWS_ARTICLES, existing);
+    await sb.patchWhere('member_news_submissions', MF.scope('id=eq.' + encodeURIComponent(id)),
+      { status: 'approved', admin_note: note || null, reviewed_at: nowIso() });
+    const r = _allNewsSubmissions.find(x => String(x.id) === String(id));
+    if (r) { r.status = 'approved'; r.admin_note = note; }
+    setNavBadge('newsPendingBadge', _allNewsSubmissions.filter(x => x.status === 'pending').length);
+    renderNewsSubmissions();
+    closeModal('newsSubModal');
+    _panelLoaded.newsManager = false;
+    showToast('Article approved and published to the News section.');
+  } catch (err) { showToast('Could not approve: ' + errMsg(err), 'error'); }
+}
+async function rejectNewsSubmission() {
+  const id = (document.getElementById('nsModalId').value || '').trim();
+  const note = (document.getElementById('nsModalNote').value || '').trim();
+  if (!id) return;
+  try {
+    await sb.patchWhere('member_news_submissions', MF.scope('id=eq.' + encodeURIComponent(id)),
+      { status: 'rejected', admin_note: note || null, reviewed_at: nowIso() });
+    const r = _allNewsSubmissions.find(x => String(x.id) === String(id));
+    if (r) { r.status = 'rejected'; r.admin_note = note; }
+    setNavBadge('newsPendingBadge', _allNewsSubmissions.filter(x => x.status === 'pending').length);
+    renderNewsSubmissions();
+    closeModal('newsSubModal');
+    showToast('Submission rejected.');
+  } catch (err) { showToast('Could not reject: ' + errMsg(err), 'error'); }
+}
+async function resetNewsSubStatus(id) {
+  try {
+    await sb.patchWhere('member_news_submissions', MF.scope('id=eq.' + encodeURIComponent(id)),
+      { status: 'pending', admin_note: null, reviewed_at: null });
+    const r = _allNewsSubmissions.find(x => String(x.id) === String(id));
+    if (r) { r.status = 'pending'; r.admin_note = null; }
+    setNavBadge('newsPendingBadge', _allNewsSubmissions.filter(x => x.status === 'pending').length);
+    renderNewsSubmissions();
+    showToast('Submission reset to pending.');
+  } catch (err) { showToast('Could not reset: ' + errMsg(err), 'error'); }
+}
+
+/* ══════════════════════════════════════════════
+   REQUISITIONS
+══════════════════════════════════════════════ */
+let _allRequisitions = [];
+let _reqFilter = 'all';
+let _reqModalRow = null;
+const REQ_METHOD_LABEL = { org_card: 'Organization Card', chapter_card: 'Organization Card', check: 'Check', personal_reimbursement: 'Personal Reimbursement' };
+
+async function loadRequisitionsAdmin() {
+  const el = document.getElementById('reqAdminList');
+  try {
+    _allRequisitions = await sb.getAll('finance_requisitions', MF.scope('order=submitted_at.desc')) || [];
+    setNavBadge('reqPendingBadge', _allRequisitions.filter(r => r.status === 'pending').length);
+    renderRequisitionsAdmin();
+  } catch (err) {
+    el.innerHTML = '<div class="error-state">Could not load requisitions: ' + escHtml(errMsg(err)) + '</div>';
+  }
+}
+function setReqFilter(f, btn) {
+  _reqFilter = f;
+  document.querySelectorAll('#panel-requisitions .filter-btns .btn-sm').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderRequisitionsAdmin();
+}
+function renderRequisitionsAdmin() {
+  const list = _allRequisitions.filter(r => _reqFilter === 'all' || r.status === _reqFilter);
+  document.getElementById('reqAdminCount').textContent = list.length + ' requisition' + (list.length !== 1 ? 's' : '');
+  const el = document.getElementById('reqAdminList');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-state"><i class="fas fa-file-invoice-dollar"></i><p>No requisitions' + (_reqFilter !== 'all' ? ' with status "' + escHtml(_reqFilter) + '"' : '') + '.</p></div>';
+    return;
+  }
+  el.innerHTML = list.map(r => {
+    const color = statusColorFor(r.status);
+    const id = escHtml(String(r.id));
+    const actions = r.status === 'pending'
+      ? '<button class="btn-sm success" onclick="openReqModal(\'' + id + '\')"><i class="fas fa-eye"></i> Review</button>'
+      : '<button class="btn-sm view" onclick="resetReqStatus(\'' + id + '\')"><i class="fas fa-undo"></i> Reset to Pending</button>';
+    return '<div class="list-card">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:8px;">' +
+        '<div style="flex:1;min-width:200px;">' +
+          '<div style="font-weight:700;font-size:0.95rem;color:var(--gray-800);">' + escHtml(r.committee || 'Requisition') + ' — ' + money(r.amount_cents) + '</div>' +
+          '<div style="font-size:0.78rem;color:var(--gray-500);margin-top:3px;">' + escHtml(r.member_name || 'Unknown') + ' · ' +
+          escHtml(REQ_METHOD_LABEL[r.method] || r.method || '—') + ' · ' + fmtDate(r.submitted_at) + '</div>' +
+        '</div>' +
+        '<span class="status-pill" style="background:color-mix(in srgb,' + color + ' 15%, transparent);color:' + color + ';">' + escHtml(r.status || 'pending') + '</span>' +
+      '</div>' +
+      '<p style="margin:0 0 12px;font-size:0.85rem;color:var(--gray-600);line-height:1.55;">' + escHtml((r.description || '').substring(0, 300)) + '</p>' +
+      (r.admin_note ? '<div style="font-size:0.82rem;color:var(--gray-500);font-style:italic;margin-bottom:10px;"><i class="fas fa-comment icon-brand"></i>' + escHtml(r.admin_note) + '</div>' : '') +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + actions +
+      (r.doc_url ? '<a href="' + escHtml(r.doc_url) + '" target="_blank" rel="noopener" class="btn-sm view"><i class="fas fa-paperclip"></i> Document</a>' : '') +
+      '</div></div>';
+  }).join('');
+}
+function openReqModal(id) {
+  const r = _allRequisitions.find(x => String(x.id) === String(id));
+  if (!r) return;
+  _reqModalRow = r;
+  document.getElementById('reqModalId').value = String(r.id);
+  document.getElementById('reqModalMethod').value = r.method || '';
+  document.getElementById('reqModalNote').value = '';
+  document.getElementById('reqModalMeta').textContent = 'Submitted by ' + (r.member_name || 'Unknown') + ' · ' + fmtDate(r.submitted_at, { month: 'long', day: 'numeric', year: 'numeric' });
+  document.getElementById('reqModalDetails').innerHTML =
+    '<strong>Committee:</strong> ' + escHtml(r.committee || '—') + '<br>' +
+    '<strong>Description:</strong> ' + escHtml(r.description || '—') + '<br>' +
+    '<strong>Payee / Vendor:</strong> ' + escHtml(r.payee_name || '—') + '<br>' +
+    '<strong>Amount:</strong> ' + money(r.amount_cents) + '<br>' +
+    '<strong>Payment Method:</strong> ' + escHtml(REQ_METHOD_LABEL[r.method] || r.method || '—') +
+    (r.method === 'personal_reimbursement' ? ' <em style="color:#e67e22;">(a reimbursement will be auto-created on approval)</em>' : '');
+  const docWrap = document.getElementById('reqModalDocLink');
+  if (r.doc_url) {
+    docWrap.style.display = '';
+    docWrap.innerHTML = '<a href="' + escHtml(r.doc_url) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:0.85rem;color:var(--blue);"><i class="fas fa-paperclip"></i> View Supporting Document</a>';
+  } else docWrap.style.display = 'none';
+  openModal('reqModal');
+}
+async function approveRequisition() {
+  const id = (document.getElementById('reqModalId').value || '').trim();
+  const method = document.getElementById('reqModalMethod').value || '';
+  const note = (document.getElementById('reqModalNote').value || '').trim();
+  if (!id) return;
+  document.getElementById('reqModalSpinner').style.display = '';
+  try {
+    await sb.patchWhere('finance_requisitions', MF.scope('id=eq.' + encodeURIComponent(id)),
+      { status: 'approved', admin_note: note || null, reviewed_at: nowIso() });
+    if (method === 'personal_reimbursement' && _reqModalRow) {
+      const r = _reqModalRow;
+      try {
+        const created = await sb.insert('finance_reimbursements', MF.stamp({
+          member_id: r.member_id, member_name: r.member_name, member_email: r.member_email,
+          item_service: (r.committee || '') + ': ' + String(r.description || '').substring(0, 200),
+          amount_cents: r.amount_cents, payee_name: r.payee_name, requisition_id: r.id,
+          method: 'zelle', doc_url: r.doc_url || null, status: 'pending',
+          submitted_at: nowIso(), auto_generated: true
+        }));
+        const reimbId = Array.isArray(created) && created[0] ? created[0].id : null;
+        if (reimbId) {
+          await sb.patchWhere('finance_requisitions', MF.scope('id=eq.' + encodeURIComponent(id)), { reimbursement_id: reimbId });
+        }
+      } catch (re) { console.warn('Auto-reimbursement creation failed:', re); }
+    }
+    const r = _allRequisitions.find(x => String(x.id) === String(id));
+    if (r) { r.status = 'approved'; r.admin_note = note; }
+    setNavBadge('reqPendingBadge', _allRequisitions.filter(x => x.status === 'pending').length);
+    renderRequisitionsAdmin();
+    closeModal('reqModal');
+    showToast('Requisition approved.' + (method === 'personal_reimbursement' ? ' Reimbursement auto-created.' : ''));
+  } catch (err) {
+    showToast('Could not approve: ' + errMsg(err), 'error');
+  } finally {
+    document.getElementById('reqModalSpinner').style.display = 'none';
+  }
+}
+async function denyRequisition() {
+  const id = (document.getElementById('reqModalId').value || '').trim();
+  const note = (document.getElementById('reqModalNote').value || '').trim();
+  if (!id) return;
+  document.getElementById('reqModalSpinner').style.display = '';
+  try {
+    await sb.patchWhere('finance_requisitions', MF.scope('id=eq.' + encodeURIComponent(id)),
+      { status: 'denied', admin_note: note || null, reviewed_at: nowIso() });
+    const r = _allRequisitions.find(x => String(x.id) === String(id));
+    if (r) { r.status = 'denied'; r.admin_note = note; }
+    setNavBadge('reqPendingBadge', _allRequisitions.filter(x => x.status === 'pending').length);
+    renderRequisitionsAdmin();
+    closeModal('reqModal');
+    showToast('Requisition denied.');
+  } catch (err) {
+    showToast('Could not deny: ' + errMsg(err), 'error');
+  } finally {
+    document.getElementById('reqModalSpinner').style.display = 'none';
+  }
+}
+async function resetReqStatus(id) {
+  try {
+    await sb.patchWhere('finance_requisitions', MF.scope('id=eq.' + encodeURIComponent(id)),
+      { status: 'pending', admin_note: null, reviewed_at: null });
+    const r = _allRequisitions.find(x => String(x.id) === String(id));
+    if (r) { r.status = 'pending'; r.admin_note = null; }
+    setNavBadge('reqPendingBadge', _allRequisitions.filter(x => x.status === 'pending').length);
+    renderRequisitionsAdmin();
+    showToast('Reset to pending.');
+  } catch (err) { showToast('Could not reset: ' + errMsg(err), 'error'); }
+}
+
+/* ══════════════════════════════════════════════
+   REIMBURSEMENTS
+══════════════════════════════════════════════ */
+let _allReimbursements = [];
+let _reimbFilter = 'all';
+let _reimbModalRow = null;
+
+function isOverdueAdmin(submittedAt) {
+  if (!submittedAt) return false;
+  return Date.now() - new Date(submittedAt).getTime() > 7 * 24 * 60 * 60 * 1000;
+}
+async function loadReimbursementsAdmin() {
+  const el = document.getElementById('reimbAdminList');
+  try {
+    _allReimbursements = await sb.getAll('finance_reimbursements', MF.scope('order=submitted_at.desc')) || [];
+    updateReimbBadge();
+    renderReimbursementsAdmin();
+  } catch (err) {
+    el.innerHTML = '<div class="error-state">Could not load reimbursements: ' + escHtml(errMsg(err)) + '</div>';
+  }
+}
+function setReimbFilter(f, btn) {
+  _reimbFilter = f;
+  document.querySelectorAll('#panel-reimbursements .filter-btns .btn-sm').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderReimbursementsAdmin();
+}
+function updateReimbBadge() {
+  setNavBadge('reimbPendingBadge', _allReimbursements.filter(x => x.status === 'pending').length);
+}
+function renderReimbursementsAdmin() {
+  const list = _allReimbursements.filter(r => _reimbFilter === 'all' || r.status === _reimbFilter);
+  document.getElementById('reimbAdminCount').textContent = list.length + ' reimbursement' + (list.length !== 1 ? 's' : '');
+  const el = document.getElementById('reimbAdminList');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-state"><i class="fas fa-receipt"></i><p>No reimbursements' + (_reimbFilter !== 'all' ? ' with status "' + escHtml(_reimbFilter) + '"' : '') + '.</p></div>';
+    return;
+  }
+  el.innerHTML = list.map(r => {
+    const color = statusColorFor(r.status);
+    const id = escHtml(String(r.id));
+    const overdue = r.status === 'pending' && isOverdueAdmin(r.submitted_at);
+    const mLabel = r.method === 'zelle' ? 'Zelle' : r.method === 'check' ? 'Check' : (r.method || '—');
+    const actions = r.status === 'pending'
+      ? '<button class="btn-sm success" onclick="openReimbModal(\'' + id + '\')"><i class="fas fa-eye"></i> Review &amp; Pay</button>'
+      : '<button class="btn-sm view" onclick="resetReimbStatus(\'' + id + '\')"><i class="fas fa-undo"></i> Reset to Pending</button>';
+    return '<div class="list-card"' + (overdue ? ' style="border-left:3px solid var(--a-brand);"' : '') + '>' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:8px;">' +
+        '<div style="flex:1;min-width:200px;">' +
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+            '<div style="font-weight:700;font-size:0.95rem;color:var(--gray-800);">' + escHtml(r.member_name || 'Unknown') + ' — ' + money(r.amount_cents) + '</div>' +
+            (overdue ? '<span style="font-size:0.7rem;font-weight:700;color:var(--a-brand);background:var(--a-brand-pale);padding:2px 7px;border-radius:5px;"><i class="fas fa-clock"></i> 7+ days pending</span>' : '') +
+            (r.auto_generated ? '<span style="font-size:0.68rem;font-weight:700;padding:2px 7px;border-radius:5px;background:#f3e8ff;color:#7c3aed;">Auto-generated</span>' : '') +
+          '</div>' +
+          '<div style="font-size:0.78rem;color:var(--gray-500);margin-top:3px;">' + escHtml(mLabel) + ' · Submitted ' + fmtDate(r.submitted_at) + '</div>' +
+        '</div>' +
+        '<span class="status-pill" style="background:color-mix(in srgb,' + color + ' 15%, transparent);color:' + color + ';">' + escHtml(r.status || 'pending') + '</span>' +
+      '</div>' +
+      '<p style="margin:0 0 12px;font-size:0.85rem;color:var(--gray-600);line-height:1.5;">' + escHtml((r.item_service || '').substring(0, 250)) + '</p>' +
+      (r.admin_note ? '<div style="font-size:0.82rem;color:var(--gray-500);font-style:italic;margin-bottom:10px;"><i class="fas fa-comment icon-brand"></i>' + escHtml(r.admin_note) + '</div>' : '') +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">' + actions +
+      (r.doc_url ? '<a href="' + escHtml(r.doc_url) + '" target="_blank" rel="noopener" class="btn-sm view"><i class="fas fa-receipt"></i> Receipt</a>' : '') +
+      '</div></div>';
+  }).join('');
+}
+function openReimbModal(id) {
+  const r = _allReimbursements.find(x => String(x.id) === String(id));
+  if (!r) return;
+  _reimbModalRow = r;
+  document.getElementById('reimbModalId').value = String(r.id);
+  document.getElementById('reimbModalNote').value = '';
+  const mLabel = r.method === 'zelle' ? 'Zelle' : r.method === 'check' ? 'Check' : (r.method || '—');
+  document.getElementById('reimbModalMeta').textContent =
+    'Submitted by ' + (r.member_name || 'Unknown') + ' · ' + fmtDate(r.submitted_at, { month: 'long', day: 'numeric', year: 'numeric' });
+  document.getElementById('reimbModalDetails').innerHTML =
+    '<strong>Item / Service:</strong> ' + escHtml(r.item_service || '—') + '<br>' +
+    '<strong>Amount:</strong> ' + money(r.amount_cents) + '<br>' +
+    '<strong>Payee / Vendor:</strong> ' + escHtml(r.payee_name || '—') + '<br>' +
+    '<strong>Payment Method:</strong> ' + escHtml(mLabel) +
+    (r.auto_generated ? ' <em style="color:#7c3aed;">(auto-generated from an approved requisition)</em>' : '');
+  const pd = r.payment_details || {};
+  let pdHtml;
+  if (r.method === 'zelle') {
+    pdHtml = '<strong>Send Zelle to:</strong> ' + escHtml(pd.zelle_contact || r.member_email || '—') +
+      (pd.zelle_name ? '<br><strong>Account Name:</strong> ' + escHtml(pd.zelle_name) : '');
+  } else if (r.method === 'check') {
+    pdHtml = '<strong>Mail check to:</strong><br>' + escHtml(r.member_name || '') + '<br>' +
+      escHtml(pd.check_street || '') + '<br>' + escHtml((pd.check_city || '') + (pd.check_state_zip ? ', ' + pd.check_state_zip : ''));
+  } else {
+    pdHtml = r.member_email ? 'Contact: ' + escHtml(r.member_email) : 'No payment details provided.';
+  }
+  document.getElementById('reimbModalPaymentDetails').innerHTML = pdHtml;
+  const docWrap = document.getElementById('reimbModalDocWrap');
+  if (r.doc_url) { document.getElementById('reimbModalDocLink').href = r.doc_url; docWrap.style.display = ''; }
+  else docWrap.style.display = 'none';
+  document.getElementById('reimbModalOverdue').style.display = isOverdueAdmin(r.submitted_at) ? 'block' : 'none';
+  openModal('reimbModal');
+}
+async function setReimbStatus(status, successMsg) {
+  const id = (document.getElementById('reimbModalId').value || '').trim();
+  const note = (document.getElementById('reimbModalNote').value || '').trim();
+  if (!id) return;
+  document.getElementById('reimbModalSpinner').style.display = '';
+  try {
+    await sb.patchWhere('finance_reimbursements', MF.scope('id=eq.' + encodeURIComponent(id)),
+      { status: status, admin_note: note || null, reviewed_at: nowIso() });
+    const r = _allReimbursements.find(x => String(x.id) === String(id));
+    if (r) { r.status = status; r.admin_note = note; }
+    updateReimbBadge();
+    renderReimbursementsAdmin();
+    closeModal('reimbModal');
+    showToast(successMsg);
+  } catch (err) {
+    showToast('Could not update: ' + errMsg(err), 'error');
+  } finally {
+    document.getElementById('reimbModalSpinner').style.display = 'none';
+  }
+}
+function approveReimbursement() { setReimbStatus('approved', 'Reimbursement approved. Issue payment per the instructions.'); }
+function denyReimbursement() { setReimbStatus('denied', 'Reimbursement denied.'); }
+async function resetReimbStatus(id) {
+  try {
+    await sb.patchWhere('finance_reimbursements', MF.scope('id=eq.' + encodeURIComponent(id)),
+      { status: 'pending', admin_note: null, reviewed_at: null });
+    const r = _allReimbursements.find(x => String(x.id) === String(id));
+    if (r) { r.status = 'pending'; r.admin_note = null; }
+    updateReimbBadge();
+    renderReimbursementsAdmin();
+    showToast('Reset to pending.');
+  } catch (err) { showToast('Could not reset: ' + errMsg(err), 'error'); }
+}
+
+/* ══════════════════════════════════════════════
+   STORE
+══════════════════════════════════════════════ */
+let _storeItems = [];
+let _storeOrders = [];
+let _storeOrderFilter = 'all';
+let _editingStoreItemId = null;
+let _storeOptionGroups = [];
+let _viewingOrderId = null;
+
+async function loadStorePanel() {
+  try {
+    _storeItems = await sb.getAll('store_items', MF.scope('order=sort_order.asc,created_at.desc')) || [];
+    renderStoreItems();
+  } catch (err) {
+    document.getElementById('storeItemsGrid').innerHTML = '<div class="error-state">Could not load store items: ' + escHtml(errMsg(err)) + '</div>';
+  }
+  try {
+    _storeOrders = await sb.getAll('store_orders', MF.scope('order=created_at.desc')) || [];
+    renderStoreOrders();
+    setNavBadge('storePendingBadge', _storeOrders.filter(o => o.status === 'pending').length);
+    setNavBadge('navBadge-store', _storeOrders.filter(o => o.status === 'pending').length);
+  } catch (err) {
+    document.getElementById('storeOrdersList').innerHTML = '<div class="error-state">Could not load orders: ' + escHtml(errMsg(err)) + '</div>';
+  }
+}
+function switchStoreTab(tab) {
+  document.getElementById('storeTabPaneItems').style.display = tab === 'items' ? '' : 'none';
+  document.getElementById('storeTabPaneOrders').style.display = tab === 'orders' ? '' : 'none';
+  document.getElementById('storeTabItems').classList.toggle('active', tab === 'items');
+  document.getElementById('storeTabOrders').classList.toggle('active', tab === 'orders');
+}
+function parseOptions(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') { try { return JSON.parse(raw) || []; } catch (e) { return []; } }
+  return [];
+}
+function renderStoreItems() {
+  const grid = document.getElementById('storeItemsGrid');
+  document.getElementById('storeItemCount').textContent = _storeItems.length + ' item' + (_storeItems.length !== 1 ? 's' : '');
+  if (!_storeItems.length) {
+    grid.innerHTML = '<div class="empty-state"><i class="fas fa-store"></i><p>No store items yet. Add your first item.</p></div>';
+    return;
+  }
+  grid.innerHTML = _storeItems.map(item => {
+    const opts = parseOptions(item.options);
+    const optSummary = opts.map(g => g.name + ': ' + (g.values || []).join(', ')).join(' · ');
+    const id = escHtml(String(item.id));
+    return '<div style="background:#fff;border:1px solid var(--gray-200);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;">' +
+      (item.image_url
+        ? '<img src="' + escHtml(item.image_url) + '" style="width:100%;height:160px;object-fit:cover;" onerror="this.style.display=\'none\'" />'
+        : '<div style="height:100px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;"><i class="fas fa-image" style="font-size:2rem;color:var(--gray-300);"></i></div>') +
+      '<div style="padding:14px;flex:1;display:flex;flex-direction:column;gap:6px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
+          '<div style="font-weight:700;font-size:0.95rem;color:var(--gray-800);">' + escHtml(item.name) + '</div>' +
+          '<div style="font-weight:700;color:var(--a-brand);white-space:nowrap;">$' + parseFloat(item.price || 0).toFixed(2) + '</div>' +
+        '</div>' +
+        '<div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-400);">' + escHtml(item.category || 'General') + '</div>' +
+        (item.description ? '<div style="font-size:0.8rem;color:var(--gray-500);line-height:1.5;">' + escHtml(item.description) + '</div>' : '') +
+        (optSummary ? '<div style="font-size:0.75rem;color:var(--gray-400);">' + escHtml(optSummary) + '</div>' : '') +
+        '<div style="margin-top:4px;"><span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:10px;' +
+        (item.active ? 'background:#dcfce7;color:#16a34a;' : 'background:#f3f4f6;color:#6b7280;') + '">' + (item.active ? '● Active' : '○ Hidden') + '</span></div>' +
+        '<div style="display:flex;gap:8px;margin-top:8px;">' +
+          '<button class="btn-sm edit" style="flex:1;justify-content:center;" onclick="openStoreItemModal(\'' + id + '\')"><i class="fas fa-edit"></i> Edit</button>' +
+          '<button class="btn-sm danger" onclick="deleteStoreItem(\'' + id + '\')"><i class="fas fa-trash"></i></button>' +
+        '</div></div></div>';
+  }).join('');
+}
+function openStoreItemModal(id) {
+  _editingStoreItemId = id || null;
+  const item = id ? _storeItems.find(x => String(x.id) === String(id)) : null;
+  document.getElementById('storeItemModalTitle').textContent = item ? 'Edit Item' : 'Add Store Item';
+  document.getElementById('siId').value = item ? item.id : '';
+  document.getElementById('siName').value = item ? (item.name || '') : '';
+  document.getElementById('siPrice').value = item ? (item.price || '') : '';
+  document.getElementById('siDescription').value = item ? (item.description || '') : '';
+  document.getElementById('siActive').checked = item ? !!item.active : true;
+  document.getElementById('siCategory').value = (item && item.category) ? item.category : 'Apparel';
+  const imgUrl = item ? (item.image_url || '') : '';
+  document.getElementById('siImageUrl').value = imgUrl;
+  setStoreImagePreview(imgUrl);
+  document.getElementById('siUploadStatus').textContent = '';
+  _storeOptionGroups = parseOptions(item && item.options).map(g => ({ name: g.name || '', values: (g.values || []).join(', ') }));
+  document.getElementById('siErr').style.display = 'none';
+  renderOptionGroupsBuilder();
+  openModal('storeItemModal');
+}
+function setStoreImagePreview(url) {
+  const preview = document.getElementById('siImagePreview');
+  const removeBtn = document.getElementById('siRemoveImgBtn');
+  if (url) {
+    preview.innerHTML = '<img src="' + escHtml(url) + '" style="width:100%;height:100%;object-fit:cover;" />';
+    removeBtn.style.display = '';
+  } else {
+    preview.innerHTML = '<i class="fas fa-image" style="color:var(--gray-300);font-size:1.4rem;"></i>';
+    removeBtn.style.display = 'none';
+  }
+}
+function clearStoreImage() {
+  document.getElementById('siImageUrl').value = '';
+  document.getElementById('siImageFile').value = '';
+  setStoreImagePreview('');
+}
+async function handleStoreImageUpload(e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const statusEl = document.getElementById('siUploadStatus');
+  const uploadBtn = document.getElementById('siUploadBtn');
+  statusEl.textContent = 'Uploading…';
+  statusEl.style.color = 'var(--gray-400)';
+  uploadBtn.disabled = true;
+  try {
+    const uploaded = await uploadStoreImage(file);
+    document.getElementById('siImageUrl').value = uploaded.url;
+    setStoreImagePreview(uploaded.url);
+    statusEl.textContent = 'Uploaded ✓';
+    statusEl.style.color = 'var(--green)';
+  } catch (err) {
+    statusEl.textContent = errMsg(err);
+    statusEl.style.color = 'var(--red)';
+  } finally {
+    uploadBtn.disabled = false;
+  }
+}
+function renderOptionGroupsBuilder() {
+  const empty = document.getElementById('siOptionsEmpty');
+  const builder = document.getElementById('siOptionsBuilder');
+  if (!_storeOptionGroups.length) { empty.style.display = ''; builder.innerHTML = ''; return; }
+  empty.style.display = 'none';
+  builder.innerHTML = _storeOptionGroups.map((g, i) =>
+    '<div style="background:#f9fafb;border:1px solid var(--gray-200);border-radius:8px;padding:12px;display:grid;grid-template-columns:1fr 2fr auto;gap:10px;align-items:end;">' +
+    '<div class="field-group"><label style="font-size:0.72rem;">Option Name</label>' +
+    '<input type="text" value="' + escHtml(g.name) + '" placeholder="e.g. Size" oninput="updateOptionGroup(' + i + ',\'name\',this.value)" /></div>' +
+    '<div class="field-group"><label style="font-size:0.72rem;">Values (comma-separated)</label>' +
+    '<input type="text" value="' + escHtml(g.values) + '" placeholder="S, M, L, XL" oninput="updateOptionGroup(' + i + ',\'values\',this.value)" /></div>' +
+    '<button class="btn-sm danger" onclick="removeOptionGroup(' + i + ')"><i class="fas fa-times"></i></button></div>').join('');
+}
+function addStoreOptionGroup() { _storeOptionGroups.push({ name: '', values: '' }); renderOptionGroupsBuilder(); }
+function removeOptionGroup(i) { _storeOptionGroups.splice(i, 1); renderOptionGroupsBuilder(); }
+function updateOptionGroup(i, field, val) { if (_storeOptionGroups[i]) _storeOptionGroups[i][field] = val; }
+async function saveStoreItem() {
+  const errEl = document.getElementById('siErr');
+  errEl.style.display = 'none';
+  const name = (document.getElementById('siName').value || '').trim();
+  const price = parseFloat(document.getElementById('siPrice').value);
+  if (!name) { errEl.textContent = 'Item name is required.'; errEl.style.display = 'block'; return; }
+  if (isNaN(price) || price < 0) { errEl.textContent = 'Enter a valid price.'; errEl.style.display = 'block'; return; }
+  const options = _storeOptionGroups.filter(g => g.name.trim()).map(g => ({
+    name: g.name.trim(),
+    values: g.values.split(',').map(v => v.trim()).filter(Boolean)
+  }));
+  const payload = {
+    name, price,
+    category: document.getElementById('siCategory').value,
+    description: (document.getElementById('siDescription').value || '').trim() || null,
+    image_url: (document.getElementById('siImageUrl').value || '').trim() || null,
+    active: document.getElementById('siActive').checked,
+    options: options,
+    updated_at: nowIso()
+  };
+  try {
+    if (_editingStoreItemId) {
+      await sb.patchWhere('store_items', MF.scope('id=eq.' + encodeURIComponent(_editingStoreItemId)), payload);
+      const idx = _storeItems.findIndex(x => String(x.id) === String(_editingStoreItemId));
+      if (idx > -1) _storeItems[idx] = Object.assign({}, _storeItems[idx], payload);
+      showToast('Item updated.');
+    } else {
+      const created = await sb.insert('store_items', MF.stamp(payload));
+      if (Array.isArray(created) && created[0]) _storeItems.unshift(created[0]);
+      showToast('Item added to the store.');
+    }
+    renderStoreItems();
+    closeModal('storeItemModal');
+  } catch (err) {
+    errEl.textContent = 'Could not save: ' + errMsg(err);
+    errEl.style.display = 'block';
+  }
+}
+async function deleteStoreItem(id) {
+  if (!confirm('Delete this store item? This cannot be undone.')) return;
+  try {
+    await sb.deleteWhere('store_items', MF.scope('id=eq.' + encodeURIComponent(id)));
+    _storeItems = _storeItems.filter(x => String(x.id) !== String(id));
+    renderStoreItems();
+    showToast('Item deleted.');
+  } catch (err) { showToast('Could not delete item: ' + errMsg(err), 'error'); }
+}
+function setOrderFilter(f, btn) {
+  _storeOrderFilter = f;
+  document.querySelectorAll('#storeTabPaneOrders .filter-btns .btn-sm').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderStoreOrders();
+}
+function renderStoreOrders() {
+  const list = document.getElementById('storeOrdersList');
+  const orders = _storeOrders.filter(o => _storeOrderFilter === 'all' || o.status === _storeOrderFilter);
+  if (!orders.length) {
+    list.innerHTML = '<div class="empty-state"><i class="fas fa-receipt"></i><p>No orders' + (_storeOrderFilter !== 'all' ? ' with status "' + escHtml(_storeOrderFilter) + '"' : '') + '.</p></div>';
+    return;
+  }
+  list.innerHTML = orders.map(o => {
+    const items = Array.isArray(o.items) ? o.items : [];
+    const color = o.status === 'paid' ? '#16a34a' : o.status === 'fulfilled' ? '#0369a1' : o.status === 'cancelled' ? '#dc2626' : '#d97706';
+    return '<div class="list-card" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">' +
+      '<div style="flex:1;min-width:200px;">' +
+        '<div style="font-weight:700;font-size:0.92rem;color:var(--gray-800);">' + escHtml(o.member_name || 'Unknown') + '</div>' +
+        '<div style="font-size:0.8rem;color:var(--gray-500);">' + escHtml(o.member_email || '') + ' · ' + fmtDate(o.created_at) + '</div>' +
+        '<div style="font-size:0.8rem;color:var(--gray-500);margin-top:4px;">' + items.length + ' item' + (items.length !== 1 ? 's' : '') + ' · $' + parseFloat(o.total || 0).toFixed(2) + '</div>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">' +
+        '<span class="status-pill" style="background:color-mix(in srgb,' + color + ' 15%, transparent);color:' + color + ';">' + escHtml(o.status || 'pending') + '</span>' +
+        '<button class="btn-sm view" onclick="openStoreOrderModal(\'' + escHtml(String(o.id)) + '\')"><i class="fas fa-eye"></i> View</button>' +
+      '</div></div>';
+  }).join('');
+}
+function openStoreOrderModal(id) {
+  _viewingOrderId = id;
+  const o = _storeOrders.find(x => String(x.id) === String(id));
+  if (!o) return;
+  const items = Array.isArray(o.items) ? o.items : [];
+  document.getElementById('storeOrderModalTitle').textContent = 'Order — ' + (o.member_name || 'Unknown');
+  document.getElementById('storeOrderModalBody').innerHTML =
+    '<div style="font-size:0.82rem;color:var(--gray-500);margin-bottom:14px;">' + escHtml(o.member_email || '') + ' · ' + fmtDate(o.created_at, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) + '</div>' +
+    '<table class="data-table" style="margin-bottom:14px;"><thead><tr><th>Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Price</th></tr></thead><tbody>' +
+    items.map(li => {
+      const sels = li.selections ? Object.keys(li.selections).map(k => k + ': ' + li.selections[k]).join(', ') : '';
+      return '<tr><td><div style="font-weight:600;">' + escHtml(li.name || '') + '</div>' +
+        (sels ? '<div style="font-size:0.75rem;color:var(--gray-400);">' + escHtml(sels) + '</div>' : '') + '</td>' +
+        '<td style="text-align:center;">' + (li.quantity || 1) + '</td>' +
+        '<td style="text-align:right;">$' + (parseFloat(li.price || 0) * (li.quantity || 1)).toFixed(2) + '</td></tr>';
+    }).join('') +
+    '</tbody><tfoot><tr><td colspan="2" style="text-align:right;font-weight:700;">Total</td>' +
+    '<td style="text-align:right;font-weight:700;color:var(--a-brand);">$' + parseFloat(o.total || 0).toFixed(2) + '</td></tr></tfoot></table>' +
+    (o.notes ? '<div style="background:#fafafa;border:1px solid var(--gray-200);border-radius:6px;padding:10px 12px;font-size:0.83rem;color:var(--gray-600);"><strong>Notes:</strong> ' + escHtml(o.notes) + '</div>' : '');
+  let btns = '';
+  if (o.status === 'pending') btns += '<button class="btn-sm success" onclick="updateOrderStatus(\'' + id + '\',\'paid\')"><i class="fas fa-check"></i> Mark Paid</button> ';
+  if (o.status === 'paid') btns += '<button class="btn-sm success" onclick="updateOrderStatus(\'' + id + '\',\'fulfilled\')"><i class="fas fa-box"></i> Mark Fulfilled</button> ';
+  if (o.status !== 'cancelled') btns += '<button class="btn-sm danger" onclick="updateOrderStatus(\'' + id + '\',\'cancelled\')"><i class="fas fa-times"></i> Cancel</button> ';
+  document.getElementById('storeOrderModalActions').innerHTML = btns + '<button class="btn-cancel" onclick="closeModal(\'storeOrderModal\')">Close</button>';
+  openModal('storeOrderModal');
+}
+async function updateOrderStatus(id, status) {
+  try {
+    await sb.patchWhere('store_orders', MF.scope('id=eq.' + encodeURIComponent(id)), { status: status, updated_at: nowIso() });
+    const o = _storeOrders.find(x => String(x.id) === String(id));
+    if (o) o.status = status;
+    renderStoreOrders();
+    closeModal('storeOrderModal');
+    const pending = _storeOrders.filter(x => x.status === 'pending').length;
+    setNavBadge('storePendingBadge', pending);
+    setNavBadge('navBadge-store', pending);
+    showToast('Order marked ' + status + '.');
+  } catch (err) { showToast('Could not update the order: ' + errMsg(err), 'error'); }
+}
+
+/* ══════════════════════════════════════════════
+   DUES & PAYMENTS (unified dues_payments table)
+══════════════════════════════════════════════ */
+let _duesPayments = [];
+
+async function loadDuesAdminPanel() {
+  await Promise.allSettled([_fetchDuesPayments(), _fetchDuesMembersForSelect(), _loadDuesConfig()]);
+  _panelLoaded.duesAdmin = true;
+}
+async function _fetchDuesPayments() {
+  const body = document.getElementById('duesPaymentsBody');
+  try {
+    _duesPayments = await sb.getAll('dues_payments', MF.scope('select=*&order=created_at.desc')) || [];
+    renderDuesPayments();
+  } catch (err) {
+    if (body) body.innerHTML = '<tr><td colspan="9" class="error-state" style="text-align:center;">Could not load payments: ' + escHtml(errMsg(err)) + '</td></tr>';
+  }
+}
+async function _fetchDuesMembersForSelect() {
+  const sel = document.getElementById('duesRecordMember');
+  if (!sel) return;
+  try {
+    const members = await sb.getAll('members', MF.scope('select=id,first_name,last_name,email,phone&order=last_name.asc')) || [];
+    sel.innerHTML = '<option value="">— select (optional) —</option>';
+    members.forEach(m => {
+      const name = [m.first_name, m.last_name].filter(Boolean).join(' ');
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      opt.dataset.name = name;
+      opt.dataset.email = m.email || '';
+      opt.dataset.phone = m.phone || '';
+      opt.textContent = name + (m.email ? ' (' + m.email + ')' : '');
+      sel.appendChild(opt);
+    });
+    sel.onchange = () => {
+      const opt = sel.options[sel.selectedIndex];
+      if (opt && opt.dataset.name) {
+        document.getElementById('duesRecordName').value = opt.dataset.name;
+        document.getElementById('duesRecordEmail').value = opt.dataset.email;
+        if (opt.dataset.phone) document.getElementById('duesRecordPhone').value = opt.dataset.phone;
+      }
+    };
+  } catch (err) { /* select stays empty; manual entry still works */ }
+}
+async function _loadDuesConfig() {
+  let cfg = null;
+  try { cfg = await getContentJson(KEY_DUES_CONFIG, null); } catch (e) { cfg = null; }
+  if (!cfg) { try { cfg = await getContentJson(KEY_PAYMENTS_LEGACY, null); } catch (e) { cfg = null; } }
+  if (!cfg) return;
+  const amtEl = document.getElementById('duesConfigAmount');
+  const feeEl = document.getElementById('duesConfigLateFee');
+  const msgEl = document.getElementById('duesConfigLateMsg');
+  if (amtEl && cfg.dues_amount_cents) amtEl.value = (cfg.dues_amount_cents / 100).toFixed(2);
+  if (feeEl && cfg.late_fee_cents) feeEl.value = (cfg.late_fee_cents / 100).toFixed(2);
+  if (msgEl && cfg.late_fee_notice) msgEl.value = cfg.late_fee_notice;
+}
+function renderDuesPayments() {
+  const body = document.getElementById('duesPaymentsBody');
+  const countEl = document.getElementById('duesPaymentCount');
+  if (!body) return;
+  const q = ((document.getElementById('duesSearchInput') || {}).value || '').toLowerCase();
+  const filtered = _duesPayments.filter(p => !q ||
+    (p.full_name || '').toLowerCase().includes(q) || (p.email || '').toLowerCase().includes(q));
+  if (countEl) countEl.textContent = filtered.length + ' payment' + (filtered.length !== 1 ? 's' : '');
+  if (!filtered.length) {
+    body.innerHTML = '<tr><td colspan="9" style="padding:30px;text-align:center;color:var(--gray-400);">No payments found.</td></tr>';
+    return;
+  }
+  body.innerHTML = filtered.map(p => {
+    const method = p.payment_method || (p.stripe_checkout_session_id ? 'stripe' : '—');
+    const statusColor = p.payment_status === 'paid' ? 'var(--green)' : p.payment_status === 'failed' ? 'var(--red)' : 'var(--a-brand)';
+    const cat = p.dues_category_label || p.dues_category || '—';
+    const extras = [];
+    if (p.late_fee) extras.push('late fee');
+    if (p.building_fund) extras.push('building fund');
+    if (p.fiscal_year) extras.push('FY ' + p.fiscal_year);
+    return '<tr>' +
+      '<td>' + escHtml(p.full_name || '—') + '</td>' +
+      '<td style="color:var(--gray-500);">' + escHtml(p.email || '—') + '</td>' +
+      '<td style="color:var(--gray-500);">' + escHtml(cat) + (extras.length ? '<div style="font-size:0.72rem;color:var(--gray-400);">' + escHtml(extras.join(' · ')) + '</div>' : '') + '</td>' +
+      '<td style="font-weight:600;">' + money(p.amount_cents) + '</td>' +
+      '<td style="color:var(--gray-500);text-transform:capitalize;">' + escHtml(method) + (p.reference_number ? '<div style="font-size:0.72rem;color:var(--gray-400);">#' + escHtml(p.reference_number) + '</div>' : '') + '</td>' +
+      '<td><span style="color:' + statusColor + ';font-weight:600;text-transform:capitalize;">' + escHtml(p.payment_status || '—') + '</span></td>' +
+      '<td style="color:var(--gray-500);">' + fmtDate(p.paid_at || p.created_at) + '</td>' +
+      '<td style="color:var(--gray-500);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(p.notes || '') + '">' + escHtml(p.notes || '—') + '</td>' +
+      '<td><button class="btn-sm danger" onclick="deleteDuesPayment(\'' + escHtml(String(p.id)) + '\')" title="Delete"><i class="fas fa-trash"></i></button></td>' +
+      '</tr>';
+  }).join('');
+}
+function filterDuesPayments() { renderDuesPayments(); }
+function switchDuesTab(tab) {
+  ['history', 'record', 'config'].forEach(t => {
+    const cap = t.charAt(0).toUpperCase() + t.slice(1);
+    const btn = document.getElementById('duesAdminTab' + cap);
+    const pane = document.getElementById('duesAdminPane' + cap);
+    if (btn) btn.classList.toggle('active', t === tab);
+    if (pane) pane.style.display = t === tab ? '' : 'none';
+  });
+}
+async function submitDuesRecord() {
+  const errEl = document.getElementById('duesRecordErr');
+  errEl.style.display = 'none';
+  const g = id => ((document.getElementById(id) || {}).value || '').trim();
+  const name = g('duesRecordName');
+  const email = g('duesRecordEmail').toLowerCase();
+  const amount = parseFloat(g('duesRecordAmount'));
+  if (!name) { errEl.textContent = 'Full name is required.'; errEl.style.display = 'block'; return; }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = 'A valid email is required.'; errEl.style.display = 'block'; return; }
+  if (isNaN(amount) || amount <= 0) { errEl.textContent = 'Enter a valid amount.'; errEl.style.display = 'block'; return; }
+  const btn = document.getElementById('duesRecordBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+  const status = (document.getElementById('duesRecordStatus') || {}).value || 'paid';
+  try {
+    const payload = {
+      member_id: (document.getElementById('duesRecordMember') || {}).value || null,
+      full_name: name,
+      email: email,
+      phone: g('duesRecordPhone'),
+      amount_cents: Math.round(amount * 100),
+      dues_category: g('duesRecordCategory') || null,
+      dues_category_label: g('duesRecordCategoryLabel') || null,
+      fiscal_year: g('duesRecordFiscalYear') || null,
+      reference_number: g('duesRecordReference') || null,
+      payment_status: status,
+      payment_method: (document.getElementById('duesRecordMethod') || {}).value || null,
+      late_fee: !!(document.getElementById('duesRecordLateFee') || {}).checked,
+      building_fund: !!(document.getElementById('duesRecordBuildingFund') || {}).checked,
+      notes: g('duesRecordNotes') || null,
+      paid_at: status === 'paid' ? nowIso() : null,
+      logged_by: (MFAuth.session.user && MFAuth.session.user.id) || null
+    };
+    const rows = await sb.insert('dues_payments', MF.stamp(payload));
+    if (Array.isArray(rows) && rows[0]) _duesPayments.unshift(rows[0]);
+    showToast('Payment recorded.');
+    ['duesRecordMember', 'duesRecordName', 'duesRecordEmail', 'duesRecordPhone', 'duesRecordAmount',
+     'duesRecordCategory', 'duesRecordCategoryLabel', 'duesRecordFiscalYear', 'duesRecordReference', 'duesRecordNotes']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['duesRecordLateFee', 'duesRecordBuildingFund'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
+    renderDuesPayments();
+    switchDuesTab('history');
+  } catch (err) {
+    errEl.textContent = errMsg(err); errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Payment';
+  }
+}
+async function saveDuesConfig() {
+  const errEl = document.getElementById('duesConfigErr');
+  errEl.style.display = 'none';
+  const amtVal = parseFloat(document.getElementById('duesConfigAmount').value);
+  const feeVal = parseFloat(document.getElementById('duesConfigLateFee').value || '0');
+  const msg = (document.getElementById('duesConfigLateMsg').value || '').trim();
+  if (isNaN(amtVal) || amtVal <= 0) { errEl.textContent = 'Enter a valid dues amount.'; errEl.style.display = 'block'; return; }
+  if (isNaN(feeVal) || feeVal < 0) { errEl.textContent = 'Enter a valid late fee (0 to disable).'; errEl.style.display = 'block'; return; }
+  const btn = document.getElementById('duesConfigBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+  try {
+    let existing = {};
+    try { existing = (await getContentJson(KEY_DUES_CONFIG, {})) || {}; } catch (e) { existing = {}; }
+    const merged = Object.assign({}, existing, {
+      dues_amount_cents: Math.round(amtVal * 100),
+      late_fee_cents: Math.round(feeVal * 100),
+      late_fee_notice: msg || null
+    });
+    await saveContentJson(KEY_DUES_CONFIG, merged);
+    // Best-effort mirror into the legacy 'payments' key some member-facing
+    // surfaces still read. Requires 'settings' permission, so failures are
+    // non-fatal.
+    try { await saveContentJson(KEY_PAYMENTS_LEGACY, merged); } catch (e) { /* ignore */ }
+    showToast('Dues configuration saved.');
+  } catch (err) {
+    errEl.textContent = errMsg(err); errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Configuration';
+  }
+}
+async function deleteDuesPayment(id) {
+  if (!confirm('Delete this payment record? This cannot be undone.')) return;
+  try {
+    await sb.deleteWhere('dues_payments', MF.scope('id=eq.' + encodeURIComponent(id)));
+    _duesPayments = _duesPayments.filter(p => String(p.id) !== String(id));
+    renderDuesPayments();
+    showToast('Payment record deleted.');
+  } catch (err) { showToast('Could not delete the record: ' + errMsg(err), 'error'); }
+}
+
+/* ══════════════════════════════════════════════
+   FUNDRAISER SETTINGS (site_content.fundraiser_settings)
+══════════════════════════════════════════════ */
+const FUNDRAISER_FIELDS = {
+  frName: 'name', frEdition: 'edition_number', frYear: 'event_year', frEventDate: 'event_date',
+  frDateLabel: 'cta_date_label', frDoorsTime: 'doors_time', frProgramTime: 'program_time',
+  frVenueName: 'venue_name', frVenueAddress: 'venue_address', frDressCode: 'dress_code',
+  frDressCodeSub: 'dress_code_sub', frTicketUrl: 'ticket_url', frSponsorshipUrl: 'sponsorship_url',
+  frStat1Label: 'stat1_label', frStat1Value: 'stat1_value', frStat2Label: 'stat2_label',
+  frStat2Value: 'stat2_value', frTagline: 'tagline', frAnnounceBarText: 'announce_bar_text',
+  frHeroImage: 'hero_image', frAboutImage: 'about_image'
+};
+function fundraiserStatus(msg, ok) {
+  const el = document.getElementById('fundraiserStatus');
+  if (!el) return;
+  el.className = 'notice ' + (ok ? 'ok' : 'warn');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+async function loadFundraiserPanel() {
+  try {
+    const s = (await getContentJson(KEY_FUNDRAISER, {})) || {};
+    Object.keys(FUNDRAISER_FIELDS).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = s[FUNDRAISER_FIELDS[id]] != null ? s[FUNDRAISER_FIELDS[id]] : '';
+    });
+  } catch (err) {
+    fundraiserStatus('Could not load fundraiser settings: ' + errMsg(err), false);
+  }
+}
+async function saveFundraiserSettings() {
+  const btn = document.getElementById('fundraiserSaveBtn');
+  btn.disabled = true;
+  try {
+    const payload = {};
+    Object.keys(FUNDRAISER_FIELDS).forEach(id => {
+      const el = document.getElementById(id);
+      payload[FUNDRAISER_FIELDS[id]] = el ? el.value.trim() : '';
+    });
+    await saveContentJson(KEY_FUNDRAISER, payload);
+    fundraiserStatus('Fundraiser settings saved — your fundraiser page reflects these immediately.', true);
+  } catch (err) {
+    fundraiserStatus('Error saving: ' + errMsg(err), false);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   SETTINGS (organizations row + password)
+══════════════════════════════════════════════ */
+async function loadSettings() {
+  _panelLoaded.settings = true;
+  const o = ORG || {};
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v == null ? '' : v; };
+  set('setOrgName', o.name); set('setTagline', o.tagline);
+  set('setEmail', o.contact_email); set('setPhone', o.contact_phone);
+  set('setAddress', o.contact_address);
+  set('setLogoUrl', o.logo_url); set('setHeroUrl', o.hero_image_url);
+  set('setAccentColor', o.accent_color); set('setInkColor', o.ink_color);
+  const terms = o.terminology || {};
+  set('setTermMember', terms.member_noun); set('setTermMembers', terms.member_noun_plural);
+  set('setTermUnit', terms.org_unit_noun); set('setTermLeader', terms.leader_noun);
+  const social = o.social_links || {};
+  set('setSocialFacebook', social.facebook); set('setSocialInstagram', social.instagram);
+  set('setSocialYoutube', social.youtube); set('setSocialLinkedin', social.linkedin);
+  set('setSocialX', social.x);
+}
+async function saveSettings() {
+  const g = id => ((document.getElementById(id) || {}).value || '').trim();
+  const terminology = {};
+  if (g('setTermMember')) terminology.member_noun = g('setTermMember');
+  if (g('setTermMembers')) terminology.member_noun_plural = g('setTermMembers');
+  if (g('setTermUnit')) terminology.org_unit_noun = g('setTermUnit');
+  if (g('setTermLeader')) terminology.leader_noun = g('setTermLeader');
+  const social_links = {};
+  ['facebook', 'instagram', 'youtube', 'linkedin', 'x'].forEach(k => {
+    const v = g('setSocial' + k.charAt(0).toUpperCase() + k.slice(1));
+    if (v) social_links[k] = v;
+  });
+  const payload = {
+    name: g('setOrgName') || ORG.name,
+    tagline: g('setTagline') || null,
+    contact_email: g('setEmail') || null,
+    contact_phone: g('setPhone') || null,
+    contact_address: g('setAddress') || null,
+    logo_url: g('setLogoUrl') || null,
+    hero_image_url: g('setHeroUrl') || null,
+    accent_color: g('setAccentColor') || null,
+    ink_color: g('setInkColor') || null,
+    terminology: Object.assign({}, ORG.terminology || {}, terminology),
+    social_links: Object.assign({}, ORG.social_links || {}, social_links),
+    updated_at: nowIso()
+  };
+  try {
+    const rows = await sb.update('organizations', ORG.id, payload);
+    if (Array.isArray(rows) && rows[0]) { ORG = Object.assign({}, ORG, rows[0]); MF.org = ORG; }
+    showToast('Settings saved. Reload the page to see new colors applied everywhere.');
+  } catch (err) {
+    showToast('Could not save settings: ' + errMsg(err) +
+      ' (organization settings are writable only by your Supabase project owner unless an organizations UPDATE policy is added.)', 'error');
+  }
+}
+async function changePassword() {
+  const newp = document.getElementById('newPw').value;
+  const conf = document.getElementById('confirmPw').value;
+  if (newp.length < 8) { showToast('New password must be at least 8 characters.', 'error'); return; }
+  if (newp !== conf) { showToast('Passwords do not match.', 'error'); return; }
+  try {
+    const res = await fetch(sb.url + '/auth/v1/user', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', apikey: sb.key, Authorization: 'Bearer ' + sb.session.access_token },
+      body: JSON.stringify({ password: newp })
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.msg || e.error_description || 'Password update failed');
+    }
+    document.getElementById('newPw').value = '';
+    document.getElementById('confirmPw').value = '';
+    showToast('Password updated.');
+  } catch (err) {
+    showToast('Could not update password: ' + errMsg(err), 'error');
+  }
+}
+
+/* ══════════════════════════════════════════════
+   NEWSLETTER GENERATOR
+   The HTML is compiled client-side (no render Edge
+   Function dependency); "Send" posts to the
+   send-newsletter Edge Function, which does its own
+   admin check server-side.
+══════════════════════════════════════════════ */
+let latestNewsletterHtml = '';
+let nlBlocks = [];
+let nlPreviewTimer = null;
+let nlActiveImageBlockId = null;
+let nlLoadedTemplateId = null;
+
+function nlGenId() { return 'nlb_' + Math.random().toString(36).slice(2, 9); }
+function nlAddBlock(type) {
+  const block = { id: nlGenId(), type };
+  if (type === 'text') { block.heading = ''; block.body = ''; }
+  if (type === 'image') { block.imageUrl = ''; block.alt = ''; block.caption = ''; }
+  if (type === 'cta') { block.text = ''; block.url = ''; }
+  if (type === 'social') { block.heading = 'Connect With Us'; block.links = [{ network: 'Instagram', url: '' }]; }
+  nlBlocks.push(block);
+  nlRenderBlocks();
+  nlSchedulePreview();
+}
+function nlRemoveBlock(id) { nlBlocks = nlBlocks.filter(b => b.id !== id); nlRenderBlocks(); nlSchedulePreview(); }
+function nlMoveBlock(id, dir) {
+  const i = nlBlocks.findIndex(b => b.id === id);
+  const j = i + dir;
+  if (j < 0 || j >= nlBlocks.length) return;
+  const tmp = nlBlocks[i]; nlBlocks[i] = nlBlocks[j]; nlBlocks[j] = tmp;
+  nlRenderBlocks(); nlSchedulePreview();
+}
+function nlSetField(id, field, value) {
+  const b = nlBlocks.find(x => x.id === id);
+  if (b) b[field] = value;
+  nlSchedulePreview();
+}
+function nlAddSocialLink(id) {
+  const b = nlBlocks.find(x => x.id === id);
+  if (!b) return;
+  (b.links = b.links || []).push({ network: 'Website', url: '' });
+  nlRenderBlocks();
+}
+function nlRemoveSocialLink(id, idx) {
+  const b = nlBlocks.find(x => x.id === id);
+  if (b && b.links) { b.links.splice(idx, 1); nlRenderBlocks(); nlSchedulePreview(); }
+}
+function nlSetSocialLink(id, idx, field, value) {
+  const b = nlBlocks.find(x => x.id === id);
+  if (b && b.links && b.links[idx]) { b.links[idx][field] = value; nlSchedulePreview(); }
+}
+function nlTriggerImageUpload(blockId) { nlActiveImageBlockId = blockId; document.getElementById('nlImageInput').click(); }
+async function nlHandleImageFile(e) {
+  const file = e.target.files && e.target.files[0];
+  const blockId = nlActiveImageBlockId;
+  e.target.value = '';
+  nlActiveImageBlockId = null;
+  if (!file || !blockId) return;
+  try {
+    showToast('Uploading image…', 'info');
+    const uploaded = await uploadToBucket(file, ORG_MEDIA_BUCKET, 'newsletter');
+    nlSetField(blockId, 'imageUrl', uploaded.url);
+    nlRenderBlocks();
+    showToast('Image uploaded.');
+  } catch (err) { showToast(errMsg(err), 'error'); }
+}
+function nlRenderBlocks() {
+  const wrap = document.getElementById('nlBlocksContainer');
+  if (!wrap) return;
+  if (!nlBlocks.length) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:16px;"><i class="fas fa-layer-group"></i><p>No blocks yet. Add one below.</p></div>';
+    return;
+  }
+  wrap.innerHTML = nlBlocks.map((b, idx) => nlBlockCard(b, idx)).join('');
+}
+function nlBlockCard(b, idx) {
+  const id = escHtml(b.id);
+  const head =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+      '<span style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-500);">' + escHtml(b.type) + '</span>' +
+      '<div style="display:flex;gap:4px;">' +
+        '<button class="btn-sm view" onclick="nlMoveBlock(\'' + id + '\',-1)"' + (idx === 0 ? ' disabled' : '') + '><i class="fas fa-arrow-up"></i></button>' +
+        '<button class="btn-sm view" onclick="nlMoveBlock(\'' + id + '\',1)"' + (idx === nlBlocks.length - 1 ? ' disabled' : '') + '><i class="fas fa-arrow-down"></i></button>' +
+        '<button class="btn-sm danger" onclick="nlRemoveBlock(\'' + id + '\')"><i class="fas fa-trash"></i></button>' +
+      '</div></div>';
+  let body = '';
+  if (b.type === 'text') {
+    body = '<div class="field-group"><label style="font-size:0.72rem;">Heading</label><input type="text" value="' + escHtml(b.heading || '') + '" oninput="nlSetField(\'' + id + '\',\'heading\',this.value)" /></div>' +
+      '<div class="field-group" style="margin-top:8px;"><label style="font-size:0.72rem;">Body</label><textarea rows="4" oninput="nlSetField(\'' + id + '\',\'body\',this.value)">' + escHtml(b.body || '') + '</textarea></div>';
+  } else if (b.type === 'image') {
+    body = '<div class="field-group"><label style="font-size:0.72rem;">Image URL</label><input type="text" value="' + escHtml(b.imageUrl || '') + '" oninput="nlSetField(\'' + id + '\',\'imageUrl\',this.value)" /></div>' +
+      '<button type="button" class="upload-btn" style="margin-top:8px;font-size:0.75rem;padding:5px 10px;" onclick="nlTriggerImageUpload(\'' + id + '\')"><i class="fas fa-upload"></i> Upload</button>' +
+      '<div class="field-group" style="margin-top:8px;"><label style="font-size:0.72rem;">Alt text</label><input type="text" value="' + escHtml(b.alt || '') + '" oninput="nlSetField(\'' + id + '\',\'alt\',this.value)" /></div>' +
+      '<div class="field-group" style="margin-top:8px;"><label style="font-size:0.72rem;">Caption</label><input type="text" value="' + escHtml(b.caption || '') + '" oninput="nlSetField(\'' + id + '\',\'caption\',this.value)" /></div>';
+  } else if (b.type === 'cta') {
+    body = '<div class="field-group"><label style="font-size:0.72rem;">Button text</label><input type="text" value="' + escHtml(b.text || '') + '" oninput="nlSetField(\'' + id + '\',\'text\',this.value)" /></div>' +
+      '<div class="field-group" style="margin-top:8px;"><label style="font-size:0.72rem;">Button URL</label><input type="url" value="' + escHtml(b.url || '') + '" oninput="nlSetField(\'' + id + '\',\'url\',this.value)" /></div>';
+  } else if (b.type === 'social') {
+    body = '<div class="field-group"><label style="font-size:0.72rem;">Heading</label><input type="text" value="' + escHtml(b.heading || '') + '" oninput="nlSetField(\'' + id + '\',\'heading\',this.value)" /></div>' +
+      (b.links || []).map((l, li) =>
+        '<div style="display:grid;grid-template-columns:1fr 1.4fr auto;gap:6px;margin-top:6px;">' +
+        '<input type="text" value="' + escHtml(l.network || '') + '" placeholder="Network" oninput="nlSetSocialLink(\'' + id + '\',' + li + ',\'network\',this.value)" style="padding:6px 8px;border:1px solid var(--gray-200);border-radius:5px;font-size:0.8rem;font-family:inherit;" />' +
+        '<input type="url" value="' + escHtml(l.url || '') + '" placeholder="URL" oninput="nlSetSocialLink(\'' + id + '\',' + li + ',\'url\',this.value)" style="padding:6px 8px;border:1px solid var(--gray-200);border-radius:5px;font-size:0.8rem;font-family:inherit;" />' +
+        '<button class="btn-sm danger" onclick="nlRemoveSocialLink(\'' + id + '\',' + li + ')"><i class="fas fa-times"></i></button></div>').join('') +
+      '<button class="btn-sm view" style="margin-top:8px;" onclick="nlAddSocialLink(\'' + id + '\')"><i class="fas fa-plus"></i> Add link</button>';
+  } else {
+    body = '<div style="font-size:0.8rem;color:var(--gray-400);">A horizontal divider line.</div>';
+  }
+  return '<div style="background:var(--white);border:1px solid var(--gray-200);border-radius:8px;padding:12px;">' + head + body + '</div>';
+}
+function nlSchedulePreview() {
+  clearTimeout(nlPreviewTimer);
+  const status = document.getElementById('nlPreviewStatus');
+  if (status) status.textContent = 'Updating…';
+  nlPreviewTimer = setTimeout(nlRunPreview, 700);
+}
+function nlBuildPayload() {
+  return {
+    campaignName: (document.getElementById('nlCampaignName') || {}).value || '',
+    subject: (document.getElementById('nlSubject') || {}).value || '',
+    preheader: (document.getElementById('nlPreheader') || {}).value || '',
+    blocks: nlBlocks.map(b => { const c = Object.assign({}, b); delete c.id; return c; })
+  };
+}
+/** Minimal, email-safe HTML compiler using the org's brand colors. */
+function nlCompileHtml(payload) {
+  const accent = (ORG && ORG.accent_color) || '#4F46E5';
+  const ink = (ORG && ORG.ink_color) || '#0b0f19';
+  const orgName = (ORG && ORG.name) || 'Our Organization';
+  const blocks = (payload.blocks || []).map(b => {
+    if (b.type === 'text') {
+      return (b.heading ? '<h2 style="font-family:Georgia,serif;font-size:20px;color:' + ink + ';margin:0 0 10px;">' + escHtml(b.heading) + '</h2>' : '') +
+        '<p style="font-size:15px;line-height:1.65;color:#333;margin:0 0 18px;white-space:pre-wrap;">' + escHtml(b.body || '') + '</p>';
+    }
+    if (b.type === 'image') {
+      if (!b.imageUrl) return '';
+      return '<div style="margin:0 0 18px;"><img src="' + escHtml(b.imageUrl) + '" alt="' + escHtml(b.alt || '') + '" style="width:100%;max-width:600px;border-radius:6px;display:block;" />' +
+        (b.caption ? '<div style="font-size:12px;color:#777;margin-top:6px;">' + escHtml(b.caption) + '</div>' : '') + '</div>';
+    }
+    if (b.type === 'cta') {
+      if (!b.text) return '';
+      return '<div style="margin:0 0 22px;text-align:center;"><a href="' + escHtml(b.url || '#') + '" style="display:inline-block;background:' + accent + ';color:#fff;text-decoration:none;padding:13px 28px;border-radius:5px;font-weight:700;font-size:14px;">' + escHtml(b.text) + '</a></div>';
+    }
+    if (b.type === 'social') {
+      const links = (b.links || []).filter(l => l.url);
+      if (!links.length) return '';
+      return '<div style="margin:0 0 20px;text-align:center;">' +
+        (b.heading ? '<div style="font-size:13px;font-weight:700;color:' + ink + ';margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em;">' + escHtml(b.heading) + '</div>' : '') +
+        links.map(l => '<a href="' + escHtml(l.url) + '" style="color:' + accent + ';text-decoration:none;font-size:13px;margin:0 8px;">' + escHtml(l.network || 'Link') + '</a>').join('') + '</div>';
+    }
+    return '<hr style="border:none;border-top:1px solid #e5e5e5;margin:0 0 22px;" />';
+  }).join('');
+  return '<!DOCTYPE html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />' +
+    '<title>' + escHtml(payload.subject || orgName) + '</title></head>' +
+    '<body style="margin:0;padding:0;background:#f2f2f2;font-family:Helvetica,Arial,sans-serif;">' +
+    '<div style="display:none;max-height:0;overflow:hidden;">' + escHtml(payload.preheader || '') + '</div>' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2f2f2;padding:24px 0;"><tr><td align="center">' +
+    '<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;">' +
+    '<tr><td style="background:' + ink + ';padding:22px 28px;text-align:center;">' +
+    '<div style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:' + accent + ';">' + escHtml(orgName) + '</div>' +
+    (payload.campaignName ? '<div style="font-size:12px;color:rgba(255,255,255,0.6);letter-spacing:0.1em;text-transform:uppercase;margin-top:4px;">' + escHtml(payload.campaignName) + '</div>' : '') +
+    '</td></tr>' +
+    '<tr><td style="padding:28px;">' + (blocks || '<p style="color:#999;">Add blocks to build your newsletter.</p>') + '</td></tr>' +
+    '<tr><td style="background:#fafafa;padding:18px 28px;text-align:center;font-size:12px;color:#888;">' +
+    escHtml(orgName) + (ORG && ORG.contact_email ? ' · ' + escHtml(ORG.contact_email) : '') +
+    '</td></tr></table></td></tr></table></body></html>';
+}
+function nlRunPreview() {
+  try {
+    latestNewsletterHtml = nlCompileHtml(nlBuildPayload());
+    const frame = document.getElementById('nlPreviewFrame');
+    if (frame) frame.srcdoc = latestNewsletterHtml;
+    const status = document.getElementById('nlPreviewStatus');
+    if (status) status.textContent = 'Preview up to date';
+  } catch (err) {
+    const status = document.getElementById('nlPreviewStatus');
+    if (status) status.textContent = 'Preview error';
+    console.warn('Newsletter preview error:', err);
+  }
+}
+function nlSetPreviewMode(mode) {
+  const shell = document.getElementById('nlPreviewShell');
+  document.getElementById('nlDesktopBtn').classList.toggle('active', mode !== 'mobile');
+  document.getElementById('nlMobileBtn').classList.toggle('active', mode === 'mobile');
+  if (shell) shell.style.width = mode === 'mobile' ? '375px' : '640px';
+}
+async function nlLoadTemplateOptions() {
+  try {
+    const rows = await sb.getAll('newsletter_templates', MF.scope('select=id,template_name,updated_at&order=updated_at.desc'));
+    const sel = document.getElementById('nlTemplateSelect');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Load template…</option>' +
+      (rows || []).map(r => '<option value="' + escHtml(String(r.id)) + '">' + escHtml(r.template_name || 'Untitled') + '</option>').join('');
+  } catch (err) { /* templates are optional */ }
+}
+async function nlSaveTemplate() {
+  if (!nlBlocks.length) { showToast('Add at least one block before saving.', 'error'); return; }
+  const name = prompt('Template name:', (document.getElementById('nlCampaignName') || {}).value || 'My Template');
+  if (!name) return;
+  const payload = {
+    template_name: name.trim(),
+    subject: (document.getElementById('nlSubject') || {}).value || '',
+    preheader: (document.getElementById('nlPreheader') || {}).value || '',
+    sections_json: nlBlocks,
+    updated_at: nowIso()
+  };
+  try {
+    const existing = await sb.getAll('newsletter_templates',
+      MF.scope('select=id&template_name=eq.' + encodeURIComponent(name.trim()) + '&limit=1'));
+    if (Array.isArray(existing) && existing.length) {
+      await sb.patchWhere('newsletter_templates', MF.scope('id=eq.' + encodeURIComponent(existing[0].id)), payload);
+      nlLoadedTemplateId = existing[0].id;
+    } else {
+      const created = await sb.insert('newsletter_templates', MF.stamp(payload));
+      nlLoadedTemplateId = Array.isArray(created) && created[0] ? created[0].id : null;
+    }
+    await nlLoadTemplateOptions();
+    showToast('Template saved: ' + name.trim());
+  } catch (err) { showToast('Save failed: ' + errMsg(err), 'error'); }
+}
+async function nlLoadSelectedTemplate() {
+  const sel = document.getElementById('nlTemplateSelect');
+  if (!sel || !sel.value) return;
+  try {
+    const rows = await sb.getAll('newsletter_templates', MF.scope('id=eq.' + encodeURIComponent(sel.value) + '&limit=1'));
+    if (!rows || !rows.length) { showToast('Template not found.', 'error'); return; }
+    const row = rows[0];
+    nlLoadedTemplateId = row.id;
+    const setV = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+    setV('nlCampaignName', row.template_name);
+    setV('nlSubject', row.subject);
+    setV('nlPreheader', row.preheader);
+    nlBlocks = (Array.isArray(row.sections_json) ? row.sections_json : []).map(s => Object.assign({ id: nlGenId() }, s || {}));
+    nlRenderBlocks();
+    nlSchedulePreview();
+    showToast('Template loaded.');
+  } catch (err) { showToast('Load failed: ' + errMsg(err), 'error'); }
+}
+function nlInitPanel() {
+  const now = new Date();
+  const month = now.toLocaleString('en-US', { month: 'long' });
+  const cn = document.getElementById('nlCampaignName');
+  if (cn && !cn.value) cn.value = month + ' ' + now.getFullYear() + ' Update';
+  const subj = document.getElementById('nlSubject');
+  if (subj && !subj.value) subj.value = ((ORG && ORG.name) || 'Our Organization') + ' — ' + month + ' Update';
+  nlRenderBlocks();
+  nlLoadTemplateOptions();
+  nlRunPreview();
+}
+async function copyNewsletterHtml() {
+  if (!latestNewsletterHtml) nlRunPreview();
+  try {
+    await navigator.clipboard.writeText(latestNewsletterHtml);
+    showToast('HTML copied to clipboard.');
+  } catch (e) { showToast('Copy failed — use Download instead.', 'error'); }
+}
+function downloadNewsletterHtml() {
+  if (!latestNewsletterHtml) nlRunPreview();
+  if (!latestNewsletterHtml) { showToast('Nothing to download yet.', 'error'); return; }
+  const name = ((document.getElementById('nlCampaignName') || {}).value || 'newsletter').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  const blob = new Blob([latestNewsletterHtml], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name + '.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+/** Posts to the send-newsletter Edge Function, which performs its own
+    (now fixed) org-admin check server-side. */
+async function nlSendToMembers() {
+  if (!nlBlocks.length) { showToast('Build the newsletter first.', 'error'); return; }
+  const subject = (document.getElementById('nlSubject') || {}).value || '';
+  if (!subject) { showToast('Enter a subject line before sending.', 'error'); return; }
+  if (!confirm('Send this newsletter to all active ' + memberNounPlural().toLowerCase() + '? This cannot be undone.')) return;
+  try {
+    showToast('Compiling and sending…', 'info');
+    const payload = nlBuildPayload();
+    latestNewsletterHtml = nlCompileHtml(payload);
+    const res = await fetch(sb.url + '/functions/v1/send-newsletter', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: sb.key,
+        Authorization: 'Bearer ' + sb.session.access_token
+      },
+      body: JSON.stringify({
+        org_id: ORG.id,
+        template_id: nlLoadedTemplateId,
+        subject: subject,
+        preheader: payload.preheader,
+        sections: payload.blocks,
+        html: latestNewsletterHtml
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || ('Send failed (' + res.status + ')'));
+    showToast('Newsletter sent to ' + (data.sent != null ? data.sent : 'all') + ' ' + memberNounPlural().toLowerCase() + '.');
+  } catch (err) {
+    showToast('Send failed: ' + errMsg(err), 'error');
+  }
+}
+
+/* ── Close modals when clicking the backdrop ── */
+document.querySelectorAll('.modal-backdrop').forEach(m => {
+  m.addEventListener('click', function (e) { if (e.target === this) this.style.display = 'none'; });
+});
+</script>
+
+</body>
+</html>
+
+
+
 
 
 

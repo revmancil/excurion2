@@ -1,0 +1,3765 @@
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Member Portal | {{ORG_NAME}}</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+<link rel="stylesheet" href="css/theme.css" />
+<style>
+  /* ------------------------------------------------------------------
+     Member portal app shell. Colors derive from the runtime brand vars
+     that js/org-context.js writes (--accent, --ink, --on-accent), so the
+     portal reskins per tenant with no per-org CSS.
+  ------------------------------------------------------------------ */
+  :root {
+    --p-bg:        var(--ink);
+    --p-surface:   color-mix(in srgb, var(--ink) 88%, #ffffff);
+    --p-surface-2: color-mix(in srgb, var(--ink) 82%, #ffffff);
+    --p-border:    rgba(255,255,255,0.08);
+    --p-border-2:  rgba(255,255,255,0.14);
+    --p-text:      #ffffff;
+    --p-dim:       rgba(255,255,255,0.55);
+    --p-dim-2:     rgba(255,255,255,0.35);
+    --p-faint:     rgba(255,255,255,0.22);
+    --p-pale:      color-mix(in srgb, var(--accent) 12%, transparent);
+    --p-pale-2:    color-mix(in srgb, var(--accent) 26%, transparent);
+    --p-green:     #22c55e;
+    --p-green-pale:rgba(34,197,94,0.12);
+    --p-red:       #ef4444;
+    --p-red-pale:  rgba(239,68,68,0.12);
+    --p-amber:     #f59e0b;
+    --p-amber-pale:rgba(245,158,11,0.12);
+    --p-blue:      #3b82f6;
+    --p-blue-pale: rgba(59,130,246,0.12);
+    --p-violet:    #8b5cf6;
+    --sidebar-w:   262px;
+  }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--p-bg);
+    color: var(--p-text);
+    display: flex;
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+  ::selection { background: var(--accent); color: var(--on-accent); }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--p-surface);
+    border-right: 1px solid var(--p-border);
+    display: flex; flex-direction: column;
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+    transition: transform 0.3s;
+  }
+  .sidebar-logo {
+    padding: 22px 20px 18px;
+    border-bottom: 1px solid var(--p-border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .sidebar-logo img {
+    width: 42px; height: 42px; object-fit: contain;
+    border-radius: 50%; border: 1.5px solid var(--p-pale-2); background: rgba(255,255,255,0.04);
+  }
+  .sidebar-logo-text { min-width: 0; }
+  .sidebar-logo-text h2 {
+    font-family: 'Playfair Display', serif; font-size: 0.9rem; font-weight: 700;
+    color: var(--accent); line-height: 1.2;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .sidebar-logo-text span {
+    font-size: 0.66rem; color: var(--p-dim-2);
+    letter-spacing: 0.09em; text-transform: uppercase;
+  }
+  .sidebar-user {
+    padding: 15px 20px; border-bottom: 1px solid var(--p-border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .user-avatar {
+    width: 36px; height: 36px; background: var(--accent); color: var(--on-accent);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.82rem; flex-shrink: 0; overflow: hidden;
+  }
+  .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .user-info { min-width: 0; }
+  .user-info .name {
+    font-size: 0.82rem; font-weight: 600; color: var(--p-text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .user-info .status { font-size: 0.7rem; display: flex; align-items: center; gap: 5px; margin-top: 1px; color: var(--p-dim); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--p-green); flex-shrink: 0; }
+  .status-dot.pending { background: var(--p-amber); }
+  .status-dot.visiting { background: var(--p-blue); }
+
+  .sidebar-nav { padding: 10px 0 16px; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .nav-section-label {
+    font-size: 0.63rem; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase;
+    color: var(--p-faint); padding: 12px 20px 6px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 11px; padding: 10px 20px;
+    color: var(--p-dim); font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 500;
+    cursor: pointer; border: none; background: none; width: 100%; text-align: left;
+    transition: color 0.2s, background 0.2s; border-left: 3px solid transparent;
+  }
+  .nav-item i { width: 18px; text-align: center; font-size: 0.88rem; }
+  .nav-item:hover { color: var(--p-text); background: rgba(255,255,255,0.04); }
+  .nav-item.active { color: var(--accent); background: var(--p-pale); border-left-color: var(--accent); }
+  .nav-badge {
+    background: var(--accent); color: var(--on-accent); font-size: 0.6rem; font-weight: 800;
+    padding: 1px 6px; border-radius: 10px; margin-left: auto;
+  }
+  .sidebar-footer { padding: 14px 20px; border-top: 1px solid var(--p-border); }
+  .logout-btn {
+    display: flex; align-items: center; gap: 9px; color: var(--p-dim-2);
+    font-family: 'Inter', sans-serif; font-size: 0.83rem; background: none; border: none;
+    cursor: pointer; padding: 8px 0; transition: color 0.2s; width: 100%;
+  }
+  .logout-btn:hover { color: var(--p-red); }
+
+  /* ---------- Main ---------- */
+  .main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+  .topbar {
+    background: var(--p-surface); border-bottom: 1px solid var(--p-border);
+    padding: 0 28px; height: 60px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .hamburger { display: none; background: none; border: none; color: var(--p-text); font-size: 1.1rem; cursor: pointer; padding: 6px; }
+  .page-title { font-size: 1rem; font-weight: 600; color: var(--p-text); }
+  .breadcrumb { font-size: 0.78rem; color: var(--p-dim-2); margin-left: 8px; }
+  .topbar-site-link { display: flex; align-items: center; gap: 6px; color: var(--p-dim-2); font-size: 0.8rem; transition: color 0.2s; }
+  .topbar-site-link:hover { color: var(--accent); }
+  .content { padding: 26px 28px 40px; flex: 1; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ---------- Cards ---------- */
+  .section-card {
+    background: var(--p-surface); border: 1px solid var(--p-border);
+    border-radius: 12px; margin-bottom: 20px; overflow: hidden;
+  }
+  .section-card-header {
+    padding: 15px 22px; border-bottom: 1px solid var(--p-border);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  }
+  .section-card-header h3 {
+    font-family: 'Inter', sans-serif; font-size: 0.92rem; font-weight: 700; color: var(--p-text);
+    display: flex; align-items: center; gap: 9px;
+  }
+  .section-card-header h3 i { color: var(--accent); font-size: 0.85rem; }
+  .section-card-header .card-action {
+    font-family: 'Inter', sans-serif; font-size: 0.78rem; color: var(--accent);
+    background: none; border: none; cursor: pointer; font-weight: 600;
+  }
+  .section-card-body { padding: 22px; }
+  .muted-note { color: var(--p-dim); font-size: 0.85rem; line-height: 1.65; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-bottom: 22px; }
+  .stat-card {
+    background: var(--p-surface); border: 1px solid var(--p-border); border-radius: 12px;
+    padding: 18px 20px; display: flex; align-items: center; gap: 14px;
+  }
+  .stat-icon {
+    width: 44px; height: 44px; border-radius: 10px; background: var(--p-pale);
+    display: flex; align-items: center; justify-content: center; color: var(--accent);
+    font-size: 1.05rem; flex-shrink: 0;
+  }
+  .stat-icon.green { background: var(--p-green-pale); color: var(--p-green); }
+  .stat-icon.blue { background: var(--p-blue-pale); color: var(--p-blue); }
+  .stat-icon.violet { background: rgba(139,92,246,0.12); color: var(--p-violet); }
+  .stat-value { font-size: 1.45rem; font-weight: 700; color: var(--p-text); line-height: 1.1; }
+  .stat-label { font-size: 0.75rem; color: var(--p-dim-2); margin-top: 3px; }
+
+  /* ---------- Events ---------- */
+  .event-item { display: flex; gap: 16px; align-items: flex-start; padding: 16px 0; border-bottom: 1px solid var(--p-border); }
+  .event-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .event-date-badge {
+    background: var(--p-pale); border: 1px solid var(--p-pale-2); border-radius: 8px;
+    padding: 8px 12px; text-align: center; min-width: 58px; flex-shrink: 0;
+  }
+  .event-date-badge .day { font-size: 1.35rem; font-weight: 700; color: var(--accent); line-height: 1; }
+  .event-date-badge .month { font-size: 0.64rem; color: var(--p-dim-2); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
+  .event-info { flex: 1; min-width: 0; }
+  .event-info h4 { font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 600; color: var(--p-text); margin-bottom: 4px; }
+  .event-info .meta { font-size: 0.78rem; color: var(--p-dim-2); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .event-info .meta i { color: var(--accent); }
+  .pill {
+    display: inline-block; font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px;
+  }
+  .pill-accent { background: var(--accent); color: var(--on-accent); }
+  .pill-outline { background: var(--p-pale); color: var(--accent); border: 1px solid var(--p-pale-2); }
+
+  /* ---------- Generic rows/lists ---------- */
+  .list-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 13px 0; border-bottom: 1px solid var(--p-border); font-size: 0.85rem; flex-wrap: wrap;
+  }
+  .list-row:last-child { border-bottom: none; }
+  .tag-status {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px; text-transform: capitalize;
+  }
+  .tag-status.paid, .tag-status.approved { background: var(--p-green-pale); color: var(--p-green); }
+  .tag-status.pending { background: var(--p-amber-pale); color: var(--p-amber); }
+  .tag-status.failed, .tag-status.rejected, .tag-status.denied, .tag-status.cancelled { background: var(--p-red-pale); color: var(--p-red); }
+  .tag-status.fulfilled { background: var(--p-blue-pale); color: var(--p-blue); }
+
+  .doc-item { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--p-border); }
+  .doc-item:last-child { border-bottom: none; }
+  .doc-icon {
+    width: 42px; height: 42px; border-radius: 8px; background: var(--p-pale);
+    display: flex; align-items: center; justify-content: center; color: var(--accent);
+    font-size: 1.05rem; flex-shrink: 0;
+  }
+  .doc-info { flex: 1; min-width: 0; }
+  .doc-title { font-weight: 600; color: var(--p-text); font-size: 0.87rem; }
+  .doc-meta { font-size: 0.75rem; color: var(--p-dim-2); margin-top: 2px; }
+  .doc-download {
+    display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px;
+    background: var(--p-pale); color: var(--accent); border: 1px solid var(--p-pale-2);
+    border-radius: 6px; font-size: 0.79rem; font-weight: 600; white-space: nowrap;
+  }
+  .doc-download:hover { background: var(--p-pale-2); color: var(--accent); }
+
+  /* ---------- Forms ---------- */
+  .pfield { margin-bottom: 0; }
+  .pfield label {
+    display: block; font-size: 0.71rem; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--p-dim-2); margin-bottom: 6px;
+  }
+  .pfield input, .pfield textarea, .pfield select {
+    width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--p-border-2);
+    border-radius: 7px; color: var(--p-text); font-family: 'Inter', sans-serif;
+    font-size: 0.88rem; padding: 10px 12px; transition: border-color 0.2s; outline: none;
+  }
+  .pfield select option { background: #1e1e1e; color: #fff; }
+  .pfield textarea { min-height: 84px; resize: vertical; }
+  .pfield input:focus, .pfield textarea:focus, .pfield select:focus { border-color: var(--accent); }
+  .pfield input[readonly], .pfield select:disabled { background: rgba(255,255,255,0.02); color: var(--p-dim-2); cursor: not-allowed; }
+  .pfield input::placeholder, .pfield textarea::placeholder { color: rgba(255,255,255,0.25); }
+  .field-hint { font-size: 0.72rem; color: var(--p-dim-2); margin-top: 5px; }
+  .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .profile-grid.full { grid-template-columns: 1fr; }
+  .form-stack { display: flex; flex-direction: column; gap: 15px; max-width: 640px; }
+  .form-group-label {
+    font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em;
+    color: var(--p-dim-2); margin-bottom: 12px;
+  }
+  .req { color: var(--p-red); }
+
+  .btn-accent {
+    background: var(--accent); color: var(--on-accent); border: none; border-radius: 7px;
+    font-family: 'Inter', sans-serif; font-size: 0.83rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; padding: 10px 18px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 7px; transition: opacity 0.2s;
+  }
+  .btn-accent:hover { opacity: 0.88; }
+  .btn-accent:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn-ghost {
+    background: transparent; color: var(--p-dim); border: 1px solid var(--p-border-2); border-radius: 7px;
+    font-family: 'Inter', sans-serif; font-size: 0.83rem; font-weight: 500; padding: 10px 18px;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: all 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-sm { font-size: 0.76rem; padding: 6px 13px; text-transform: none; letter-spacing: 0; }
+
+  .alert { padding: 11px 15px; border-radius: 7px; font-size: 0.83rem; line-height: 1.55; }
+  .alert-error { background: var(--p-red-pale); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
+  .alert-success { background: var(--p-green-pale); border: 1px solid rgba(34,197,94,0.28); color: #86efac; }
+  .alert-info { background: var(--p-pale); border: 1px solid var(--p-pale-2); color: var(--p-dim); }
+  .alert-warn { background: var(--p-amber-pale); border: 1px solid rgba(245,158,11,0.28); color: #fcd34d; }
+  .is-hidden { display: none !important; }
+
+  .dropzone {
+    border: 2px dashed var(--p-border-2); border-radius: 8px; padding: 20px 16px; text-align: center;
+    cursor: pointer; transition: border-color 0.2s; color: var(--p-dim-2); font-size: 0.83rem;
+  }
+  .dropzone:hover { border-color: var(--accent); }
+  .dropzone i { font-size: 1.3rem; margin-bottom: 6px; display: block; color: var(--accent); }
+
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 11px 0; border-bottom: 1px solid var(--p-border); cursor: pointer;
+  }
+  .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .toggle-row-title { font-size: 0.85rem; color: var(--p-text); font-weight: 500; }
+  .toggle-row-sub { font-size: 0.72rem; color: var(--p-dim-2); margin-top: 2px; }
+  .toggle-wrap { position: relative; flex-shrink: 0; }
+  .toggle-wrap input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .toggle-slider {
+    display: block; width: 42px; height: 24px; background: rgba(255,255,255,0.14);
+    border-radius: 12px; position: relative; transition: background 0.25s; cursor: pointer;
+  }
+  .toggle-slider::after {
+    content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%;
+    background: #fff; top: 3px; left: 3px; transition: transform 0.25s;
+  }
+  .toggle-wrap input:checked + .toggle-slider { background: var(--accent); }
+  .toggle-wrap input:checked + .toggle-slider::after { transform: translateX(18px); }
+  .privacy-section {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--p-border);
+    border-radius: 8px; padding: 16px 18px; margin: 18px 0;
+  }
+  .privacy-section-label {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+
+  /* ---------- Profile header ---------- */
+  .profile-header { display: flex; align-items: center; gap: 20px; margin-bottom: 24px; flex-wrap: wrap; }
+  .profile-avatar-large {
+    width: 80px; height: 80px; border-radius: 50%; background: var(--accent); color: var(--on-accent);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif; font-size: 1.75rem; font-weight: 700;
+    overflow: hidden; border: 3px solid var(--p-pale-2); flex-shrink: 0;
+  }
+  .profile-avatar-large img { width: 100%; height: 100%; object-fit: cover; }
+  .profile-header-info h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; color: var(--p-text); }
+  .profile-header-info .member-since { font-size: 0.78rem; color: var(--p-dim-2); margin-top: 3px; }
+  .member-status {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px; margin-top: 7px;
+  }
+  .member-status.active { background: var(--p-green-pale); color: var(--p-green); }
+  .member-status.visiting { background: var(--p-blue-pale); color: var(--p-blue); }
+  .member-status.pending { background: var(--p-amber-pale); color: var(--p-amber); }
+
+  /* ---------- Directory ---------- */
+  .dir-toolbar { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .chip-bar { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+  .chip {
+    padding: 5px 14px; border-radius: 20px; font-family: 'Inter', sans-serif; font-size: 0.7rem;
+    font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    border: 1px solid var(--p-border-2); background: transparent; color: var(--p-dim-2);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .chip.active { background: var(--p-pale); color: var(--accent); border-color: var(--p-pale-2); }
+  .chip-label { font-size: 0.68rem; color: var(--p-faint); text-transform: uppercase; letter-spacing: 0.08em; }
+  .search-wrap { position: relative; }
+  .search-wrap i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--p-dim-2); font-size: 0.85rem; }
+  .member-search {
+    width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--p-border-2);
+    border-radius: 8px; color: var(--p-text); font-family: 'Inter', sans-serif;
+    font-size: 0.88rem; padding: 10px 14px 10px 40px; outline: none;
+  }
+  .member-search:focus { border-color: var(--accent); }
+  .member-card { display: flex; align-items: flex-start; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--p-border); }
+  .member-card:last-child { border-bottom: none; }
+  .member-card-avatar {
+    width: 52px; height: 52px; border-radius: 50%; background: var(--p-pale);
+    border: 2px solid var(--p-pale-2); display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 1rem; color: var(--accent); overflow: hidden; flex-shrink: 0;
+  }
+  .member-card-avatar img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+  .mc-name { font-size: 0.9rem; font-weight: 700; color: var(--p-text); display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  .mc-badge {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 0.6rem; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; border-radius: 100px;
+  }
+  .mc-badge-life { background: var(--p-pale); color: var(--accent); border: 1px solid var(--p-pale-2); }
+  .mc-badge-visiting { background: var(--p-blue-pale); color: #93c5fd; border: 1px solid rgba(59,130,246,0.25); }
+  .mc-badge-service { background: rgba(255,255,255,0.06); color: var(--p-dim); border: 1px solid var(--p-border-2); }
+  .mc-meta { font-size: 0.73rem; color: var(--p-dim-2); margin-top: 3px; line-height: 1.5; }
+  .mc-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+  .mc-btn {
+    display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 6px;
+    font-size: 0.72rem; font-weight: 600; transition: all 0.2s; white-space: nowrap;
+    border: 1px solid var(--p-pale-2); background: var(--p-pale); color: var(--accent);
+  }
+  .mc-btn:hover { background: var(--p-pale-2); color: var(--accent); }
+
+  /* ---------- Membership card ---------- */
+  .mf-card {
+    width: 420px; max-width: 100%;
+    background: linear-gradient(145deg, var(--ink-deep) 0%, var(--p-surface-2) 62%, var(--ink) 100%);
+    border: 2px solid var(--p-pale-2); border-radius: 16px; overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.55); position: relative;
+  }
+  .mf-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+  .mf-card-header {
+    display: flex; align-items: center; gap: 12px; padding: 16px 20px 14px;
+    border-bottom: 1px solid var(--p-pale-2); background: var(--p-pale);
+  }
+  .mf-card-logo { width: 44px; height: 44px; object-fit: contain; }
+  .mf-card-org-name {
+    font-family: 'Playfair Display', serif; font-size: 0.8rem; color: var(--accent);
+    font-weight: 700; letter-spacing: 0.05em; line-height: 1.3;
+  }
+  .mf-card-org-sub { font-size: 0.66rem; color: var(--p-dim-2); letter-spacing: 0.04em; margin-top: 2px; }
+  .mf-card-body { display: flex; gap: 16px; padding: 20px; }
+  .mf-card-photo {
+    width: 72px; height: 72px; border-radius: 50%; border: 2px solid var(--p-pale-2);
+    background: var(--p-pale); display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; font-weight: 700; color: var(--accent); overflow: hidden; flex-shrink: 0;
+  }
+  .mf-card-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .mf-card-info { flex: 1; min-width: 0; }
+  .mf-card-name { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; color: var(--p-text); margin-bottom: 9px; line-height: 1.2; }
+  .mf-card-detail { font-size: 0.72rem; color: var(--p-dim); margin-bottom: 4px; }
+  .mf-card-label { color: var(--accent); font-weight: 600; margin-right: 4px; }
+  .mf-card-status {
+    display: inline-flex; align-items: center; gap: 5px; margin-top: 9px; font-size: 0.66rem;
+    font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent);
+    border: 1px solid var(--p-pale-2); padding: 3px 10px; border-radius: 20px; background: var(--p-pale);
+  }
+  .mf-card-footer {
+    padding: 10px 20px; border-top: 1px solid var(--p-pale-2);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: rgba(0,0,0,0.28);
+  }
+  .mf-card-qr { background: #fff; padding: 5px; border-radius: 6px; line-height: 0; flex-shrink: 0; }
+  .mf-card-qr svg { display: block; width: 62px; height: 62px; }
+  .mf-card-footer-text { font-size: 0.6rem; color: var(--p-dim-2); font-style: italic; letter-spacing: 0.03em; }
+
+  /* ---------- Modals ---------- */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 2100;
+    align-items: center; justify-content: center; padding: 20px;
+    -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--p-surface-2); border: 1px solid var(--p-border-2); border-radius: 14px;
+    max-width: 460px; width: 100%; max-height: 90vh; overflow-y: auto;
+    -webkit-overflow-scrolling: touch; box-shadow: 0 24px 80px rgba(0,0,0,0.55); position: relative;
+  }
+  .modal.wide { max-width: 560px; }
+  .modal-close {
+    position: absolute; top: 12px; right: 14px; background: rgba(255,255,255,0.08); border: none;
+    border-radius: 50%; width: 34px; height: 34px; font-size: 1.05rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; color: var(--p-dim); z-index: 10;
+  }
+  .modal-close:hover { background: rgba(255,255,255,0.16); color: var(--p-text); }
+  .modal-body { padding: 24px 26px 26px; }
+  .modal-body h3 { font-family: 'Playfair Display', serif; font-size: 1.15rem; color: var(--p-text); margin-bottom: 6px; padding-right: 36px; }
+
+  /* ---------- Store ---------- */
+  .store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+  .store-item {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--p-border); border-radius: 10px;
+    overflow: hidden; display: flex; flex-direction: column; transition: border-color 0.2s;
+  }
+  .store-item:hover { border-color: var(--p-pale-2); }
+  .store-item-img { width: 100%; height: 170px; object-fit: cover; }
+  .store-item-noimg { height: 120px; background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center; }
+  .store-item-noimg i { font-size: 2.4rem; color: rgba(255,255,255,0.1); }
+  .store-item-body { padding: 14px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .store-price { font-size: 1.05rem; font-weight: 800; color: var(--accent); }
+  .qty-stepper { display: flex; align-items: center; border: 1px solid var(--p-border-2); border-radius: 8px; overflow: hidden; }
+  .qty-stepper button { width: 34px; height: 34px; background: rgba(255,255,255,0.05); border: none; color: var(--p-text); font-size: 1.05rem; cursor: pointer; }
+  .qty-stepper .qty-val { width: 36px; text-align: center; font-size: 0.92rem; font-weight: 700; color: var(--p-text); }
+
+  /* ---------- Misc ---------- */
+  .empty-state { text-align: center; padding: 38px 20px; color: var(--p-dim-2); }
+  .empty-state i { font-size: 2.3rem; color: var(--p-faint); margin-bottom: 12px; display: block; }
+  .empty-state p { font-size: 0.85rem; }
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--p-surface-2);
+    border-left: 4px solid var(--p-green); border-radius: 8px; padding: 13px 18px;
+    font-size: 0.85rem; color: var(--p-text); z-index: 9999; display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.45); transform: translateY(20px); opacity: 0;
+    transition: all 0.3s; max-width: 340px; pointer-events: none;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.error { border-left-color: var(--p-red); }
+  .toast i { font-size: 1rem; color: var(--p-green); }
+  .toast.error i { color: var(--p-red); }
+  #loadingOverlay {
+    position: fixed; inset: 0; background: var(--p-bg); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; z-index: 9000; gap: 16px;
+  }
+  #loadingOverlay img { width: 58px; height: 58px; object-fit: contain; }
+  #loadingOverlay .loading-bar { width: 200px; height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
+  #loadingOverlay .loading-bar-fill { height: 100%; background: var(--accent); animation: loadBar 1.5s ease-in-out infinite; border-radius: 2px; }
+  @keyframes loadBar { 0% { width: 0%; margin-left: 0; } 50% { width: 70%; margin-left: 15%; } 100% { width: 0%; margin-left: 100%; } }
+  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 99; }
+  #gateScreen {
+    position: fixed; inset: 0; background: var(--p-bg); z-index: 8000;
+    display: none; align-items: center; justify-content: center; padding: 24px; text-align: center;
+  }
+  #gateScreen.show { display: flex; }
+  .gate-card { max-width: 460px; }
+  .gate-card img { width: 64px; height: 64px; object-fit: contain; margin: 0 auto 20px; }
+  .gate-card h1 { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--p-text); margin-bottom: 12px; }
+  .gate-card p { color: var(--p-dim); font-size: 0.92rem; line-height: 1.7; margin-bottom: 20px; }
+  .qr-box { background: #fff; padding: 12px; border-radius: 10px; display: inline-block; line-height: 0; }
+  .qr-box svg { display: block; width: 200px; height: 200px; }
+  .link-row {
+    display: flex; gap: 8px; align-items: center; background: rgba(255,255,255,0.05);
+    border: 1px solid var(--p-border-2); border-radius: 7px; padding: 8px 10px; margin-top: 12px;
+  }
+  .link-row code { flex: 1; min-width: 0; font-size: 0.74rem; color: var(--p-dim); overflow-wrap: anywhere; }
+
+  @media (max-width: 900px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-overlay.show { display: block; }
+    .main { margin-left: 0; }
+    .hamburger { display: block; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .profile-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .content { padding: 16px; }
+    .stats-grid { grid-template-columns: 1fr; }
+    .topbar { padding: 0 16px; }
+    .breadcrumb { display: none; }
+  }
+  @media print {
+    body > *:not(#printCardWrap) { display: none !important; }
+    #printCardWrap { display: flex !important; justify-content: center; align-items: center; min-height: 100vh; }
+    .mf-card { box-shadow: none; }
+  }
+</style>
+
+<div id="loadingOverlay">
+  <img data-mf="org_logo" src="images/default-logo.svg" alt="Loading" />
+  <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+</div>
+
+<div id="gateScreen">
+  <div class="gate-card">
+    <img data-mf="org_logo" src="images/default-logo.svg" alt="" />
+    <h1 id="gateTitle">Access pending</h1>
+    <p id="gateMessage">Your portal access is awaiting approval.</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <a class="btn-ghost" href="index.html" id="gateSiteLink"><i class="fas fa-arrow-left"></i> Back to site</a>
+      <button class="btn-accent" onclick="MFPortal.signOut()"><i class="fas fa-sign-out-alt"></i> Sign out</button>
+    </div>
+  </div>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="MFPortal.closeSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <img data-mf="org_logo" src="images/default-logo.svg" alt="" />
+    <div class="sidebar-logo-text">
+      <h2 data-mf="org_name">Organization</h2>
+      <span>Member Portal</span>
+    </div>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-avatar" id="sidebarAvatar">?</div>
+    <div class="user-info">
+      <div class="name" id="sidebarName">Loading…</div>
+      <div class="status"><span class="status-dot" id="statusDot"></span><span id="statusText">Loading…</span></div>
+    </div>
+  </div>
+  <nav class="sidebar-nav" id="sidebarNav">
+    <div class="nav-section-label" data-nav-group="main">Main</div>
+    <button class="nav-item active" data-panel="dashboard" id="nav-dashboard"><i class="fas fa-home"></i> Dashboard</button>
+    <button class="nav-item" data-panel="events" id="nav-events"><i class="fas fa-calendar-alt"></i> Events</button>
+    <button class="nav-item" data-panel="meetings" id="nav-meetings"><i class="fas fa-people-group"></i> Meetings</button>
+    <button class="nav-item" data-panel="dues" id="nav-dues"><i class="fas fa-dollar-sign"></i> Dues</button>
+    <button class="nav-item" data-panel="store" id="nav-store"><i class="fas fa-store"></i> Store <span id="cartBadge" class="nav-badge is-hidden"></span></button>
+    <button class="nav-item" data-panel="documents" id="nav-documents"><i class="fas fa-file-alt"></i> Documents</button>
+    <button class="nav-item" data-panel="news-feed" id="nav-news-feed"><i class="fas fa-bullhorn"></i> News</button>
+    <div class="nav-section-label" data-nav-group="community">Community</div>
+    <button class="nav-item" data-panel="directory" id="nav-directory"><i class="fas fa-users"></i> <span data-mf-term="member_noun">Member</span> Directory</button>
+    <button class="nav-item" data-panel="newsletters" id="nav-newsletters"><i class="fas fa-newspaper"></i> Newsletters</button>
+    <div class="nav-section-label" data-nav-group="account">Account</div>
+    <button class="nav-item" data-panel="card" id="nav-card"><i class="fas fa-id-card"></i> Membership Card</button>
+    <button class="nav-item" data-panel="announcements-submit" id="nav-announcements-submit"><i class="fas fa-bullhorn"></i> Submit Announcement</button>
+    <button class="nav-item" data-panel="news-submit" id="nav-news-submit"><i class="fas fa-newspaper"></i> Submit News Article</button>
+    <button class="nav-item" data-panel="requisition" id="nav-requisition"><i class="fas fa-file-invoice-dollar"></i> Submit Requisition</button>
+    <button class="nav-item" data-panel="reimbursement" id="nav-reimbursement"><i class="fas fa-receipt"></i> Request Reimbursement</button>
+    <button class="nav-item" data-panel="profile" id="nav-profile"><i class="fas fa-user-circle"></i> My Profile</button>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn" onclick="MFPortal.signOut()"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" onclick="MFPortal.toggleSidebar()" aria-label="Menu"><i class="fas fa-bars"></i></button>
+      <div>
+        <span class="page-title" id="panelTitle">Dashboard</span>
+        <span class="breadcrumb" id="panelBreadcrumb">Member Portal</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <a href="index.html" class="topbar-site-link" id="topbarSiteLink"><i class="fas fa-external-link-alt"></i> View Website</a>
+    </div>
+  </header>
+
+  <main class="content">
+
+    <!-- ══════════ DASHBOARD ══════════ -->
+    <div class="panel active" id="panel-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+          <div><div class="stat-value" id="statEventsCount">--</div><div class="stat-label">Upcoming Events</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+          <div><div class="stat-value" id="statDuesPaid">--</div><div class="stat-label">Dues Status</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue"><i class="fas fa-file-alt"></i></div>
+          <div><div class="stat-value" id="statDocCount">--</div><div class="stat-label">Documents</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon violet"><i class="fas fa-users"></i></div>
+          <div><div class="stat-value" id="statMemberCount">--</div><div class="stat-label">Active <span data-mf-term="member_noun_plural">Members</span></div></div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-star"></i> Welcome back, <span id="welcomeName">Member</span></h3></div>
+        <div class="section-card-body">
+          <p class="muted-note" style="margin-bottom:16px;">
+            Welcome to the <span data-mf="org_name">organization</span> member portal. View upcoming events, check your dues,
+            read documents, and connect with fellow <span data-mf-term="member_noun_plural">members</span>.
+          </p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn-accent" data-goto="profile"><i class="fas fa-user-edit"></i> Complete Profile</button>
+            <button class="btn-ghost" data-goto="events"><i class="fas fa-calendar-alt"></i> View Events</button>
+          </div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-calendar-alt"></i> Upcoming Events</h3>
+          <button class="card-action" data-goto="events">View All</button>
+        </div>
+        <div class="section-card-body" id="dashboardEvents"><div class="empty-state"><i class="fas fa-calendar"></i><p>Loading events…</p></div></div>
+      </div>
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-bullhorn"></i> Announcements</h3></div>
+        <div class="section-card-body" id="dashboardAnnouncements"><div class="empty-state"><i class="fas fa-bullhorn"></i><p>Loading announcements…</p></div></div>
+      </div>
+    </div>
+
+    <!-- ══════════ EVENTS ══════════ -->
+    <div class="panel" id="panel-events">
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-calendar-alt"></i> All Events</h3>
+          <span id="eventsCountBadge" style="font-size:0.78rem;color:var(--p-dim-2);"></span>
+        </div>
+        <div class="section-card-body" id="eventsList"><div class="empty-state"><i class="fas fa-calendar"></i><p>Loading events…</p></div></div>
+      </div>
+    </div>
+
+    <!-- ══════════ NEWS FEED ══════════ -->
+    <div class="panel" id="panel-news-feed">
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-bullhorn"></i> News &amp; Updates</h3>
+          <button class="card-action" onclick="MFPortal.loadNewsFeed()"><i class="fas fa-rotate-right"></i> Refresh</button>
+        </div>
+        <div class="section-card-body" id="newsFeedList"><div class="empty-state"><i class="fas fa-bullhorn"></i><p>Loading news…</p></div></div>
+      </div>
+    </div>
+
+    <!-- ══════════ MEETINGS ══════════ -->
+    <div class="panel" id="panel-meetings">
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-people-group"></i> Meetings</h3>
+          <button class="card-action" onclick="MFPortal.loadMeetings()"><i class="fas fa-rotate-right"></i> Refresh</button>
+        </div>
+        <div class="section-card-body" id="meetingsList"><div class="empty-state"><i class="fas fa-people-group"></i><p>Loading meetings…</p></div></div>
+      </div>
+    </div>
+
+    <!-- ══════════ DUES ══════════ -->
+    <div class="panel" id="panel-dues">
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-info-circle"></i> Dues Information</h3></div>
+        <div class="section-card-body">
+          <p class="muted-note">Your dues status is managed by your organization's leadership. Contact them directly with any payment questions.</p>
+          <div class="alert alert-info" style="margin-top:14px;">
+            <i class="fas fa-envelope" style="color:var(--accent);margin-right:8px;"></i>
+            Questions? Email <a data-mf="org_email" href="#" style="color:var(--accent);">your administrator</a>.
+          </div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-credit-card"></i> Pay dues online</h3></div>
+        <div class="section-card-body">
+          <p class="muted-note">Pay your dues securely by card. The amount is configured by your organization. The email below must match the account you signed in with.</p>
+          <div id="duesLateFeeNotice" class="alert alert-warn is-hidden" style="margin-top:12px;"></div>
+          <div class="pfield" style="margin-top:14px;"><label>Full name</label><input type="text" id="duesPayName" autocomplete="name" /></div>
+          <div class="profile-grid" style="margin-top:14px;">
+            <div class="pfield"><label>Phone</label><input type="tel" id="duesPayPhone" autocomplete="tel" /></div>
+            <div class="pfield"><label>Email (signed-in account)</label><input type="email" id="duesPayEmail" autocomplete="email" readonly /></div>
+          </div>
+          <button type="button" class="btn-accent" style="margin-top:18px;" id="duesStripeBtn" onclick="MFPortal.startDuesCheckout()"><i class="fas fa-lock"></i> Pay with card</button>
+          <div id="duesPayErr" class="alert alert-error is-hidden" style="margin-top:12px;"></div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-dollar-sign"></i> Your Dues History</h3></div>
+        <div class="section-card-body" id="duesList"><div class="empty-state"><i class="fas fa-dollar-sign"></i><p>Loading dues records…</p></div></div>
+      </div>
+    </div>
+
+    <!-- ══════════ DOCUMENTS ══════════ -->
+    <div class="panel" id="panel-documents">
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-folder-open"></i> Documents</h3>
+          <span id="docsCountBadge" style="font-size:0.78rem;color:var(--p-dim-2);"></span>
+        </div>
+        <div class="section-card-body">
+          <div class="chip-bar" id="docsCatFilter" style="margin-bottom:16px;"></div>
+          <div id="documentsList"><div class="empty-state"><i class="fas fa-file-alt"></i><p>Loading documents…</p></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ STORE ══════════ -->
+    <div class="panel" id="panel-store">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;" data-mf="org_name">Organization</div>
+          <h3 style="margin:0;font-size:1.1rem;color:var(--p-text);font-family:'Inter',sans-serif;">Store</h3>
+        </div>
+        <button class="btn-ghost" onclick="MFPortal.openCart()">
+          <i class="fas fa-shopping-cart"></i> Cart <span id="cartCountBtn" class="nav-badge is-hidden"></span>
+        </button>
+      </div>
+      <div class="chip-bar" id="storeCatFilter" style="margin-bottom:18px;"></div>
+      <div class="store-grid" id="storeProductGrid"><div class="empty-state"><i class="fas fa-store"></i><p>Loading store…</p></div></div>
+      <div style="margin-top:32px;border-top:1px solid var(--p-border);padding-top:22px;">
+        <div class="form-group-label">My Orders</div>
+        <div id="myOrdersList"><div class="empty-state" style="padding:18px 0;"><i class="fas fa-receipt"></i><p>No orders yet.</p></div></div>
+      </div>
+    </div>
+
+    <!-- ══════════ MEMBERSHIP CARD ══════════ -->
+    <div class="panel" id="panel-card">
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-id-card"></i> Digital Membership Card</h3>
+          <button class="btn-ghost btn-sm" onclick="MFPortal.printCard()"><i class="fas fa-print"></i> Print Card</button>
+        </div>
+        <div class="section-card-body" style="display:flex;flex-direction:column;align-items:center;padding:32px 20px;">
+          <div class="mf-card" id="memberCardEl">
+            <div class="mf-card-header">
+              <img data-mf="org_logo" src="images/default-logo.svg" alt="" class="mf-card-logo" />
+              <div>
+                <div class="mf-card-org-name" data-mf="org_name">Organization</div>
+                <div class="mf-card-org-sub">Member Credential</div>
+              </div>
+            </div>
+            <div class="mf-card-body">
+              <div class="mf-card-photo" id="cardPhoto"></div>
+              <div class="mf-card-info">
+                <div class="mf-card-name" id="cardName">Member Name</div>
+                <div class="mf-card-detail"><span class="mf-card-label" data-mf-term="member_noun">Member</span> <span id="cardMemberNumber">—</span></div>
+                <div class="mf-card-detail"><span class="mf-card-label">Member Since</span> <span id="cardMemberSince">—</span></div>
+                <div class="mf-card-status" id="cardStatus">Active</div>
+              </div>
+            </div>
+            <div class="mf-card-footer">
+              <div class="mf-card-footer-text" id="cardFooterText">Present this card as proof of membership.</div>
+              <div class="mf-card-qr" id="cardQr"></div>
+            </div>
+          </div>
+          <p style="margin-top:20px;font-size:0.8rem;color:var(--p-dim-2);text-align:center;max-width:420px;">
+            Screenshot or print this card to carry as proof of membership. The QR code encodes your membership details for verification.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ DIRECTORY ══════════ -->
+    <div class="panel" id="panel-directory">
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-users"></i> <span data-mf-term="member_noun">Member</span> Directory</h3>
+          <span id="dirCountBadge" style="font-size:0.78rem;color:var(--p-dim-2);"></span>
+        </div>
+        <div class="section-card-body">
+          <div class="dir-toolbar">
+            <div class="chip-bar">
+              <button class="chip active" data-dir-filter="all">All</button>
+              <button class="chip" data-dir-filter="lifetime">Lifetime</button>
+              <button class="chip" data-dir-filter="visiting">Visiting</button>
+            </div>
+            <div class="search-wrap">
+              <i class="fas fa-search"></i>
+              <input type="text" class="member-search" id="dirSearch" placeholder="Search by name, city, or member number…" />
+            </div>
+            <div class="chip-bar">
+              <span class="chip-label">Sort:</span>
+              <button class="chip active" data-dir-sort="az">A – Z</button>
+              <button class="chip" data-dir-sort="za">Z – A</button>
+              <button class="chip" data-dir-sort="newest">Newest</button>
+            </div>
+          </div>
+          <div id="directoryList"><div class="empty-state"><i class="fas fa-users"></i><p>Loading directory…</p></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ NEWSLETTERS ══════════ -->
+    <div class="panel" id="panel-newsletters">
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-newspaper"></i> Newsletters</h3></div>
+        <div class="section-card-body" id="newslettersList"><div class="empty-state"><i class="fas fa-newspaper"></i><p>Loading newsletters…</p></div></div>
+      </div>
+    </div>
+
+    <!-- ══════════ SUBMIT ANNOUNCEMENT ══════════ -->
+    <div class="panel" id="panel-announcements-submit">
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-bullhorn"></i> Submit an Announcement</h3></div>
+        <div class="section-card-body">
+          <p class="muted-note" style="margin-bottom:18px;">Submit announcements, updates, or notices for your leadership to review and share.</p>
+          <div class="form-stack">
+            <div class="pfield"><label>Title <span class="req">*</span></label><input type="text" id="annTitle" placeholder="e.g. Community Service Opportunity" /></div>
+            <div class="pfield">
+              <label>Category</label>
+              <select id="annCategory">
+                <option value="General">General</option>
+                <option value="Community Service">Community Service</option>
+                <option value="Scholarship">Scholarship</option>
+                <option value="Membership">Membership</option>
+                <option value="Event">Event</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="profile-grid">
+              <div class="pfield"><label>Event Date <span style="color:var(--p-dim-2);font-weight:400;">(optional)</span></label><input type="date" id="annDate" /></div>
+              <div class="pfield"><label>Event Time <span style="color:var(--p-dim-2);font-weight:400;">(optional)</span></label><input type="time" id="annTime" /></div>
+            </div>
+            <div class="pfield"><label>Location <span style="color:var(--p-dim-2);font-weight:400;">(optional)</span></label><input type="text" id="annLocation" placeholder="e.g. Community Hall, 123 Main St" /></div>
+            <div class="pfield">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:10px;flex-wrap:wrap;">
+                <label style="margin-bottom:0;">Message <span class="req">*</span></label>
+                <button type="button" class="btn-accent btn-sm" onclick="MFPortal.openAiAssist('announcement')"><i class="fas fa-wand-magic-sparkles"></i> AI Assist</button>
+              </div>
+              <textarea id="annBody" rows="5" placeholder="Write your announcement here…"></textarea>
+            </div>
+            <div class="pfield">
+              <label>Flyer / Image <span style="color:var(--p-dim-2);font-weight:400;">(optional)</span></label>
+              <input type="file" id="annFlyerInput" accept="image/*" class="is-hidden" />
+              <div class="dropzone" id="annFlyerDropzone"><i class="fas fa-image"></i> Click to upload a flyer or image</div>
+              <div id="annFlyerPreviewWrap" class="is-hidden" style="margin-top:10px;position:relative;">
+                <img id="annFlyerPreview" src="" alt="" style="max-width:100%;max-height:240px;border-radius:8px;border:1px solid var(--p-border-2);object-fit:contain;" />
+                <button type="button" class="modal-close" style="top:6px;right:6px;width:28px;height:28px;font-size:0.8rem;" onclick="MFPortal.clearAnnFlyer()"><i class="fas fa-times"></i></button>
+              </div>
+              <input type="text" id="annFlyerUrl" placeholder="…or paste an image URL" style="margin-top:10px;" />
+            </div>
+            <div id="annErr" class="alert alert-error is-hidden"></div>
+            <div id="annSuccess" class="alert alert-success is-hidden"><i class="fas fa-check-circle"></i> Your announcement was submitted for review.</div>
+            <button class="btn-accent" id="annSubmitBtn" style="align-self:flex-start;" onclick="MFPortal.submitAnnouncement()"><i class="fas fa-paper-plane"></i> Submit Announcement</button>
+          </div>
+          <div style="margin-top:32px;border-top:1px solid var(--p-border);padding-top:22px;">
+            <div class="form-group-label">My Submissions</div>
+            <div id="myAnnouncementsList"><div class="empty-state" style="padding:16px 0;"><i class="fas fa-bullhorn"></i><p>No submissions yet.</p></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ SUBMIT NEWS ══════════ -->
+    <div class="panel" id="panel-news-submit">
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-newspaper"></i> Submit a News Article</h3></div>
+        <div class="section-card-body">
+          <p class="muted-note" style="margin-bottom:18px;">Submit news for leadership to review. Once approved, your article can be published to the public news page.</p>
+          <div class="form-stack">
+            <div class="pfield"><label>Headline <span class="req">*</span></label><input type="text" id="nsTitle" placeholder="e.g. Members Partner with Local Schools" /></div>
+            <div class="profile-grid">
+              <div class="pfield">
+                <label>Tag / Category <span class="req">*</span></label>
+                <select id="nsTag">
+                  <option value="Community">Community</option>
+                  <option value="Scholarship">Scholarship</option>
+                  <option value="Service">Service</option>
+                  <option value="Recognition">Recognition</option>
+                  <option value="Program">Program</option>
+                  <option value="Milestone">Milestone</option>
+                  <option value="Civic">Civic</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="pfield">
+                <label>Placement</label>
+                <select id="nsPlacement">
+                  <option value="main">Main (featured stories)</option>
+                  <option value="sidebar">Sidebar (brief news)</option>
+                </select>
+              </div>
+            </div>
+            <div class="pfield">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:10px;flex-wrap:wrap;">
+                <label style="margin-bottom:0;">Excerpt / Summary <span class="req">*</span></label>
+                <button type="button" class="btn-accent btn-sm" onclick="MFPortal.openAiAssist('news')"><i class="fas fa-wand-magic-sparkles"></i> AI Assist</button>
+              </div>
+              <textarea id="nsExcerpt" rows="2" placeholder="One or two sentences summarizing the article…"></textarea>
+            </div>
+            <div class="pfield"><label>Full Article Body <span class="req">*</span></label><textarea id="nsBody" rows="8" placeholder="Write the full article here…"></textarea></div>
+            <div class="pfield">
+              <label>Article Image <span style="color:var(--p-dim-2);font-weight:400;">(optional)</span></label>
+              <input type="file" id="nsImageInput" accept="image/*" class="is-hidden" />
+              <div class="dropzone" id="nsImageDropzone"><i class="fas fa-image"></i> Click to upload an image for this article</div>
+              <div id="nsImagePreviewWrap" class="is-hidden" style="margin-top:10px;position:relative;">
+                <img id="nsImagePreview" src="" alt="" style="max-width:100%;max-height:240px;border-radius:8px;border:1px solid var(--p-border-2);object-fit:contain;" />
+                <button type="button" class="modal-close" style="top:6px;right:6px;width:28px;height:28px;font-size:0.8rem;" onclick="MFPortal.clearNewsImage()"><i class="fas fa-times"></i></button>
+              </div>
+              <input type="text" id="nsImageUrl" placeholder="…or paste an image URL" style="margin-top:10px;" />
+            </div>
+            <div id="nsErr" class="alert alert-error is-hidden"></div>
+            <div id="nsSuccess" class="alert alert-success is-hidden"><i class="fas fa-check-circle"></i> Your article was submitted for review.</div>
+            <button class="btn-accent" id="nsSubmitBtn" style="align-self:flex-start;" onclick="MFPortal.submitNewsArticle()"><i class="fas fa-paper-plane"></i> Submit Article</button>
+          </div>
+          <div style="margin-top:32px;border-top:1px solid var(--p-border);padding-top:22px;">
+            <div class="form-group-label">My Submissions</div>
+            <div id="myNewsSubmissionsList"><div class="empty-state" style="padding:16px 0;"><i class="fas fa-newspaper"></i><p>No submissions yet.</p></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ REQUISITION ══════════ -->
+    <div class="panel" id="panel-requisition">
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-file-invoice-dollar"></i> Submit a Requisition</h3></div>
+        <div class="section-card-body">
+          <p class="muted-note" style="margin-bottom:18px;">Request organization funds for committee expenses, events, or programs. Requests are reviewed before payment is processed.</p>
+          <div class="form-stack">
+            <div class="profile-grid">
+              <div class="pfield">
+                <label>Committee / Program <span class="req">*</span></label>
+                <select id="rqCommittee">
+                  <option value="Scholarship">Scholarship</option>
+                  <option value="Community Service">Community Service</option>
+                  <option value="Programs">Programs</option>
+                  <option value="Membership">Membership</option>
+                  <option value="Social">Social</option>
+                  <option value="Operations">Operations</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="pfield"><label>Amount Requested <span class="req">*</span></label><input type="number" id="rqAmount" placeholder="0.00" step="0.01" min="0" /></div>
+            </div>
+            <div class="pfield"><label>Description / Purpose <span class="req">*</span></label><textarea id="rqDescription" rows="3" placeholder="Describe what the funds will be used for…"></textarea></div>
+            <div class="profile-grid">
+              <div class="pfield"><label>Payable To (Payee)</label><input type="text" id="rqPayee" placeholder="Vendor or person name" /></div>
+              <div class="pfield">
+                <label>Payment Method</label>
+                <select id="rqMethod">
+                  <option value="check">Organization Check</option>
+                  <option value="org_card">Organization Card</option>
+                  <option value="personal_reimbursement">Personal Reimbursement</option>
+                </select>
+              </div>
+            </div>
+            <div id="rqReimbNotice" class="alert alert-info is-hidden">
+              <i class="fas fa-info-circle"></i> Selecting <strong>Personal Reimbursement</strong> means you paid out of pocket. Once approved, a reimbursement request can be created for you to add your receipt and payment details.
+            </div>
+            <div class="pfield">
+              <label>Supporting Document <span style="color:var(--p-dim-2);font-weight:400;">(optional — quote, invoice, or receipt)</span></label>
+              <input type="file" id="rqDocInput" accept=".pdf,.jpg,.jpeg,.png" class="is-hidden" />
+              <div class="dropzone" id="rqDocDropzone"><i class="fas fa-paperclip"></i> Click to attach a document</div>
+              <div id="rqDocPreview" class="is-hidden" style="margin-top:8px;font-size:0.82rem;color:var(--accent);"></div>
+              <input type="text" id="rqDocUrl" placeholder="…or paste a document URL" style="margin-top:10px;" />
+            </div>
+            <div id="rqErr" class="alert alert-error is-hidden"></div>
+            <div id="rqSuccess" class="alert alert-success is-hidden"><i class="fas fa-check-circle"></i> Requisition submitted for review.</div>
+            <button class="btn-accent" id="rqSubmitBtn" style="align-self:flex-start;" onclick="MFPortal.submitRequisition()"><i class="fas fa-paper-plane"></i> Submit Request</button>
+          </div>
+          <div style="margin-top:32px;border-top:1px solid var(--p-border);padding-top:22px;">
+            <div class="form-group-label">My Requisitions</div>
+            <div id="myRequisitionsList"><div class="empty-state" style="padding:16px 0;"><i class="fas fa-file-invoice-dollar"></i><p>No requisitions yet.</p></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ REIMBURSEMENT ══════════ -->
+    <div class="panel" id="panel-reimbursement">
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-receipt"></i> Request Reimbursement</h3></div>
+        <div class="section-card-body">
+          <p class="muted-note" style="margin-bottom:18px;">Submit a reimbursement request if you paid for an organization expense out of pocket. Attach your receipt and payment details.</p>
+          <div class="form-stack">
+            <div class="pfield"><label>Description / What was purchased <span class="req">*</span></label><textarea id="rbDescription" rows="3" placeholder="e.g. Supplies for the scholarship banquet…"></textarea></div>
+            <div class="pfield"><label>Amount <span class="req">*</span></label><input type="number" id="rbAmount" placeholder="0.00" step="0.01" min="0" /></div>
+            <div class="pfield">
+              <label>How should we pay you? <span class="req">*</span></label>
+              <div class="chip-bar" style="margin-top:4px;">
+                <button type="button" class="chip active" data-rb-method="zelle"><i class="fas fa-mobile-alt"></i> Zelle</button>
+                <button type="button" class="chip" data-rb-method="check"><i class="fas fa-money-check-alt"></i> Check</button>
+              </div>
+            </div>
+            <div id="rb-zelle-fields">
+              <div class="profile-grid">
+                <div class="pfield"><label>Zelle Phone or Email <span class="req">*</span></label><input type="text" id="rbZelleContact" placeholder="phone or email" /></div>
+                <div class="pfield"><label>Name on Account <span class="req">*</span></label><input type="text" id="rbZelleName" placeholder="Full name" /></div>
+              </div>
+            </div>
+            <div id="rb-check-fields" class="is-hidden">
+              <div class="pfield" style="margin-bottom:14px;"><label>Street Address <span class="req">*</span></label><input type="text" id="rbCheckStreet" placeholder="123 Main St" /></div>
+              <div class="profile-grid">
+                <div class="pfield"><label>City <span class="req">*</span></label><input type="text" id="rbCheckCity" placeholder="City" /></div>
+                <div class="pfield"><label>State &amp; ZIP <span class="req">*</span></label><input type="text" id="rbCheckStateZip" placeholder="ST 00000" /></div>
+              </div>
+            </div>
+            <div class="pfield">
+              <label>Receipt <span class="req">*</span></label>
+              <input type="file" id="rbReceiptInput" accept=".pdf,.jpg,.jpeg,.png" class="is-hidden" />
+              <div class="dropzone" id="rbReceiptDropzone"><i class="fas fa-receipt"></i> Click to upload your receipt (PDF or image)</div>
+              <div id="rbReceiptPreview" class="is-hidden" style="margin-top:8px;font-size:0.82rem;color:var(--accent);"></div>
+              <input type="text" id="rbReceiptUrl" placeholder="…or paste a receipt URL" style="margin-top:10px;" />
+            </div>
+            <div id="rbErr" class="alert alert-error is-hidden"></div>
+            <div id="rbSuccess" class="alert alert-success is-hidden"><i class="fas fa-check-circle"></i> Reimbursement request submitted for review.</div>
+            <button class="btn-accent" id="rbSubmitBtn" style="align-self:flex-start;" onclick="MFPortal.submitReimbursement()"><i class="fas fa-paper-plane"></i> Submit Request</button>
+          </div>
+          <div style="margin-top:32px;border-top:1px solid var(--p-border);padding-top:22px;">
+            <div class="form-group-label">My Reimbursements</div>
+            <div id="myReimbursementsList"><div class="empty-state" style="padding:16px 0;"><i class="fas fa-receipt"></i><p>No reimbursement requests yet.</p></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ PROFILE ══════════ -->
+    <div class="panel" id="panel-profile">
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-user-circle"></i> My Profile</h3></div>
+        <div class="section-card-body">
+          <div class="profile-header">
+            <div class="profile-avatar-large" id="profileAvatarLarge">?</div>
+            <div class="profile-header-info">
+              <h3 id="profileFullName">Loading…</h3>
+              <div class="member-since" id="profileMemberSince">Member since —</div>
+              <div class="member-status active" id="profileStatus"><i class="fas fa-circle" style="font-size:6px;"></i> Active</div>
+            </div>
+          </div>
+          <form id="profileForm" novalidate>
+            <div style="margin-bottom:20px;">
+              <p class="form-group-label">Personal Information</p>
+              <div class="profile-grid">
+                <div class="pfield"><label>First Name</label><input type="text" id="pfFirstName" placeholder="First name" /></div>
+                <div class="pfield"><label>Middle Name</label><input type="text" id="pfMiddleName" placeholder="Middle name" /></div>
+                <div class="pfield"><label>Last Name</label><input type="text" id="pfLastName" placeholder="Last name" /></div>
+                <div class="pfield"><label>Suffix</label><input type="text" id="pfSuffix" placeholder="Jr., Sr., III" /></div>
+                <div class="pfield"><label>Birthday</label><input type="text" id="pfBirthday" placeholder="MM/DD" /></div>
+                <div class="pfield"><label>Phone Number</label><input type="tel" id="pfPhone" placeholder="(555) 000-0000" /></div>
+                <div class="pfield"><label>City</label><input type="text" id="pfCity" placeholder="City" /></div>
+                <div class="pfield"><label>State</label><input type="text" id="pfState" placeholder="ST" maxlength="2" /></div>
+                <div class="pfield"><label>Email</label><input type="email" id="pfEmail" readonly /></div>
+                <div class="pfield"><label>Member Since</label><input type="text" id="pfMemberSince" placeholder="e.g. 2018" /></div>
+              </div>
+            </div>
+            <div style="margin-bottom:20px;">
+              <p class="form-group-label">Membership Information</p>
+              <div class="profile-grid">
+                <div class="pfield"><label><span data-mf-term="member_noun">Member</span> Number</label><input type="text" id="pfMemberNumber" placeholder="e.g. 123456" /></div>
+                <div class="pfield"><label>Joined On</label><input type="text" id="pfJoinedAt" placeholder="e.g. 04/15/2005" /></div>
+                <div class="pfield"><label>Joined Via</label><input type="text" id="pfJoinedVia" placeholder="e.g. referral, chapter, campus" /></div>
+                <div class="pfield"><label>College / University</label><input type="text" id="pfCollege" placeholder="e.g. State University" /></div>
+                <div class="pfield">
+                  <label>Lifetime Member</label>
+                  <select id="pfLifetimeMember">
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                  </select>
+                </div>
+                <div class="pfield"><label>Lifetime Member Number</label><input type="text" id="pfLifetimeMemberNumber" placeholder="e.g. LM-00000" /></div>
+                <div class="pfield"><label>Lifetime Member Date</label><input type="date" id="pfLifetimeMemberDate" /></div>
+                <div class="pfield"><label>Active Since (set by admin)</label><input type="date" id="pfOrgActiveDate" readonly /></div>
+                <div class="pfield"><label>Renewal Date</label><input type="text" id="pfRenewalDate" placeholder="e.g. 06/30/2025" /></div>
+              </div>
+            </div>
+            <div style="margin-bottom:20px;">
+              <p class="form-group-label">Service</p>
+              <label class="toggle-row" style="margin-bottom:12px;">
+                <div>
+                  <div class="toggle-row-title">I served / currently serve in the military</div>
+                  <div class="toggle-row-sub">A service badge appears next to your name in the directory</div>
+                </div>
+                <div class="toggle-wrap"><input type="checkbox" id="pfMilitaryService" /><span class="toggle-slider"></span></div>
+              </label>
+              <div id="militaryBranchWrap" class="is-hidden">
+                <div class="pfield" style="max-width:300px;">
+                  <label>Branch of Service</label>
+                  <input type="text" id="pfMilitaryBranch" placeholder="e.g. Army, Navy, Air Force" />
+                </div>
+              </div>
+            </div>
+            <div style="margin-bottom:20px;">
+              <p class="form-group-label">Bio and Links</p>
+              <div class="profile-grid full">
+                <div class="pfield"><label>Short Bio</label><textarea id="pfBio" placeholder="Tell other members a bit about yourself…"></textarea></div>
+                <div class="pfield"><label>LinkedIn Profile URL</label><input type="url" id="pfLinkedin" placeholder="https://linkedin.com/in/yourname" /></div>
+                <div class="pfield">
+                  <label>Profile Photo</label>
+                  <input type="hidden" id="pfPhoto" />
+                  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px;">
+                    <button type="button" class="btn-ghost" onclick="document.getElementById('pfPhotoFile').click()"><i class="fas fa-upload"></i> Upload photo</button>
+                    <button type="button" class="btn-ghost" style="border-color:rgba(239,68,68,0.35);color:var(--p-red);" onclick="MFPortal.clearProfilePhoto()"><i class="fas fa-times"></i> Remove photo</button>
+                  </div>
+                  <p class="field-hint" style="margin-bottom:8px;">JPG, PNG, or WebP. Large images are resized automatically before saving.</p>
+                  <label style="font-size:0.72rem;color:var(--p-dim-2);text-transform:none;letter-spacing:0;">Or paste an image URL</label>
+                  <input type="text" id="pfPhotoUrl" placeholder="https://…" />
+                </div>
+              </div>
+            </div>
+            <input type="file" id="pfPhotoFile" accept="image/*" class="is-hidden" />
+            <div class="privacy-section">
+              <div class="privacy-section-label"><i class="fas fa-shield-halved"></i> Directory Privacy</div>
+              <label class="toggle-row">
+                <div>
+                  <div class="toggle-row-title">Show my email address in the directory</div>
+                  <div class="toggle-row-sub">Other <span data-mf-term="member_noun_plural">members</span> can contact you by email</div>
+                </div>
+                <div class="toggle-wrap"><input type="checkbox" id="pfShareEmail" checked /><span class="toggle-slider"></span></div>
+              </label>
+              <label class="toggle-row">
+                <div>
+                  <div class="toggle-row-title">Show my phone number in the directory</div>
+                  <div class="toggle-row-sub">Other <span data-mf-term="member_noun_plural">members</span> can call or text you</div>
+                </div>
+                <div class="toggle-wrap"><input type="checkbox" id="pfSharePhone" checked /><span class="toggle-slider"></span></div>
+              </label>
+            </div>
+            <button type="submit" class="btn-accent" id="saveProfileBtn"><i class="fas fa-save"></i> Save Profile</button>
+          </form>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-lock"></i> Change Password</h3></div>
+        <div class="section-card-body">
+          <form id="changePassForm" novalidate>
+            <p class="muted-note" style="margin-bottom:16px;">For your security, confirm your current password before choosing a new one.</p>
+            <div class="profile-grid" style="max-width:520px;">
+              <div class="pfield"><label>Current Password</label><input type="password" id="currentPass" autocomplete="current-password" placeholder="Your current password" /></div>
+              <div class="pfield"><label>New Password</label><input type="password" id="newPass" autocomplete="new-password" placeholder="Minimum 8 characters" /></div>
+              <div class="pfield"><label>Confirm New Password</label><input type="password" id="confirmPass" autocomplete="new-password" placeholder="Repeat new password" /></div>
+            </div>
+            <div id="passMsg" class="alert is-hidden" style="margin:14px 0;max-width:520px;"></div>
+            <button type="submit" class="btn-accent" id="changePassBtn" style="margin-top:6px;"><i class="fas fa-key"></i> Update Password</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMsg">Saved</span></div>
+
+<!-- ══════════ EVENT REGISTRATION MODAL ══════════ -->
+<div class="modal-overlay" id="regModalOverlay" role="dialog" aria-modal="true">
+  <div class="modal">
+    <button type="button" class="modal-close" onclick="MFPortal.closeRegModal()" aria-label="Close">&times;</button>
+    <div class="modal-body">
+      <h3 id="regTitle">Register</h3>
+      <p id="regFeeLine" style="font-size:0.88rem;color:var(--accent);font-weight:700;margin-bottom:18px;"></p>
+      <div class="form-stack">
+        <div class="pfield"><label>Full name</label><input id="regName" type="text" autocomplete="name" /></div>
+        <div class="pfield"><label>Phone</label><input id="regPhone" type="tel" autocomplete="tel" /></div>
+        <div class="pfield"><label>Email</label><input id="regEmail" type="email" autocomplete="email" /></div>
+        <div class="alert alert-error is-hidden" id="regError" role="alert"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button type="button" class="btn-accent" id="regSubmit" onclick="MFPortal.submitRegistration()"><i class="fas fa-arrow-right"></i> Continue</button>
+          <button type="button" class="btn-ghost" onclick="MFPortal.closeRegModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ STORE ITEM MODAL ══════════ -->
+<div class="modal-overlay" id="storeItemModal">
+  <div class="modal">
+    <button type="button" class="modal-close" onclick="MFPortal.closeItemModal()">&times;</button>
+    <div id="siModalImg" style="border-radius:14px 14px 0 0;overflow:hidden;"></div>
+    <div class="modal-body">
+      <div id="siModalCat" class="pill pill-outline"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px;">
+        <h3 id="siModalName" style="margin:0;"></h3>
+        <div id="siModalPrice" class="store-price" style="white-space:nowrap;"></div>
+      </div>
+      <p id="siModalDesc" class="muted-note" style="margin-bottom:18px;"></p>
+      <div id="siModalOptions" style="display:flex;flex-direction:column;gap:12px;margin-bottom:18px;"></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+        <span style="font-size:0.82rem;font-weight:600;color:var(--p-dim);">Quantity</span>
+        <div class="qty-stepper">
+          <button type="button" onclick="MFPortal.changeQty(-1)">−</button>
+          <div class="qty-val" id="siQty">1</div>
+          <button type="button" onclick="MFPortal.changeQty(1)">+</button>
+        </div>
+        <div id="siModalTotal" style="font-size:0.9rem;font-weight:700;color:var(--accent);margin-left:auto;"></div>
+      </div>
+      <div id="siModalErr" class="alert alert-error is-hidden" style="margin-bottom:14px;"></div>
+      <button class="btn-accent" style="width:100%;justify-content:center;" onclick="MFPortal.addToCart()"><i class="fas fa-cart-plus"></i> Add to Cart</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ CART MODAL ══════════ -->
+<div class="modal-overlay" id="storeCartModal">
+  <div class="modal">
+    <button type="button" class="modal-close" onclick="MFPortal.closeCart()">&times;</button>
+    <div class="modal-body">
+      <h3><i class="fas fa-shopping-cart" style="color:var(--accent);margin-right:8px;"></i>Your Cart</h3>
+      <div id="cartItemsList" style="margin:16px 0;"></div>
+      <div id="cartEmpty" class="empty-state is-hidden"><i class="fas fa-shopping-cart"></i><p>Your cart is empty</p></div>
+      <div id="cartSummary">
+        <div style="display:flex;justify-content:space-between;font-size:0.95rem;font-weight:700;color:var(--p-text);margin-bottom:14px;border-top:1px solid var(--p-border);padding-top:14px;">
+          <span>Total</span><span id="cartTotal" style="color:var(--accent);"></span>
+        </div>
+        <div class="pfield" style="margin-bottom:12px;">
+          <label>Notes / Special Instructions (optional)</label>
+          <textarea id="cartNotes" rows="2" placeholder="e.g. sizing notes, pickup preference…" style="min-height:60px;"></textarea>
+        </div>
+        <div id="cartOrderErr" class="alert alert-error is-hidden" style="margin-bottom:12px;"></div>
+        <button class="btn-accent" id="placeOrderBtn" style="width:100%;justify-content:center;" onclick="MFPortal.placeOrder()"><i class="fas fa-check"></i> Place Order</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ QR / MEETING CHECK-IN MODAL ══════════ -->
+<div class="modal-overlay" id="qrModal">
+  <div class="modal">
+    <button type="button" class="modal-close" onclick="MFPortal.closeQrModal()">&times;</button>
+    <div class="modal-body" style="text-align:center;">
+      <h3 id="qrModalTitle" style="padding-right:0;">Check-in QR</h3>
+      <p class="muted-note" id="qrModalSub" style="margin-bottom:18px;">Scan at the door to check in.</p>
+      <div class="qr-box" id="qrModalBox"></div>
+      <div class="link-row">
+        <code id="qrModalLink"></code>
+        <button type="button" class="btn-ghost btn-sm" onclick="MFPortal.copyQrLink()"><i class="fas fa-copy"></i> Copy</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ NEWSLETTER MODAL ══════════ -->
+<div class="modal-overlay" id="newsletterModal">
+  <div class="modal wide">
+    <button type="button" class="modal-close" onclick="MFPortal.closeNewsletter()">&times;</button>
+    <div class="modal-body">
+      <h3 id="nlModalTitle">Newsletter</h3>
+      <div id="nlModalSubject" style="font-size:0.85rem;color:var(--p-dim-2);margin-bottom:16px;"></div>
+      <div id="nlModalBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ FLYER LIGHTBOX ══════════ -->
+<div class="modal-overlay" id="flyerLightbox" style="background:rgba(0,0,0,0.92);">
+  <div style="max-width:720px;width:100%;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px;">
+      <div id="flyerLightboxTitle" style="color:var(--p-text);font-weight:600;font-size:0.95rem;"></div>
+      <button type="button" class="modal-close" style="position:static;" onclick="MFPortal.closeFlyer()"><i class="fas fa-times"></i></button>
+    </div>
+    <img id="flyerLightboxImg" src="" alt="" style="width:100%;max-height:78vh;object-fit:contain;border-radius:8px;" />
+  </div>
+</div>
+
+<!-- ══════════ AI ASSIST MODAL ══════════ -->
+<div class="modal-overlay" id="aiAssistOverlay">
+  <div class="modal wide">
+    <button type="button" class="modal-close" onclick="MFPortal.closeAiAssist()">&times;</button>
+    <div class="modal-body">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="fas fa-wand-magic-sparkles" style="color:var(--on-accent);font-size:0.85rem;"></i>
+        </div>
+        <div>
+          <div style="font-weight:700;color:var(--p-text);font-size:0.95rem;">AI Writing Assistant</div>
+          <div style="font-size:0.72rem;color:var(--p-dim-2);margin-top:1px;">Describe what you want to say — AI will draft it for you</div>
+        </div>
+      </div>
+      <div class="form-stack" style="max-width:none;">
+        <div>
+          <div class="form-group-label" style="margin-bottom:8px;">Tone</div>
+          <div class="chip-bar" id="aiToneBar">
+            <button type="button" class="chip active" data-tone="Professional">Professional</button>
+            <button type="button" class="chip" data-tone="Casual">Casual</button>
+            <button type="button" class="chip" data-tone="Formal">Formal</button>
+          </div>
+        </div>
+        <div class="pfield">
+          <label>What do you want to announce?</label>
+          <textarea id="aiAssistDesc" rows="4" placeholder="e.g. We're hosting a community service event at the food bank on Saturday the 14th at 9am. Members should wear organization shirts and bring gloves."></textarea>
+          <div class="field-hint">Include key details: what, when, where, and any action required.</div>
+        </div>
+        <div id="aiAssistErr" class="alert alert-error is-hidden"></div>
+        <button type="button" class="btn-accent" id="aiAssistGenerateBtn" style="justify-content:center;" onclick="MFPortal.generateAi()"><i class="fas fa-wand-magic-sparkles"></i> Generate</button>
+        <div id="aiAssistResult" class="is-hidden">
+          <div class="form-group-label" style="margin-bottom:8px;">Generated Draft</div>
+          <div id="aiAssistResultText" style="background:rgba(255,255,255,0.04);border:1px solid var(--p-pale-2);border-radius:8px;padding:14px 16px;font-size:0.88rem;color:var(--p-dim);line-height:1.7;white-space:pre-wrap;"></div>
+          <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
+            <button type="button" class="btn-accent" style="flex:1;justify-content:center;" onclick="MFPortal.useAiResult()"><i class="fas fa-check"></i> Use This</button>
+            <button type="button" class="btn-ghost" onclick="MFPortal.generateAi()"><i class="fas fa-rotate"></i> Regenerate</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/memberforge-client.js"></script>
+<script src="js/org-context.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/news-articles.js"></script>
+<script>
+/* ==========================================================================
+   MemberForge — Member Portal
+   Ported from a single-tenant chapter portal. Every read/write is scoped to
+   the resolved tenant via MF.scope()/MF.stamp(); identity and portal access
+   come from js/auth.js (MFAuth.member), never from the JWT alone.
+   ========================================================================== */
+(function () {
+'use strict';
+
+/* ---------------------------------------------------------------------------
+   Self-contained QR encoder (byte mode, ECC level M, versions 1-10).
+   Used for meeting check-in links and the digital membership card. No CDN
+   dependency so the portal keeps working offline / behind strict CSP.
+--------------------------------------------------------------------------- */
+function qrEncode(text) {
+  var EXP = new Array(512), LOG = new Array(256);
+  (function () {
+    var x = 1;
+    for (var i = 0; i < 255; i++) { EXP[i] = x; LOG[x] = i; x <<= 1; if (x & 0x100) x ^= 0x11d; }
+    for (var j = 255; j < 512; j++) EXP[j] = EXP[j - 255];
+  })();
+  function gmul(a, b) { return (a === 0 || b === 0) ? 0 : EXP[LOG[a] + LOG[b]]; }
+
+  // [ecCodewordsPerBlock, blocksGroup1, dataPerBlock1, blocksGroup2, dataPerBlock2] — ECC level M
+  var RS = {
+    1: [10, 1, 16, 0, 0], 2: [16, 1, 28, 0, 0], 3: [26, 1, 44, 0, 0], 4: [18, 2, 32, 0, 0],
+    5: [24, 2, 43, 0, 0], 6: [16, 4, 27, 0, 0], 7: [18, 4, 31, 0, 0], 8: [22, 2, 38, 2, 39],
+    9: [22, 3, 36, 2, 37], 10: [26, 4, 43, 1, 44]
+  };
+  var ALIGN = {
+    1: [], 2: [6, 18], 3: [6, 22], 4: [6, 26], 5: [6, 30],
+    6: [6, 34], 7: [6, 22, 38], 8: [6, 24, 42], 9: [6, 26, 46], 10: [6, 28, 50]
+  };
+  var VERSION_INFO = { 7: 0x07C94, 8: 0x085BC, 9: 0x09A99, 10: 0x0A4D3 };
+
+  var bytes = [];
+  for (var ci = 0; ci < text.length; ci++) {
+    var c = text.charCodeAt(ci);
+    if (c < 0x80) bytes.push(c);
+    else if (c < 0x800) bytes.push(0xc0 | (c >> 6), 0x80 | (c & 0x3f));
+    else if (c >= 0xd800 && c <= 0xdbff && ci + 1 < text.length) {
+      var c2 = text.charCodeAt(++ci);
+      var cp = 0x10000 + ((c - 0xd800) << 10) + (c2 - 0xdc00);
+      bytes.push(0xf0 | (cp >> 18), 0x80 | ((cp >> 12) & 0x3f), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f));
+    } else bytes.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 0x3f), 0x80 | (c & 0x3f));
+  }
+
+  var version = 0, totalData = 0, ccBits = 8;
+  for (var v = 1; v <= 10; v++) {
+    var r = RS[v], dc = r[1] * r[2] + r[3] * r[4], cb = v < 10 ? 8 : 16;
+    if (bytes.length <= Math.floor((dc * 8 - 4 - cb) / 8)) { version = v; totalData = dc; ccBits = cb; break; }
+  }
+  if (!version) throw new Error('QR: data too long');
+
+  var bits = [];
+  function push(val, len) { for (var b = len - 1; b >= 0; b--) bits.push((val >> b) & 1); }
+  push(4, 4);
+  push(bytes.length, ccBits);
+  for (var k = 0; k < bytes.length; k++) push(bytes[k], 8);
+  var capacityBits = totalData * 8;
+  for (var t = 0; t < 4 && bits.length < capacityBits; t++) bits.push(0);
+  while (bits.length % 8) bits.push(0);
+  var data = [];
+  for (var p = 0; p < bits.length; p += 8) {
+    var bv = 0;
+    for (var q = 0; q < 8; q++) bv = (bv << 1) | bits[p + q];
+    data.push(bv);
+  }
+  var pads = [0xEC, 0x11], pi = 0;
+  while (data.length < totalData) data.push(pads[pi++ % 2]);
+
+  var info = RS[version], ecLen = info[0], blocks = [], off = 0, bi;
+  for (bi = 0; bi < info[1]; bi++) { blocks.push(data.slice(off, off + info[2])); off += info[2]; }
+  for (bi = 0; bi < info[3]; bi++) { blocks.push(data.slice(off, off + info[4])); off += info[4]; }
+
+  var gen = [1];
+  for (var g = 0; g < ecLen; g++) {
+    var next = new Array(gen.length + 1).fill(0);
+    for (var gi = 0; gi < gen.length; gi++) {
+      next[gi] ^= gen[gi];
+      next[gi + 1] ^= gmul(gen[gi], EXP[g]);
+    }
+    gen = next;
+  }
+  var eccBlocks = blocks.map(function (blk) {
+    var rem = blk.concat(new Array(ecLen).fill(0));
+    for (var d = 0; d < blk.length; d++) {
+      var factor = rem[d];
+      if (!factor) continue;
+      for (var gj = 0; gj < gen.length; gj++) rem[d + gj] ^= gmul(gen[gj], factor);
+    }
+    return rem.slice(blk.length);
+  });
+
+  var finalCw = [];
+  var maxData = Math.max.apply(null, blocks.map(function (b) { return b.length; }));
+  for (var col = 0; col < maxData; col++)
+    for (bi = 0; bi < blocks.length; bi++) if (col < blocks[bi].length) finalCw.push(blocks[bi][col]);
+  for (var e = 0; e < ecLen; e++)
+    for (bi = 0; bi < eccBlocks.length; bi++) finalCw.push(eccBlocks[bi][e]);
+
+  var size = version * 4 + 17, mod = [], reserved = [];
+  for (var y = 0; y < size; y++) { mod.push(new Array(size).fill(0)); reserved.push(new Array(size).fill(0)); }
+  function setF(x, y2, val) { if (x < 0 || y2 < 0 || x >= size || y2 >= size) return; mod[y2][x] = val ? 1 : 0; reserved[y2][x] = 1; }
+
+  function finder(cx, cy) {
+    for (var dy = -1; dy <= 7; dy++) for (var dx = -1; dx <= 7; dx++) {
+      var inRing = (dx >= 0 && dx <= 6 && dy >= 0 && dy <= 6) &&
+        (dx === 0 || dx === 6 || dy === 0 || dy === 6 || (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4));
+      setF(cx + dx, cy + dy, inRing);
+    }
+  }
+  finder(0, 0); finder(size - 7, 0); finder(0, size - 7);
+  for (var tp = 8; tp < size - 8; tp++) { setF(tp, 6, tp % 2 === 0); setF(6, tp, tp % 2 === 0); }
+
+  var centers = ALIGN[version];
+  for (var a1 = 0; a1 < centers.length; a1++) for (var a2 = 0; a2 < centers.length; a2++) {
+    var ax = centers[a2], ay = centers[a1];
+    if ((ax <= 8 && ay <= 8) || (ax <= 8 && ay >= size - 9) || (ax >= size - 9 && ay <= 8)) continue;
+    for (var by = -2; by <= 2; by++) for (var bx = -2; bx <= 2; bx++)
+      setF(ax + bx, ay + by, Math.max(Math.abs(bx), Math.abs(by)) !== 1);
+  }
+  setF(8, size - 8, true);
+  for (var fi = 0; fi < 9; fi++) {
+    if (!reserved[fi][8]) setF(8, fi, false);
+    if (!reserved[8][fi]) setF(fi, 8, false);
+  }
+  for (var fj = 0; fj < 8; fj++) {
+    if (!reserved[8][size - 1 - fj]) setF(size - 1 - fj, 8, false);
+    if (!reserved[size - 1 - fj][8]) setF(8, size - 1 - fj, false);
+  }
+  if (version >= 7) {
+    for (var vi = 0; vi < 18; vi++) {
+      var vx = Math.floor(vi / 3), vy = size - 11 + (vi % 3);
+      setF(vx, vy, false); setF(vy, vx, false);
+    }
+  }
+
+  var bitIdx = 0, totalBits = finalCw.length * 8;
+  function dataBit(n) { return n >= totalBits ? 0 : (finalCw[n >> 3] >> (7 - (n & 7))) & 1; }
+  var upward = true;
+  for (var cp2 = size - 1; cp2 > 0; cp2 -= 2) {
+    if (cp2 === 6) cp2--;
+    for (var row = 0; row < size; row++) {
+      var yy = upward ? size - 1 - row : row;
+      for (var cc = 0; cc < 2; cc++) {
+        var xx = cp2 - cc;
+        if (reserved[yy][xx]) continue;
+        mod[yy][xx] = dataBit(bitIdx++);
+      }
+    }
+    upward = !upward;
+  }
+
+  function maskFn(m, x, y2) {
+    switch (m) {
+      case 0: return (y2 + x) % 2 === 0;
+      case 1: return y2 % 2 === 0;
+      case 2: return x % 3 === 0;
+      case 3: return (y2 + x) % 3 === 0;
+      case 4: return (Math.floor(y2 / 2) + Math.floor(x / 3)) % 2 === 0;
+      case 5: return ((y2 * x) % 2) + ((y2 * x) % 3) === 0;
+      case 6: return (((y2 * x) % 2) + ((y2 * x) % 3)) % 2 === 0;
+      default: return (((y2 + x) % 2) + ((y2 * x) % 3)) % 2 === 0;
+    }
+  }
+  function formatBits(mask) {
+    var fmt = mask, rem = fmt;   // ECC level M == 0b00
+    for (var fb = 0; fb < 10; fb++) rem = (rem << 1) ^ (((rem >> 9) & 1) * 0x537);
+    return ((fmt << 10) | rem) ^ 0x5412;
+  }
+  function applyFormat(grid, mask) {
+    var f = formatBits(mask);
+    for (var b2 = 0; b2 < 15; b2++) {
+      var bit = (f >> b2) & 1;
+      if (b2 < 6) grid[b2][8] = bit;
+      else if (b2 < 8) grid[b2 + 1][8] = bit;
+      else if (b2 === 8) grid[8][7] = bit;
+      else grid[8][14 - b2] = bit;
+      if (b2 < 8) grid[8][size - 1 - b2] = bit;
+      else grid[size - 15 + b2][8] = bit;
+    }
+    grid[size - 8][8] = 1;
+  }
+  function applyVersion(grid) {
+    if (version < 7) return;
+    var vinfo = VERSION_INFO[version];
+    for (var vb = 0; vb < 18; vb++) {
+      var bit = (vinfo >> vb) & 1, vr = Math.floor(vb / 3), vc = size - 11 + (vb % 3);
+      grid[vc][vr] = bit; grid[vr][vc] = bit;
+    }
+  }
+  function penalty(grid) {
+    var score = 0, a, b, run, last;
+    for (a = 0; a < size; a++) {
+      run = 1; last = grid[a][0];
+      for (b = 1; b < size; b++) {
+        if (grid[a][b] === last) run++;
+        else { if (run >= 5) score += 3 + (run - 5); run = 1; last = grid[a][b]; }
+      }
+      if (run >= 5) score += 3 + (run - 5);
+    }
+    for (b = 0; b < size; b++) {
+      run = 1; last = grid[0][b];
+      for (a = 1; a < size; a++) {
+        if (grid[a][b] === last) run++;
+        else { if (run >= 5) score += 3 + (run - 5); run = 1; last = grid[a][b]; }
+      }
+      if (run >= 5) score += 3 + (run - 5);
+    }
+    for (a = 0; a < size - 1; a++) for (b = 0; b < size - 1; b++) {
+      var s = grid[a][b];
+      if (s === grid[a][b + 1] && s === grid[a + 1][b] && s === grid[a + 1][b + 1]) score += 3;
+    }
+    var p1 = [1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0], p2 = [0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1];
+    function match(arr, pat) { for (var mi = 0; mi < 11; mi++) if (arr[mi] !== pat[mi]) return false; return true; }
+    for (a = 0; a < size; a++) for (b = 0; b <= size - 11; b++) {
+      var hr = grid[a].slice(b, b + 11);
+      if (match(hr, p1) || match(hr, p2)) score += 40;
+    }
+    for (b = 0; b < size; b++) for (a = 0; a <= size - 11; a++) {
+      var vc2 = [];
+      for (var vk = 0; vk < 11; vk++) vc2.push(grid[a + vk][b]);
+      if (match(vc2, p1) || match(vc2, p2)) score += 40;
+    }
+    var dark = 0;
+    for (a = 0; a < size; a++) for (b = 0; b < size; b++) dark += grid[a][b];
+    score += Math.floor(Math.abs((dark * 100) / (size * size) - 50) / 5) * 10;
+    return score;
+  }
+
+  var best = null, bestScore = Infinity;
+  for (var m2 = 0; m2 < 8; m2++) {
+    var grid2 = mod.map(function (rw) { return rw.slice(); });
+    for (var gy = 0; gy < size; gy++) for (var gx = 0; gx < size; gx++)
+      if (!reserved[gy][gx] && maskFn(m2, gx, gy)) grid2[gy][gx] ^= 1;
+    applyFormat(grid2, m2);
+    applyVersion(grid2);
+    var sc = penalty(grid2);
+    if (sc < bestScore) { bestScore = sc; best = grid2; }
+  }
+  return { size: size, modules: best, version: version };
+}
+
+/** Render a QR payload as a crisp, printable SVG string. */
+function qrSvg(text, px) {
+  var q;
+  try { q = qrEncode(text); }
+  catch (err) { return '<div style="font-size:0.7rem;color:#666;padding:8px;">QR unavailable</div>'; }
+  var quiet = 4, dim = q.size + quiet * 2, path = [];
+  for (var y = 0; y < q.size; y++) for (var x = 0; x < q.size; x++) {
+    if (q.modules[y][x]) path.push('M' + (x + quiet) + ' ' + (y + quiet) + 'h1v1h-1z');
+  }
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + dim + ' ' + dim + '" ' +
+    'width="' + (px || 200) + '" height="' + (px || 200) + '" shape-rendering="crispEdges" role="img" aria-label="QR code">' +
+    '<rect width="' + dim + '" height="' + dim + '" fill="#ffffff"/>' +
+    '<path d="' + path.join('') + '" fill="#000000"/></svg>';
+}
+
+/* ---------------------------------------------------------------------------
+   Small helpers
+--------------------------------------------------------------------------- */
+function esc(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function attr(str) { return esc(str); }
+function el(id) { return document.getElementById(id); }
+function show(node) { if (node) node.classList.remove('is-hidden'); }
+function hide(node) { if (node) node.classList.add('is-hidden'); }
+function setHtml(id, html) { var n = el(id); if (n) n.innerHTML = html; }
+function setText(id, txt) { var n = el(id); if (n) n.textContent = txt; }
+function emptyState(icon, msg, pad) {
+  return '<div class="empty-state"' + (pad ? ' style="padding:' + pad + ';"' : '') + '>' +
+    '<i class="fas fa-' + icon + '"></i><p>' + esc(msg) + '</p></div>';
+}
+function money(cents) {
+  return '$' + (Number(cents || 0) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function moneyF(amount) {
+  return '$' + Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function shortDate(value) {
+  if (!value) return '';
+  var d = new Date(value);
+  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function longDate(value) {
+  if (!value) return '';
+  var d = new Date(value);
+  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+}
+function time24ToAmPm(t) {
+  if (!t) return '';
+  var parts = String(t).split(':'), h = parseInt(parts[0], 10);
+  if (isNaN(h)) return '';
+  var m = parts[1] || '00', ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return h + ':' + m + ' ' + ampm;
+}
+function parseLocalDate(str) {
+  if (!str) return null;
+  var m = String(str).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  m = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return new Date(+m[3], +m[1] - 1, +m[2]);
+  var d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+function formatBirthday(value) {
+  var v = String(value || '').trim();
+  if (!v) return '';
+  var iso = v.match(/^\d{4}-(\d{2})-(\d{2})/);
+  if (iso) return iso[1] + '/' + iso[2];
+  var mdy = v.match(/^(\d{1,2})\/(\d{1,2})/);
+  if (mdy) return mdy[1].padStart(2, '0') + '/' + mdy[2].padStart(2, '0');
+  return v;
+}
+function fullName(m) {
+  if (!m) return '';
+  var parts = [m.first_name, m.middle_name, m.last_name].filter(Boolean);
+  var name = parts.join(' ');
+  if (m.suffix) name += (name ? ' ' : '') + m.suffix;
+  return name.trim();
+}
+function shortName(m) {
+  if (!m) return '';
+  return [m.first_name, m.last_name].filter(Boolean).join(' ').trim();
+}
+function initialsOf(m) {
+  var i = ((m && m.first_name ? m.first_name[0] : '') + (m && m.last_name ? m.last_name[0] : '')).toUpperCase();
+  return i || '?';
+}
+/** Only send a value for a `date` column when it is a real date — '' would 422. */
+function dateOrNull(value) {
+  var v = String(value || '').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+}
+function statusClass(s) { return String(s || 'pending').toLowerCase().replace(/[^a-z]/g, ''); }
+function statusPill(s) {
+  return '<span class="tag-status ' + statusClass(s) + '">' + esc(s || 'pending') + '</span>';
+}
+
+/* ---------------------------------------------------------------------------
+   Module state
+--------------------------------------------------------------------------- */
+var org = null;
+var member = null;
+var access = 'pending';
+var allEvents = [];
+var allMembers = [];
+var duesConfig = { amountCents: 0, lateFeeCents: 1000, windowStartMonth: 9, windowEndMonth: 12 };
+var toastTimer = null;
+
+/* Panels a 'visiting' member may use. The original hid Documents/Directory/
+   Meetings/News from visiting members; every other panel here also performs a
+   write that RLS gates on portal_access='granted' (store orders, submissions,
+   requisitions, reimbursements), so showing them would guarantee failures. */
+var VISITING_PANELS = ['dashboard', 'events', 'dues', 'card', 'profile'];
+
+var PANEL_META = {
+  dashboard:               ['Dashboard', 'Member Portal'],
+  events:                  ['Events', 'Upcoming events'],
+  meetings:                ['Meetings', 'RSVP and meeting documents'],
+  dues:                    ['Dues', 'Pay dues and view your history'],
+  store:                   ['Store', 'Browse and order items'],
+  documents:               ['Documents', 'Documents and resources'],
+  'news-feed':             ['News', 'Updates from your organization'],
+  directory:               ['Directory', 'Find other members'],
+  newsletters:             ['Newsletters', 'Newsletter archive'],
+  card:                    ['Membership Card', 'Your digital membership card'],
+  'announcements-submit':  ['Submit Announcement', 'Send an announcement for review'],
+  'news-submit':           ['Submit News Article', 'Send a news article for review'],
+  requisition:             ['Submit Requisition', 'Request organization funds'],
+  reimbursement:           ['Request Reimbursement', 'Get paid back for an expense'],
+  profile:                 ['My Profile', 'Edit your details and privacy']
+};
+
+/** Loaders that run the first time (and on re-entry) for a panel. */
+var PANEL_LOADERS = {};
+
+/* ---------------------------------------------------------------------------
+   Chrome: toast, sidebar, panel routing
+--------------------------------------------------------------------------- */
+function showToast(msg, type) {
+  var t = el('toast');
+  if (!t) return;
+  setText('toastMsg', msg);
+  t.className = 'toast' + (type === 'error' ? ' error' : '') + ' show';
+  var icon = t.querySelector('i');
+  if (icon) icon.className = type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { t.classList.remove('show'); }, 3800);
+}
+
+function toggleSidebar() {
+  el('sidebar').classList.toggle('open');
+  el('sidebarOverlay').classList.toggle('show');
+}
+function closeSidebar() {
+  el('sidebar').classList.remove('open');
+  el('sidebarOverlay').classList.remove('show');
+}
+
+function showPanel(id) {
+  if (access === 'visiting' && VISITING_PANELS.indexOf(id) === -1) id = 'dashboard';
+  var target = el('panel-' + id);
+  if (!target) return;
+  document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function (n) { n.classList.remove('active'); });
+  target.classList.add('active');
+  var navBtn = el('nav-' + id);
+  if (navBtn) navBtn.classList.add('active');
+  var meta = PANEL_META[id] || [id, ''];
+  setText('panelTitle', meta[0]);
+  setText('panelBreadcrumb', meta[1]);
+  closeSidebar();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  var loader = PANEL_LOADERS[id];
+  if (loader) { try { loader(); } catch (err) { console.error('panel load failed', id, err); } }
+}
+
+/** Preserve the ?org= override across in-app navigation (local dev / no subdomain). */
+function orgQuerySuffix() {
+  var p = new URLSearchParams(window.location.search).get('org');
+  return p ? '?org=' + encodeURIComponent(p) : '';
+}
+function signOut() {
+  try { MFAuth.signOut(); } catch (err) { /* fall through to redirect */ }
+  window.location.href = 'member-login.html' + orgQuerySuffix();
+}
+
+/* ---------------------------------------------------------------------------
+   Uploads. Storage RLS (org_media_insert_auth) only lets ORG ADMINS write to
+   the org-media bucket, so a regular member's upload is expected to 403 — each
+   attachment field therefore also accepts a plain URL, and we surface a clear
+   message instead of a raw storage error.
+--------------------------------------------------------------------------- */
+function uploadOrgMedia(file, folder) {
+  var safe = String(file.name || 'file').replace(/[^a-zA-Z0-9._-]/g, '_');
+  var path = org.id + '/' + folder + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '_' + safe;
+  return fetch(sb.url + '/storage/v1/object/org-media/' + path, {
+    method: 'POST',
+    headers: {
+      apikey: sb.key,
+      Authorization: 'Bearer ' + ((MFAuth.session && MFAuth.session.access_token) || sb.key),
+      'Content-Type': file.type || 'application/octet-stream',
+      'x-upsert': 'false'
+    },
+    body: file
+  }).then(function (res) {
+    if (res.status === 403 || res.status === 401) {
+      throw new Error('Your organization only allows admins to upload files. Paste a link to the file instead.');
+    }
+    if (!res.ok) throw new Error('Upload failed (' + res.status + '). Paste a link to the file instead.');
+    return sb.url + '/storage/v1/object/public/org-media/' + path;
+  });
+}
+
+/** Resolve an attachment: try the picked file, else fall back to a pasted URL. */
+async function resolveAttachment(file, urlValue, folder) {
+  var url = String(urlValue || '').trim();
+  if (file) {
+    try { return await uploadOrgMedia(file, folder); }
+    catch (err) {
+      if (url) return url;
+      throw err;
+    }
+  }
+  return url || null;
+}
+
+/* ---------------------------------------------------------------------------
+   Profile photo compression — stored inline on members.photo_url as a data URL
+   (same approach as the original), which sidesteps the admin-only storage RLS.
+--------------------------------------------------------------------------- */
+function compressDataUrl(dataUrl, maxSide, quality) {
+  return new Promise(function (resolve) {
+    try {
+      var img = new Image();
+      img.onload = function () {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) { resolve(dataUrl); return; }
+        var scale = Math.min(1, maxSide / Math.max(w, h));
+        w = Math.max(1, Math.round(w * scale));
+        h = Math.max(1, Math.round(h * scale));
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = function () { resolve(dataUrl); };
+      img.src = dataUrl;
+    } catch (err) { resolve(dataUrl); }
+  });
+}
+async function fitProfilePhoto(dataUrl) {
+  if (!dataUrl || String(dataUrl).indexOf('data:image') !== 0) return dataUrl;
+  var s = dataUrl, maxLen = 380000;
+  if (s.length <= maxLen) return s;
+  var plans = [[1024, 0.78], [800, 0.72], [640, 0.68], [480, 0.62], [360, 0.55]];
+  for (var i = 0; i < plans.length; i++) {
+    s = await compressDataUrl(s, plans[i][0], plans[i][1]);
+    if (s.length <= maxLen) return s;
+  }
+  return s;
+}
+/* ---------------------------------------------------------------------------
+   EVENTS
+--------------------------------------------------------------------------- */
+function todayIso() {
+  var n = new Date();
+  return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+}
+function eventDateKey(ev) {
+  var ed = ev.event_date ? String(ev.event_date).trim() : '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(ed)) return ed;
+  var raw = ev.datetime ? String(ev.datetime).trim() : '';
+  var segs = (raw.split(' ')[0] || '').split('/');
+  if (segs.length === 3 && /^\d{4}$/.test(segs[2])) {
+    return segs[2] + '-' + String(segs[0]).padStart(2, '0') + '-' + String(segs[1]).padStart(2, '0');
+  }
+  return '';
+}
+function isArchivedEvent(ev, today) {
+  var d = eventDateKey(ev);
+  return d ? d < today : false;
+}
+/** Parse the free-text `datetime` field into a date badge + time label. */
+function parseEventDate(dtStr) {
+  if (!dtStr) return { day: '?', month: '', time: '' };
+  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var rangeIdx = dtStr.search(/ - (?=\d{1,2}\/\d{1,2}\/\d{4})/);
+  var startStr = dtStr, endDateStr = '';
+  if (rangeIdx !== -1) {
+    startStr = dtStr.slice(0, rangeIdx);
+    endDateStr = dtStr.slice(rangeIdx + 3).trim().split(' ')[0];
+  }
+  var startParts = startStr.trim().split(' ');
+  var dp = (startParts[0] || '').split('/');
+  var m = parseInt(dp[0], 10), d = parseInt(dp[1], 10);
+  var timeRaw = startParts.slice(1).join(' ');
+  var sepIdx = timeRaw.indexOf(' - ');
+  var time = sepIdx !== -1 ? timeRaw.slice(0, sepIdx).trim() : timeRaw.trim();
+  var endDay = 0;
+  if (endDateStr) endDay = parseInt(endDateStr.split('/')[1], 10) || 0;
+  var startDay = isNaN(d) ? '?' : String(d);
+  return {
+    day: (endDay && endDay !== d) ? startDay + '–' + endDay : startDay,
+    month: months[m - 1] || '',
+    time: time
+  };
+}
+function normalizeEvent(ev) {
+  var fee = Math.max(0, parseInt(String(ev.registration_fee_cents || 0), 10) || 0);
+  var regUrl = String(ev.reg_url || '').trim();
+  var freeUrl = String(ev.free_registration_url || '').trim();
+  var freeEnabled = !!ev.free_registration_enabled;
+  var paidEnabled = !!ev.paid_registration_enabled;
+  if (ev.chapter_registration_enabled && !freeEnabled && !paidEnabled) {
+    if (regUrl || fee > 0) paidEnabled = true; else freeEnabled = true;
+  }
+  if (freeUrl && /^https?:\/\//i.test(freeUrl)) freeEnabled = true;
+  if (regUrl && /^https?:\/\//i.test(regUrl)) paidEnabled = true;
+  return { id: ev.id, name: ev.name || '', fee: fee, regUrl: regUrl, freeUrl: freeUrl, freeEnabled: freeEnabled, paidEnabled: paidEnabled };
+}
+
+function renderEventItem(ev) {
+  var d = parseEventDate(ev.datetime);
+  var n = normalizeEvent(ev);
+  var regHtml = '';
+  if (n.regUrl && /^https?:\/\//i.test(n.regUrl)) {
+    regHtml = '<a href="' + attr(n.regUrl) + '" target="_blank" rel="noopener" class="btn-accent btn-sm" style="margin-top:10px;"><i class="fas fa-ticket-alt"></i> Register</a>';
+  } else if (n.freeEnabled || n.paidEnabled) {
+    var label = n.fee > 0 ? 'Register — ' + money(n.fee) : 'Register (Free)';
+    regHtml = '<button type="button" class="btn-accent btn-sm" style="margin-top:10px;" data-register-event="' + attr(ev.id) + '"><i class="fas fa-ticket-alt"></i> ' + esc(label) + '</button>';
+  }
+  var flyerHtml = '';
+  if (ev.flyer && String(ev.flyer).trim()) {
+    flyerHtml = '<div style="margin:10px 0 4px;border-radius:8px;overflow:hidden;cursor:pointer;" data-flyer="' + attr(ev.flyer) + '" data-flyer-title="' + attr(ev.name) + '">' +
+      '<img src="' + attr(ev.flyer) + '" alt="" style="width:100%;max-height:250px;object-fit:cover;object-position:top;border:1px solid var(--p-border);border-radius:8px;" />' +
+      '<div style="font-size:0.7rem;color:var(--p-dim-2);text-align:right;margin-top:3px;"><i class="fas fa-expand-alt"></i> View full flyer</div></div>';
+  }
+  return '<div class="event-item">' +
+    '<div class="event-date-badge"><div class="day">' + esc(d.day) + '</div><div class="month">' + esc(d.month) + '</div></div>' +
+    '<div class="event-info">' +
+    (ev.featured ? '<span class="pill pill-accent">Featured</span> ' : '') +
+    (ev.members_only ? '<span class="pill pill-outline">Members only</span>' : '') +
+    '<h4>' + esc(ev.name) + '</h4>' +
+    '<div class="meta"><i class="fas fa-map-marker-alt"></i> ' + esc(ev.location || 'TBD') +
+    (d.time ? ' &middot; <i class="fas fa-clock"></i> ' + esc(d.time) : '') + '</div>' +
+    (ev.description ? '<p class="muted-note" style="font-size:0.79rem;margin-top:6px;">' + esc(ev.description) + '</p>' : '') +
+    flyerHtml + regHtml +
+    '</div></div>';
+}
+
+async function loadEvents() {
+  try {
+    var rows = await sb.getAll('events', MF.scope('order=sort_order.asc'));
+    var today = todayIso();
+    allEvents = (rows || []).filter(function (ev) { return !isArchivedEvent(ev, today); });
+  } catch (err) {
+    console.error('events load failed', err);
+    allEvents = [];
+  }
+  setText('statEventsCount', String(allEvents.length));
+  renderDashboardEvents();
+}
+function renderEventsPanel() {
+  var c = el('eventsList');
+  if (!c) return;
+  setText('eventsCountBadge', allEvents.length + ' event' + (allEvents.length === 1 ? '' : 's'));
+  c.innerHTML = allEvents.length ? allEvents.map(renderEventItem).join('') : emptyState('calendar', 'No upcoming events.');
+}
+function renderDashboardEvents() {
+  var c = el('dashboardEvents');
+  if (!c) return;
+  var upcoming = allEvents.slice(0, 3);
+  c.innerHTML = upcoming.length ? upcoming.map(renderEventItem).join('') : emptyState('calendar', 'No upcoming events.');
+}
+
+/* ---- Event registration modal ---- */
+var regEvent = null, regFee = 0;
+function openRegModal(eventId) {
+  var ev = allEvents.find(function (e) { return String(e.id) === String(eventId); });
+  if (!ev) return;
+  var n = normalizeEvent(ev);
+  regEvent = ev; regFee = n.fee;
+  setText('regTitle', ev.name || 'Event Registration');
+  setText('regFeeLine', n.fee <= 0 ? 'Free registration' : 'Registration fee: ' + money(n.fee) + ' (secure card payment)');
+  setHtml('regSubmit', n.fee <= 0 ? '<i class="fas fa-check"></i> Complete registration' : '<i class="fas fa-lock"></i> Continue to payment');
+  el('regName').value = shortName(member);
+  el('regPhone').value = (member && member.phone) || '';
+  el('regEmail').value = memberEmail();
+  hide(el('regError'));
+  el('regModalOverlay').classList.add('open');
+}
+function closeRegModal() {
+  el('regModalOverlay').classList.remove('open');
+  regEvent = null;
+}
+async function submitRegistration() {
+  var errEl = el('regError');
+  hide(errEl);
+  if (!regEvent) return;
+  var name = el('regName').value.trim();
+  var phone = el('regPhone').value.trim();
+  var email = el('regEmail').value.trim();
+  function fail(msg) { errEl.textContent = msg; show(errEl); }
+  if (name.length < 2) return fail('Please enter your name.');
+  if (phone.length < 7) return fail('Please enter a valid phone number.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('Please enter a valid email address.');
+  var btn = el('regSubmit');
+  btn.disabled = true;
+  try {
+    if (regFee <= 0) {
+      await sb.rpc('register_for_event_free', {
+        p_org_id: org.id, p_event_id: regEvent.id,
+        p_full_name: name, p_phone: phone, p_email: email
+      });
+      closeRegModal();
+      showToast('You are registered. See you there!');
+    } else {
+      var payload = await stripeCheckout({ mode: 'event', eventId: regEvent.id, fullName: name, phone: phone, email: email });
+      window.location.href = payload.url;
+      return;
+    }
+  } catch (err) {
+    var msg = (err && err.message) ? err.message : 'Something went wrong. Please try again.';
+    if (/already registered/i.test(msg) || /23505/.test(msg)) msg = 'You are already registered for this event.';
+    else if (/row-level security|42501/i.test(msg)) msg = 'Registration could not be saved. Please contact your administrator.';
+    else if (/PGRST202|42883/i.test(msg)) msg = 'Registration is not configured. Please contact your administrator.';
+    fail(msg);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/** Shared Stripe Checkout call — always org-scoped. */
+async function stripeCheckout(body) {
+  var res = await fetch(sb.url + '/functions/v1/stripe-checkout', {
+    method: 'POST',
+    headers: sb.headers(),
+    body: JSON.stringify(Object.assign({ org_id: org.id }, body))
+  });
+  var payload = null;
+  try { payload = await res.json(); }
+  catch (err) { payload = { error: await res.text().catch(function () { return ''; }) }; }
+  if (!res.ok) throw new Error((payload && payload.error) || 'Could not start checkout.');
+  if (!payload || !payload.url) throw new Error((payload && payload.error) || 'Checkout unavailable.');
+  return payload;
+}
+
+/* ---------------------------------------------------------------------------
+   ANNOUNCEMENTS (dashboard)
+--------------------------------------------------------------------------- */
+async function loadDashboardAnnouncements() {
+  var c = el('dashboardAnnouncements');
+  if (!c) return;
+  try {
+    var rows = await sb.getAll('announcements', MF.scope('active=eq.true&order=id.desc&limit=5'));
+    if (!rows || !rows.length) { c.innerHTML = emptyState('bullhorn', 'No active announcements.'); return; }
+    c.innerHTML = rows.map(function (a) {
+      return '<div class="doc-item">' +
+        '<div class="doc-icon"><i class="fas fa-bullhorn"></i></div>' +
+        '<div class="doc-info"><div class="doc-title">' + esc(a.text || '') + '</div>' +
+        (a.link_url ? '<a href="' + attr(a.link_url) + '" target="_blank" rel="noopener" style="font-size:0.78rem;color:var(--accent);font-weight:600;">' + esc(a.link_text || 'Learn more') + '</a>' : '') +
+        '</div></div>';
+    }).join('');
+  } catch (err) {
+    c.innerHTML = emptyState('bullhorn', 'No active announcements.');
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   NEWS FEED — the published feed in site_content['news_articles'], the same
+   source the public news page reads (js/news-articles.js).
+--------------------------------------------------------------------------- */
+async function loadNewsFeed() {
+  var c = el('newsFeedList');
+  if (!c) return;
+  c.innerHTML = emptyState('bullhorn', 'Loading news…');
+  try {
+    var articles = sortNewsNewestFirst(getPublishedNewsArticles(await fetchNewsArticles()));
+    if (!articles.length) { c.innerHTML = emptyState('bullhorn', 'No news published yet. Check back soon.'); return; }
+    c.innerHTML = articles.map(function (a) {
+      return '<article style="border:1px solid var(--p-border);border-radius:10px;padding:18px;margin-bottom:14px;background:rgba(255,255,255,0.03);">' +
+        (a.image ? '<img src="' + attr(a.image) + '" alt="" style="width:100%;max-height:260px;object-fit:cover;border-radius:8px;margin-bottom:14px;" />' : '') +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">' +
+        '<span class="pill pill-outline" style="margin:0;">' + esc(a.tag || 'News') + '</span>' +
+        (a.featured ? '<span class="pill pill-accent" style="margin:0;">Featured</span>' : '') +
+        '</div>' +
+        '<h4 style="font-family:\'Inter\',sans-serif;font-size:0.98rem;font-weight:700;color:var(--p-text);margin-bottom:4px;">' + esc(a.title) + '</h4>' +
+        (a.date ? '<div style="font-size:0.75rem;color:var(--p-dim-2);margin-bottom:10px;">' + esc(a.date) + '</div>' : '') +
+        '<div class="muted-note" style="white-space:pre-wrap;">' + esc(a.body || a.excerpt) + '</div>' +
+        '</article>';
+    }).join('');
+  } catch (err) {
+    c.innerHTML = emptyState('exclamation-circle', 'Could not load the news feed.');
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   MEETINGS — RSVP, documents, and a QR check-in link for the public kiosk page
+--------------------------------------------------------------------------- */
+var meetingsCache = [];
+
+function checkinUrlFor(meetingId) {
+  // meeting-checkin.html is a public kiosk page: it cannot rely on a session
+  // for tenant context, so the org slug always travels in the URL.
+  var base = window.location.href.split('?')[0].replace(/[^/]*$/, '');
+  return base + 'meeting-checkin.html?id=' + encodeURIComponent(meetingId) + '&org=' + encodeURIComponent(org.slug);
+}
+
+async function loadMeetings() {
+  var c = el('meetingsList');
+  if (!c) return;
+  c.innerHTML = emptyState('people-group', 'Loading meetings…');
+  try {
+    var meetings = await sb.getAll('meetings', MF.scope('order=meeting_date.asc'));
+    meetingsCache = meetings || [];
+    if (!meetingsCache.length) { c.innerHTML = emptyState('people-group', 'No meetings scheduled yet.'); return; }
+
+    var myRsvps = {};
+    if (member) {
+      try {
+        var rsvpRows = await sb.getAll('meeting_rsvps', MF.scope('member_id=eq.' + encodeURIComponent(member.id)));
+        (rsvpRows || []).forEach(function (r) { myRsvps[r.meeting_id] = r.response; });
+      } catch (err) { /* RSVPs are optional context */ }
+    }
+    var docsByMeeting = {};
+    try {
+      var docs = await sb.getAll('documents', MF.scope('meeting_id=not.is.null&status=eq.approved&order=created_at.desc'));
+      (docs || []).forEach(function (d) {
+        (docsByMeeting[d.meeting_id] = docsByMeeting[d.meeting_id] || []).push(d);
+      });
+    } catch (err) { /* documents are optional context */ }
+
+    var now = new Date(); now.setHours(0, 0, 0, 0);
+    c.innerHTML = meetingsCache.map(function (m) {
+      var mDate = m.meeting_date ? new Date(m.meeting_date + 'T12:00:00') : null;
+      var isPast = mDate && mDate < now;
+      var dateStr = mDate ? mDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '—';
+      var timeStr = m.start_time ? time24ToAmPm(m.start_time) + (m.end_time ? ' – ' + time24ToAmPm(m.end_time) : '') : '';
+      var mine = myRsvps[m.id] || null;
+
+      var rsvpHtml = isPast
+        ? '<span style="font-size:0.78rem;color:var(--p-dim-2);">This meeting has passed.</span>'
+        : '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
+          '<span style="font-size:0.78rem;color:var(--p-dim);">Your RSVP:</span>' +
+          ['yes', 'maybe', 'no'].map(function (val) {
+            var labels = { yes: 'Yes', maybe: 'Maybe', no: 'No' };
+            var icons = { yes: 'check', maybe: 'question', no: 'times' };
+            return '<button type="button" class="chip' + (mine === val ? ' active' : '') + '" ' +
+              'data-rsvp-meeting="' + attr(m.id) + '" data-rsvp-value="' + val + '">' +
+              '<i class="fas fa-' + icons[val] + '"></i> ' + labels[val] + '</button>';
+          }).join('') + '</div>';
+
+      var mDocs = docsByMeeting[m.id] || [];
+      var docsHtml = mDocs.length
+        ? mDocs.map(function (d) {
+            return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--p-border);">' +
+              '<i class="fas fa-file-alt" style="color:var(--accent);font-size:0.85rem;"></i>' +
+              '<div style="flex:1;min-width:0;"><div style="font-size:0.83rem;color:var(--p-dim);">' + esc(d.title) + '</div>' +
+              (d.uploaded_by_name ? '<div style="font-size:0.72rem;color:var(--p-dim-2);">' + esc(d.uploaded_by_name) + '</div>' : '') + '</div>' +
+              (d.file_url ? '<a href="' + attr(d.file_url) + '" target="_blank" rel="noopener" class="doc-download btn-sm"><i class="fas fa-eye"></i> View</a>' : '') +
+              '</div>';
+          }).join('')
+        : '<div style="font-size:0.8rem;color:var(--p-dim-2);padding:4px 0;">No documents posted yet.</div>';
+
+      var uploadPanel = isPast ? '' :
+        '<div id="committeeUpload-' + attr(m.id) + '" class="is-hidden" style="margin-top:12px;padding:14px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid var(--p-pale-2);">' +
+          '<div class="form-group-label" style="color:var(--accent);margin-bottom:10px;">Submit a report</div>' +
+          '<div class="pfield" style="margin-bottom:10px;"><label>Your name &amp; role</label><input type="text" id="ciName-' + attr(m.id) + '" placeholder="e.g. Jane Smith, Program Chair" /></div>' +
+          '<div class="pfield" style="margin-bottom:10px;"><label>Document title</label><input type="text" id="ciTitle-' + attr(m.id) + '" placeholder="e.g. Program Report — July" /></div>' +
+          '<div class="pfield" style="margin-bottom:10px;"><label>Document link</label><input type="text" id="ciUrl-' + attr(m.id) + '" placeholder="https://… (or choose a file below)" /></div>' +
+          '<div id="ciMsg-' + attr(m.id) + '" class="alert is-hidden" style="margin-bottom:10px;"></div>' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+            '<button type="button" class="btn-accent btn-sm" data-committee-file="' + attr(m.id) + '"><i class="fas fa-upload"></i> Choose file</button>' +
+            '<button type="button" class="btn-accent btn-sm" data-committee-submit="' + attr(m.id) + '"><i class="fas fa-paper-plane"></i> Submit</button>' +
+            '<button type="button" class="btn-ghost btn-sm" data-committee-toggle="' + attr(m.id) + '">Cancel</button>' +
+          '</div>' +
+          '<input type="file" id="ciFile-' + attr(m.id) + '" class="is-hidden" />' +
+          '<div id="ciFileName-' + attr(m.id) + '" style="font-size:0.78rem;color:var(--accent);margin-top:8px;"></div>' +
+        '</div>';
+
+      return '<div style="border:1px solid var(--p-border);border-radius:10px;padding:18px;margin-bottom:14px;background:rgba(255,255,255,0.03);">' +
+        '<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;">' +
+          '<div style="font-size:0.95rem;font-weight:700;color:var(--accent);margin-bottom:6px;">' + esc(m.title) + '</div>' +
+          '<button type="button" class="btn-ghost btn-sm" data-qr-meeting="' + attr(m.id) + '"><i class="fas fa-qrcode"></i> Check-in QR</button>' +
+        '</div>' +
+        '<div style="font-size:0.82rem;color:var(--p-dim);margin-bottom:3px;"><i class="fas fa-calendar" style="width:16px;"></i> ' + esc(dateStr) + '</div>' +
+        (timeStr ? '<div style="font-size:0.82rem;color:var(--p-dim);margin-bottom:3px;"><i class="fas fa-clock" style="width:16px;"></i> ' + esc(timeStr) + '</div>' : '') +
+        (m.location ? '<div style="font-size:0.82rem;color:var(--p-dim);margin-bottom:3px;"><i class="fas fa-map-marker-alt" style="width:16px;"></i> ' + esc(m.location) + '</div>' : '') +
+        (m.agenda ? '<div style="font-size:0.8rem;color:var(--p-dim-2);margin:10px 0;white-space:pre-wrap;border-left:2px solid var(--p-pale-2);padding-left:10px;">' + esc(m.agenda) + '</div>' : '') +
+        '<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--p-border);">' + rsvpHtml + '</div>' +
+        '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--p-border);">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;flex-wrap:wrap;">' +
+            '<span class="form-group-label" style="margin:0;"><i class="fas fa-paperclip"></i> Meeting Documents</span>' +
+            (isPast ? '' : '<button type="button" class="btn-ghost btn-sm" data-committee-toggle="' + attr(m.id) + '">+ Submit report</button>') +
+          '</div>' + docsHtml + uploadPanel +
+        '</div></div>';
+    }).join('');
+  } catch (err) {
+    console.error('meetings load failed', err);
+    c.innerHTML = emptyState('exclamation-circle', 'Could not load meetings.');
+  }
+}
+
+async function submitRsvp(meetingId, response) {
+  if (!member) return;
+  document.querySelectorAll('[data-rsvp-meeting="' + meetingId + '"]').forEach(function (b) {
+    b.classList.toggle('active', b.getAttribute('data-rsvp-value') === response);
+  });
+  try {
+    await sb.upsert('meeting_rsvps', MF.stamp({
+      meeting_id: meetingId,
+      member_id: member.id,
+      member_name: shortName(member),
+      member_email: memberEmail(),
+      response: response,
+      updated_at: new Date().toISOString()
+    }), 'meeting_id,member_id');
+    showToast('RSVP saved.');
+  } catch (err) {
+    showToast('Could not save your RSVP.', 'error');
+  }
+}
+
+function toggleCommitteeUpload(meetingId) {
+  var node = el('committeeUpload-' + meetingId);
+  if (node) node.classList.toggle('is-hidden');
+}
+var committeeFiles = {};
+function pickCommitteeFile(meetingId) {
+  var input = el('ciFile-' + meetingId);
+  if (!input) return;
+  input.onchange = function (e) {
+    var f = e.target.files && e.target.files[0];
+    committeeFiles[meetingId] = f || null;
+    setText('ciFileName-' + meetingId, f ? f.name : '');
+  };
+  input.click();
+}
+async function submitCommitteeReport(meetingId) {
+  var msg = el('ciMsg-' + meetingId);
+  var name = (el('ciName-' + meetingId) || {}).value || '';
+  var title = (el('ciTitle-' + meetingId) || {}).value || '';
+  var url = (el('ciUrl-' + meetingId) || {}).value || '';
+  function say(text, ok) {
+    if (!msg) return;
+    msg.className = 'alert ' + (ok ? 'alert-success' : 'alert-error');
+    msg.textContent = text;
+    show(msg);
+  }
+  name = name.trim(); title = title.trim();
+  if (!name) return say('Please enter your name and role.', false);
+  if (!title) return say('Please enter a document title.', false);
+  var file = committeeFiles[meetingId] || null;
+  if (!file && !String(url).trim()) return say('Attach a file or paste a document link.', false);
+  say('Submitting…', true);
+  try {
+    var fileUrl = await resolveAttachment(file, url, 'documents');
+    if (!fileUrl) return say('Attach a file or paste a document link.', false);
+    await sb.insert('documents', MF.stamp({
+      title: title,
+      category: 'Committee',
+      file_url: fileUrl,
+      members_only: true,
+      meeting_id: meetingId,
+      uploaded_by_name: name,
+      status: 'pending'
+    }));
+    say('Submitted. An admin will review and approve it shortly.', true);
+    committeeFiles[meetingId] = null;
+    setText('ciFileName-' + meetingId, '');
+    setTimeout(function () { toggleCommitteeUpload(meetingId); loadMeetings(); }, 2000);
+  } catch (err) {
+    say(err.message || 'Could not submit the report.', false);
+  }
+}
+
+/* ---- QR modal ---- */
+var qrLinkValue = '';
+function openQrModal(meetingId) {
+  var m = meetingsCache.find(function (x) { return String(x.id) === String(meetingId); });
+  qrLinkValue = checkinUrlFor(meetingId);
+  setText('qrModalTitle', m ? m.title : 'Check-in QR');
+  setText('qrModalSub', 'Scan this code at the door to check in to this meeting.');
+  setHtml('qrModalBox', qrSvg(qrLinkValue, 220));
+  setText('qrModalLink', qrLinkValue);
+  el('qrModal').classList.add('open');
+}
+function closeQrModal() { el('qrModal').classList.remove('open'); }
+function copyQrLink() {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(qrLinkValue).then(
+      function () { showToast('Check-in link copied.'); },
+      function () { showToast('Could not copy the link.', 'error'); }
+    );
+  } else {
+    showToast('Copy is unavailable in this browser.', 'error');
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   DUES
+--------------------------------------------------------------------------- */
+function memberEmail() {
+  if (member && member.email) return String(member.email).trim();
+  var u = MFAuth.session && MFAuth.session.user;
+  return (u && u.email) ? String(u.email).trim() : '';
+}
+function currentFiscalYear() { return String(new Date().getFullYear()); }
+
+async function loadDuesConfig() {
+  try {
+    var rows = await sb.getAll('site_content', MF.scope('content_key=in.(payments,finance_dues_config)&select=content_key,content_json'));
+    (rows || []).forEach(function (row) {
+      var j = row.content_json || {};
+      if (row.content_key === 'payments' && j.dues_amount_cents != null) duesConfig.amountCents = Number(j.dues_amount_cents) || 0;
+      if (row.content_key === 'finance_dues_config') {
+        if (j.late_fee_cents != null) duesConfig.lateFeeCents = Number(j.late_fee_cents) || 0;
+        if (j.window_start_month != null) duesConfig.windowStartMonth = Number(j.window_start_month) || 9;
+        if (j.window_end_month != null) duesConfig.windowEndMonth = Number(j.window_end_month) || 12;
+      }
+    });
+  } catch (err) { /* defaults are fine */ }
+}
+
+/** Late once the collection window has closed (window may wrap the new year). */
+function duesStatus() {
+  var month = new Date().getMonth() + 1;
+  var start = duesConfig.windowStartMonth, end = duesConfig.windowEndMonth;
+  var inWindow = start <= end ? (month >= start && month <= end) : (month >= start || month <= end);
+  return { inWindow: inWindow, isLate: !inWindow, lateFeeCents: duesConfig.lateFeeCents };
+}
+
+function renderDuesLateFeeNotice() {
+  var node = el('duesLateFeeNotice');
+  if (!node) return;
+  var s = duesStatus();
+  var months = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var endName = months[duesConfig.windowEndMonth] || '';
+  if (s.isLate && s.lateFeeCents > 0) {
+    node.className = 'alert alert-warn';
+    node.innerHTML = '<i class="fas fa-exclamation-triangle"></i> A <strong>' + money(s.lateFeeCents) +
+      ' late fee</strong> applies — the dues collection window has closed.';
+    show(node);
+  } else if (s.inWindow) {
+    node.className = 'alert alert-info';
+    node.innerHTML = '<i class="fas fa-calendar-check"></i> Dues collection is open' +
+      (endName ? ' through the end of <strong>' + esc(endName) + '</strong>' : '') +
+      (s.lateFeeCents > 0 ? '. Pay on time to avoid a ' + money(s.lateFeeCents) + ' late fee.' : '.');
+    show(node);
+  } else {
+    hide(node);
+  }
+}
+
+function prefillDuesFields() {
+  if (!member) return;
+  var n = el('duesPayName'), p = el('duesPayPhone'), e = el('duesPayEmail');
+  if (n && !n.value) n.value = shortName(member);
+  if (p && !p.value) p.value = (member.phone || '').trim();
+  if (e) e.value = memberEmail();
+}
+
+async function startDuesCheckout() {
+  var errEl = el('duesPayErr');
+  hide(errEl);
+  function fail(msg) { errEl.textContent = msg; show(errEl); }
+  if (!member) return fail('Sign in to pay dues.');
+  var name = el('duesPayName').value.trim();
+  var phone = el('duesPayPhone').value.trim();
+  var email = el('duesPayEmail').value.trim().toLowerCase();
+  if (name.length < 2) return fail('Enter your full name.');
+  if (phone.length < 7) return fail('Enter a valid phone number.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('Enter a valid email address.');
+  var btn = el('duesStripeBtn');
+  btn.disabled = true;
+  try {
+    var payload = await stripeCheckout({
+      mode: 'dues',
+      member_id: member.id,
+      fullName: name,
+      phone: phone,
+      email: email,
+      lateFee: duesStatus().isLate,
+      fiscalYear: currentFiscalYear()
+    });
+    window.location.href = payload.url;
+  } catch (err) {
+    fail((err && err.message) || 'Payment could not be started.');
+    btn.disabled = false;
+  }
+}
+
+async function renderDuesPanel() {
+  prefillDuesFields();
+  renderDuesLateFeeNotice();
+  var c = el('duesList');
+  if (!c || !member) return;
+  try {
+    var rows = await sb.getAll('dues_payments', MF.scope('member_id=eq.' + encodeURIComponent(member.id) + '&order=created_at.desc'));
+    updateDuesStat(rows);
+    if (!rows || !rows.length) { c.innerHTML = emptyState('dollar-sign', 'No dues records found for your account yet.'); return; }
+    c.innerHTML = rows.map(function (d) {
+      var extras = [];
+      if (d.late_fee) extras.push('late fee');
+      if (d.building_fund) extras.push('building fund');
+      var meta = [
+        d.dues_category_label || d.dues_category || '',
+        d.payment_method ? d.payment_method : '',
+        d.reference_number ? 'ref ' + d.reference_number : '',
+        extras.join(' + ')
+      ].filter(Boolean).join(' · ');
+      var when = shortDate(d.paid_at || d.created_at);
+      return '<div class="list-row">' +
+        '<div style="min-width:0;">' +
+          '<div style="font-weight:600;color:var(--p-text);">' + esc(d.fiscal_year || when || 'Dues') + '</div>' +
+          (meta ? '<div style="font-size:0.75rem;color:var(--p-dim-2);margin-top:2px;">' + esc(meta) + '</div>' : '') +
+        '</div>' +
+        '<span style="color:var(--p-dim);">' + money(d.amount_cents) + '</span>' +
+        statusPill(d.payment_status) +
+        '</div>';
+    }).join('');
+  } catch (err) {
+    console.error('dues load failed', err);
+    c.innerHTML = emptyState('dollar-sign', 'Could not load your dues records.');
+  }
+}
+
+function updateDuesStat(rows) {
+  var yr = currentFiscalYear();
+  var paidThisYear = (rows || []).some(function (d) {
+    return d.payment_status === 'paid' && (!d.fiscal_year || String(d.fiscal_year) === yr);
+  });
+  setText('statDuesPaid', (rows && rows.length) ? (paidThisYear ? 'Paid' : 'Due') : '--');
+}
+
+/* ---------------------------------------------------------------------------
+   DOCUMENTS — members-only plus public docs; RLS decides what comes back, the
+   members_only flag only drives the badge.
+--------------------------------------------------------------------------- */
+var allDocs = [];
+var docsCategory = 'all';
+
+async function loadDocuments() {
+  var c = el('documentsList');
+  if (!c) return;
+  try {
+    allDocs = await sb.getAll('documents', MF.scope('status=eq.approved&meeting_id=is.null&order=created_at.desc')) || [];
+    setText('statDocCount', String(allDocs.length));
+    setText('docsCountBadge', allDocs.length + ' document' + (allDocs.length === 1 ? '' : 's'));
+    renderDocsFilter();
+    renderDocuments();
+  } catch (err) {
+    console.error('documents load failed', err);
+    c.innerHTML = emptyState('file-alt', 'Could not load documents.');
+  }
+}
+function renderDocsFilter() {
+  var cats = ['all'].concat(allDocs.map(function (d) { return d.category || 'General'; })
+    .filter(function (c, i, a) { return a.indexOf(c) === i; }));
+  setHtml('docsCatFilter', cats.map(function (c) {
+    return '<button type="button" class="chip' + (docsCategory === c ? ' active' : '') + '" data-doc-cat="' + attr(c) + '">' +
+      esc(c === 'all' ? 'All' : c) + '</button>';
+  }).join(''));
+}
+function renderDocuments() {
+  var c = el('documentsList');
+  if (!c) return;
+  var icons = { general: 'file-alt', pdf: 'file-pdf', form: 'file-signature', minutes: 'file-contract', policy: 'file-shield', committee: 'file-lines' };
+  var list = allDocs.filter(function (d) { return docsCategory === 'all' || (d.category || 'General') === docsCategory; });
+  if (!list.length) { c.innerHTML = emptyState('file-alt', 'No documents in this category yet.'); return; }
+  c.innerHTML = list.map(function (d) {
+    var key = String(d.category || '').toLowerCase();
+    return '<div class="doc-item">' +
+      '<div class="doc-icon"><i class="fas fa-' + (icons[key] || 'file-alt') + '"></i></div>' +
+      '<div class="doc-info">' +
+        '<div class="doc-title">' + esc(d.title) +
+          (d.members_only ? ' <span class="mc-badge mc-badge-life">Members only</span>' : '') + '</div>' +
+        '<div class="doc-meta">' + [esc(d.description || ''), esc(d.category || 'General'), shortDate(d.created_at)].filter(Boolean).join(' · ') + '</div>' +
+      '</div>' +
+      (d.file_url ? '<a href="' + attr(d.file_url) + '" target="_blank" rel="noopener" class="doc-download"><i class="fas fa-download"></i> Open</a>' : '') +
+      '</div>';
+  }).join('');
+}
+/* ---------------------------------------------------------------------------
+   STORE
+--------------------------------------------------------------------------- */
+var storeProducts = [], storeCart = [], storeCategory = 'all', viewingProduct = null, siQty = 1;
+
+function updateCartBadge() {
+  var total = storeCart.reduce(function (s, i) { return s + i.quantity; }, 0);
+  ['cartBadge', 'cartCountBtn'].forEach(function (id) {
+    var node = el(id);
+    if (!node) return;
+    node.textContent = String(total);
+    node.classList.toggle('is-hidden', !total);
+  });
+}
+async function loadStore() {
+  try {
+    var items = await sb.getAll('store_items', MF.scope('active=eq.true&order=sort_order.asc,created_at.desc'));
+    storeProducts = (items || []).map(function (p) {
+      var opts = p.options;
+      if (typeof opts === 'string') { try { opts = JSON.parse(opts); } catch (err) { opts = []; } }
+      p.options = Array.isArray(opts) ? opts : [];
+      return p;
+    });
+    renderStoreFilter();
+    renderStoreGrid();
+    loadMyOrders();
+  } catch (err) {
+    setHtml('storeProductGrid', emptyState('store', 'Could not load the store.'));
+  }
+}
+function renderStoreFilter() {
+  var cats = ['all'].concat(storeProducts.map(function (p) { return p.category || 'General'; })
+    .filter(function (c, i, a) { return a.indexOf(c) === i; }));
+  setHtml('storeCatFilter', cats.map(function (c) {
+    return '<button type="button" class="chip' + (storeCategory === c ? ' active' : '') + '" data-store-cat="' + attr(c) + '">' +
+      esc(c === 'all' ? 'All items' : c) + '</button>';
+  }).join(''));
+}
+function renderStoreGrid() {
+  var grid = el('storeProductGrid');
+  if (!grid) return;
+  var list = storeProducts.filter(function (p) { return storeCategory === 'all' || (p.category || 'General') === storeCategory; });
+  if (!list.length) { grid.innerHTML = emptyState('store', 'No items in this category.'); return; }
+  grid.innerHTML = list.map(function (p) {
+    return '<div class="store-item">' +
+      (p.image_url
+        ? '<img src="' + attr(p.image_url) + '" alt="" class="store-item-img" />'
+        : '<div class="store-item-noimg"><i class="fas fa-box-open"></i></div>') +
+      '<div class="store-item-body">' +
+        '<div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);">' + esc(p.category || 'General') + '</div>' +
+        '<div style="font-weight:700;font-size:0.95rem;color:var(--p-text);">' + esc(p.name) + '</div>' +
+        (p.description ? '<div class="muted-note" style="font-size:0.78rem;">' + esc(p.description) + '</div>' : '') +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:10px;gap:8px;">' +
+          '<div class="store-price">' + moneyF(p.price) + '</div>' +
+          ((p.options && p.options.length) ? '<span style="font-size:0.68rem;color:var(--p-dim-2);">Options available</span>' : '') +
+        '</div>' +
+        '<button type="button" class="btn-ghost btn-sm" style="width:100%;justify-content:center;margin-top:8px;" data-store-item="' + attr(p.id) + '">' +
+          '<i class="fas fa-plus"></i> Add to Cart</button>' +
+      '</div></div>';
+  }).join('');
+}
+function openItemModal(id) {
+  var p = storeProducts.find(function (x) { return String(x.id) === String(id); });
+  if (!p) return;
+  viewingProduct = p;
+  siQty = 1;
+  setText('siModalCat', p.category || 'General');
+  setText('siModalName', p.name);
+  setText('siModalPrice', moneyF(p.price));
+  setText('siModalDesc', p.description || '');
+  setText('siQty', '1');
+  hide(el('siModalErr'));
+  setHtml('siModalImg', p.image_url ? '<img src="' + attr(p.image_url) + '" alt="" style="width:100%;max-height:240px;object-fit:cover;" />' : '');
+  setHtml('siModalOptions', (p.options || []).map(function (g) {
+    return '<div class="pfield"><label>' + esc(g.name) + '</label>' +
+      '<select data-opt="' + attr(g.name) + '">' +
+      '<option value="">— Select ' + esc(g.name) + ' —</option>' +
+      (g.values || []).map(function (v) { return '<option value="' + attr(v) + '">' + esc(v) + '</option>'; }).join('') +
+      '</select></div>';
+  }).join(''));
+  updateItemTotal();
+  el('storeItemModal').classList.add('open');
+}
+function closeItemModal() { el('storeItemModal').classList.remove('open'); viewingProduct = null; }
+function updateItemTotal() {
+  if (!viewingProduct) return;
+  setText('siModalTotal', 'Total: ' + moneyF(Number(viewingProduct.price || 0) * siQty));
+}
+function changeQty(delta) {
+  siQty = Math.max(1, Math.min(20, siQty + delta));
+  setText('siQty', String(siQty));
+  updateItemTotal();
+}
+function addToCart() {
+  var errEl = el('siModalErr');
+  hide(errEl);
+  if (!viewingProduct) return;
+  var selections = {}, valid = true;
+  document.querySelectorAll('#siModalOptions select').forEach(function (sel) {
+    var name = sel.getAttribute('data-opt');
+    if (!sel.value) { errEl.textContent = 'Please select a ' + name + '.'; show(errEl); valid = false; }
+    else selections[name] = sel.value;
+  });
+  if (!valid) return;
+  var key = viewingProduct.id + '|' + JSON.stringify(selections);
+  var existing = storeCart.find(function (c) { return c._key === key; });
+  if (existing) existing.quantity = Math.min(20, existing.quantity + siQty);
+  else storeCart.push({
+    _key: key, item_id: viewingProduct.id, name: viewingProduct.name,
+    price: Number(viewingProduct.price || 0), quantity: siQty,
+    selections: selections, image_url: viewingProduct.image_url || ''
+  });
+  updateCartBadge();
+  var addedName = viewingProduct.name;
+  closeItemModal();
+  showToast(addedName + ' added to cart.');
+}
+function openCart() { renderCart(); el('storeCartModal').classList.add('open'); }
+function closeCart() { el('storeCartModal').classList.remove('open'); }
+function renderCart() {
+  var listEl = el('cartItemsList'), emptyEl = el('cartEmpty'), summaryEl = el('cartSummary');
+  if (!storeCart.length) {
+    listEl.innerHTML = '';
+    show(emptyEl); hide(summaryEl);
+    return;
+  }
+  hide(emptyEl); show(summaryEl);
+  var total = 0;
+  listEl.innerHTML = storeCart.map(function (item, i) {
+    var sels = Object.keys(item.selections || {}).map(function (k) { return k + ': ' + item.selections[k]; }).join(' · ');
+    var line = item.price * item.quantity;
+    total += line;
+    return '<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--p-border);align-items:flex-start;">' +
+      (item.image_url ? '<img src="' + attr(item.image_url) + '" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:6px;flex-shrink:0;" />'
+                      : '<div style="width:52px;height:52px;background:rgba(255,255,255,0.05);border-radius:6px;flex-shrink:0;"></div>') +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-weight:600;font-size:0.88rem;color:var(--p-text);">' + esc(item.name) + '</div>' +
+        (sels ? '<div style="font-size:0.75rem;color:var(--p-dim-2);margin-top:2px;">' + esc(sels) + '</div>' : '') +
+        '<div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;">' +
+          '<div class="qty-stepper"><button type="button" data-cart-qty="' + i + '" data-delta="-1">−</button>' +
+          '<div class="qty-val">' + item.quantity + '</div>' +
+          '<button type="button" data-cart-qty="' + i + '" data-delta="1">+</button></div>' +
+          '<button type="button" class="btn-ghost btn-sm" style="border-color:rgba(239,68,68,0.3);color:var(--p-red);" data-cart-remove="' + i + '"><i class="fas fa-trash"></i></button>' +
+          '<div style="margin-left:auto;font-weight:700;color:var(--accent);">' + moneyF(line) + '</div>' +
+        '</div>' +
+      '</div></div>';
+  }).join('');
+  setText('cartTotal', moneyF(total));
+}
+function cartChangeQty(i, delta) {
+  if (!storeCart[i]) return;
+  storeCart[i].quantity = Math.max(1, Math.min(20, storeCart[i].quantity + delta));
+  updateCartBadge(); renderCart();
+}
+function removeFromCart(i) { storeCart.splice(i, 1); updateCartBadge(); renderCart(); }
+
+async function placeOrder() {
+  var errEl = el('cartOrderErr');
+  hide(errEl);
+  function fail(msg) { errEl.textContent = msg; show(errEl); }
+  if (!member) return fail('Sign in to place an order.');
+  if (!storeCart.length) return fail('Your cart is empty.');
+  var btn = el('placeOrderBtn');
+  btn.disabled = true;
+  var notes = (el('cartNotes').value || '').trim();
+  var total = storeCart.reduce(function (s, i) { return s + i.price * i.quantity; }, 0);
+  var items = storeCart.map(function (c) {
+    return { item_id: c.item_id, name: c.name, price: c.price, quantity: c.quantity, selections: c.selections };
+  });
+  try {
+    if (total > 0) {
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Redirecting to payment…';
+      var payload = await stripeCheckout({
+        mode: 'store', member_id: member.id, fullName: shortName(member),
+        phone: (member.phone || ''), email: memberEmail(), items: items, notes: notes
+      });
+      window.location.href = payload.url;
+      return;
+    }
+    await sb.insert('store_orders', MF.stamp({
+      member_id: member.id,
+      member_name: shortName(member),
+      member_email: memberEmail(),
+      items: items,
+      total: total,
+      status: 'pending',
+      notes: notes || null
+    }));
+    storeCart = [];
+    updateCartBadge();
+    closeCart();
+    showToast('Order placed. Your organization will follow up.');
+    loadMyOrders();
+  } catch (err) {
+    fail('Could not place the order: ' + (err.message || 'unknown error'));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-check"></i> Place Order';
+  }
+}
+async function loadMyOrders() {
+  if (!member) return;
+  var node = el('myOrdersList');
+  if (!node) return;
+  try {
+    var orders = await sb.getAll('store_orders', MF.scope('member_id=eq.' + encodeURIComponent(member.id) + '&order=created_at.desc'));
+    if (!orders || !orders.length) { node.innerHTML = emptyState('receipt', 'No orders yet.', '18px 0'); return; }
+    node.innerHTML = orders.map(function (o) {
+      var items = o.items;
+      if (typeof items === 'string') { try { items = JSON.parse(items); } catch (err) { items = []; } }
+      var summary = (items || []).map(function (li) { return li.name + (li.quantity > 1 ? ' ×' + li.quantity : ''); }).join(', ');
+      return '<div style="border:1px solid var(--p-border);border-radius:8px;padding:14px 16px;margin-bottom:10px;background:rgba(255,255,255,0.02);">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">' +
+          '<div><div style="font-size:0.85rem;font-weight:600;color:var(--p-text);">' + esc(summary || 'Order') + '</div>' +
+          '<div style="font-size:0.75rem;color:var(--p-dim-2);margin-top:2px;">' + shortDate(o.created_at) + ' · ' + moneyF(o.total) + '</div></div>' +
+          statusPill(o.status) +
+        '</div></div>';
+    }).join('');
+  } catch (err) {
+    node.innerHTML = emptyState('receipt', 'Could not load your orders.', '16px 0');
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   MEMBERSHIP CARD
+--------------------------------------------------------------------------- */
+function renderMemberCard() {
+  if (!member) return;
+  var photo = el('cardPhoto');
+  if (photo) {
+    photo.innerHTML = member.photo_url
+      ? '<img src="' + attr(member.photo_url) + '" alt="" />'
+      : esc(initialsOf(member));
+  }
+  setText('cardName', fullName(member) || 'Member');
+  setText('cardMemberNumber', member.member_number || '—');
+  var since = member.member_since ? String(member.member_since).replace(/-.*/, '') : '';
+  setText('cardMemberSince', since || '—');
+  var status = member.is_lifetime_member ? 'Lifetime Member' : (access === 'visiting' ? 'Visiting' : 'Active');
+  setText('cardStatus', status);
+  setText('cardFooterText', org.tagline || 'Present this card as proof of membership.');
+
+  // The original had no QR. This encodes a self-describing verification
+  // payload — no dependency on a page another surface would have to provide.
+  var payload = [
+    'MEMBERFORGE',
+    org.name || org.slug,
+    member.member_number || ('ID-' + member.id),
+    fullName(member) || memberEmail(),
+    status
+  ].join('|');
+  setHtml('cardQr', qrSvg(payload, 62));
+}
+function printCard() {
+  var card = el('memberCardEl');
+  if (!card) return;
+  var wrap = el('printCardWrap');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = 'printCardWrap';
+    wrap.style.cssText = 'display:none;position:fixed;inset:0;z-index:99999;background:#fff;justify-content:center;align-items:center;';
+    document.body.appendChild(wrap);
+  }
+  wrap.innerHTML = '';
+  wrap.appendChild(card.cloneNode(true));
+  wrap.style.display = 'flex';
+  window.print();
+  setTimeout(function () { wrap.style.display = 'none'; }, 500);
+}
+
+/* ---------------------------------------------------------------------------
+   DIRECTORY — every row honours the member's own share_email/share_phone.
+--------------------------------------------------------------------------- */
+var dirFilter = 'all', dirSort = 'az';
+
+async function loadDirectory() {
+  var c = el('directoryList');
+  if (!c) return;
+  try {
+    allMembers = await sb.getAll('members', MF.scope('status=eq.active&order=last_name.asc')) || [];
+    setText('dirCountBadge', allMembers.length + ' member' + (allMembers.length === 1 ? '' : 's'));
+    setText('statMemberCount', String(allMembers.length));
+    filterDirectory();
+  } catch (err) {
+    console.error('directory load failed', err);
+    c.innerHTML = emptyState('users', 'Could not load the directory.');
+  }
+}
+function filterDirectory() {
+  var q = ((el('dirSearch') || {}).value || '').toLowerCase().trim();
+  var twoYearsAgo = new Date();
+  twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+  var list = allMembers.filter(function (m) {
+    if (dirFilter === 'lifetime' && !(m.is_lifetime_member || m.lifetime_member_number)) return false;
+    if (dirFilter === 'visiting' && m.portal_access !== 'visiting') return false;
+    if (dirSort === 'newest') {
+      var d = parseLocalDate(m.joined_at) || parseLocalDate(m.org_active_date);
+      if (!d || d < twoYearsAgo) return false;
+    }
+    if (q) {
+      return [m.first_name, m.middle_name, m.last_name, m.suffix, m.city, m.state, m.member_number, m.joined_via, m.lifetime_member_number]
+        .filter(Boolean).join(' ').toLowerCase().indexOf(q) !== -1;
+    }
+    return true;
+  });
+  list = list.slice().sort(function (a, b) {
+    if (dirSort === 'za') return (b.last_name || '').localeCompare(a.last_name || '') || (b.first_name || '').localeCompare(a.first_name || '');
+    if (dirSort === 'newest') {
+      var ad = (parseLocalDate(a.joined_at) || parseLocalDate(a.org_active_date) || new Date(0)).getTime();
+      var bd = (parseLocalDate(b.joined_at) || parseLocalDate(b.org_active_date) || new Date(0)).getTime();
+      return bd - ad;
+    }
+    return (a.last_name || '').localeCompare(b.last_name || '') || (a.first_name || '').localeCompare(b.first_name || '');
+  });
+  renderDirectoryList(list);
+}
+function renderDirectoryList(members) {
+  var c = el('directoryList');
+  if (!c) return;
+  if (!members.length) { c.innerHTML = emptyState('users', 'No members match your search.'); return; }
+  c.innerHTML = members.map(function (m) {
+    var ini = initialsOf(m);
+    var name = fullName(m) || (m.email || '').trim();
+    var isLifetime = !!(m.is_lifetime_member || m.lifetime_member_number);
+    var isVisiting = m.portal_access === 'visiting';
+    var email = (m.email || '').trim();
+    var phone = (m.phone || '').trim();
+
+    var line1 = [ [m.city, m.state].filter(Boolean).join(', '), m.member_since ? 'Since ' + m.member_since : '' ]
+      .filter(Boolean).map(esc).join(' &middot; ');
+    var line2 = [
+      m.member_number ? 'No. ' + esc(m.member_number) : '',
+      m.joined_via ? 'Joined via ' + esc(m.joined_via) : '',
+      m.college ? esc(m.college) : ''
+    ].filter(Boolean).join(' &middot; ');
+    var line3 = isLifetime && m.lifetime_member_number ? 'Lifetime No. ' + esc(m.lifetime_member_number) : '';
+    var birthday = formatBirthday(m.birthday);
+
+    var actions = [];
+    if (email && m.share_email !== false) actions.push('<a href="mailto:' + attr(email) + '" class="mc-btn"><i class="fas fa-envelope"></i> Email</a>');
+    if (phone && m.share_phone !== false) actions.push('<a href="tel:' + attr(phone.replace(/\s+/g, '')) + '" class="mc-btn"><i class="fas fa-phone"></i> Call</a>');
+    if (m.linkedin) actions.push('<a href="' + attr(m.linkedin) + '" target="_blank" rel="noopener" class="mc-btn"><i class="fab fa-linkedin"></i> LinkedIn</a>');
+
+    return '<div class="member-card">' +
+      '<div class="member-card-avatar">' + (m.photo_url ? '<img src="' + attr(m.photo_url) + '" alt="" />' : esc(ini)) + '</div>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div class="mc-name">' + esc(name) +
+          (m.military_service ? '<span class="mc-badge mc-badge-service" title="' + attr(m.military_branch || 'Military service') + '"><i class="fas fa-medal"></i> Service</span>' : '') +
+          (isLifetime ? '<span class="mc-badge mc-badge-life">Lifetime</span>' : '') +
+          (isVisiting ? '<span class="mc-badge mc-badge-visiting">Visiting</span>' : '') +
+        '</div>' +
+        (line1 ? '<div class="mc-meta">' + line1 + '</div>' : '') +
+        (line2 ? '<div class="mc-meta">' + line2 + '</div>' : '') +
+        (line3 ? '<div class="mc-meta">' + line3 + '</div>' : '') +
+        (birthday ? '<div class="mc-meta"><i class="fas fa-cake-candles" style="margin-right:5px;color:var(--accent);"></i>' + esc(birthday) + '</div>' : '') +
+        (m.bio ? '<div class="mc-meta" style="margin-top:6px;">' + esc(m.bio) + '</div>' : '') +
+        (actions.length ? '<div class="mc-actions">' + actions.join('') + '</div>' : '') +
+      '</div></div>';
+  }).join('');
+}
+
+/* ---------------------------------------------------------------------------
+   NEWSLETTERS — read-only archive. Note: schema policy
+   newsletter_templates_read_auth grants SELECT to org ADMINS only, so a plain
+   member usually gets an empty list; that is handled as an empty state.
+--------------------------------------------------------------------------- */
+var newslettersCache = [];
+async function loadNewsletters() {
+  var c = el('newslettersList');
+  if (!c) return;
+  try {
+    newslettersCache = await sb.getAll('newsletter_templates', MF.scope('order=created_at.desc')) || [];
+    if (!newslettersCache.length) { c.innerHTML = emptyState('newspaper', 'No newsletters available to you yet.'); return; }
+    c.innerHTML = newslettersCache.map(function (n) {
+      return '<div class="list-row">' +
+        '<div style="min-width:0;">' +
+          '<div style="font-weight:600;color:var(--p-text);font-size:0.9rem;">' + esc(n.template_name || n.subject || 'Newsletter') + '</div>' +
+          '<div style="font-size:0.78rem;color:var(--p-dim-2);margin-top:2px;">' + [esc(n.subject || ''), shortDate(n.created_at)].filter(Boolean).join(' · ') + '</div>' +
+        '</div>' +
+        '<button type="button" class="btn-ghost btn-sm" data-newsletter="' + attr(n.id) + '"><i class="fas fa-book-open"></i> Read</button>' +
+        '</div>';
+    }).join('');
+  } catch (err) {
+    c.innerHTML = emptyState('newspaper', 'No newsletters available to you yet.');
+  }
+}
+/** Render sections_json generically — shapes vary by org, so pick common keys. */
+function openNewsletter(id) {
+  var n = newslettersCache.find(function (x) { return String(x.id) === String(id); });
+  if (!n) return;
+  setText('nlModalTitle', n.template_name || 'Newsletter');
+  setText('nlModalSubject', [n.subject, n.preheader].filter(Boolean).join(' — '));
+  var sections = n.sections_json;
+  if (typeof sections === 'string') { try { sections = JSON.parse(sections); } catch (err) { sections = []; } }
+  if (!Array.isArray(sections) || !sections.length) {
+    setHtml('nlModalBody', '<p class="muted-note">This newsletter has no content yet.</p>');
+  } else {
+    setHtml('nlModalBody', sections.map(function (s) {
+      if (!s || typeof s !== 'object') return '';
+      var heading = s.heading || s.title || '';
+      var body = s.body || s.text || s.content || '';
+      var image = s.image || s.image_url || '';
+      return '<div style="padding:14px 0;border-bottom:1px solid var(--p-border);">' +
+        (image ? '<img src="' + attr(image) + '" alt="" style="width:100%;max-height:240px;object-fit:cover;border-radius:8px;margin-bottom:10px;" />' : '') +
+        (heading ? '<div style="font-weight:700;color:var(--p-text);margin-bottom:6px;">' + esc(heading) + '</div>' : '') +
+        (body ? '<div class="muted-note" style="white-space:pre-wrap;">' + esc(body) + '</div>' : '') +
+        '</div>';
+    }).join(''));
+  }
+  el('newsletterModal').classList.add('open');
+}
+function closeNewsletter() { el('newsletterModal').classList.remove('open'); }
+
+/* ---------------------------------------------------------------------------
+   MEMBER SUBMISSIONS — announcements + news articles
+--------------------------------------------------------------------------- */
+var annFlyerFile = null, nsImageFile = null;
+
+function clearAnnFlyer() {
+  annFlyerFile = null;
+  var input = el('annFlyerInput');
+  if (input) input.value = '';
+  el('annFlyerPreview').src = '';
+  hide(el('annFlyerPreviewWrap'));
+  show(el('annFlyerDropzone'));
+}
+function clearNewsImage() {
+  nsImageFile = null;
+  var input = el('nsImageInput');
+  if (input) input.value = '';
+  el('nsImagePreview').src = '';
+  hide(el('nsImagePreviewWrap'));
+  show(el('nsImageDropzone'));
+}
+
+async function submitAnnouncement() {
+  var errEl = el('annErr'), okEl = el('annSuccess'), btn = el('annSubmitBtn');
+  hide(errEl); hide(okEl);
+  function fail(msg) { errEl.textContent = msg; show(errEl); }
+  if (!member) return fail('Sign in to submit.');
+  var title = el('annTitle').value.trim();
+  var body = el('annBody').value.trim();
+  var category = el('annCategory').value || 'General';
+  var dateVal = el('annDate').value.trim();
+  var timeVal = el('annTime').value.trim();
+  var location = el('annLocation').value.trim() || 'TBD';
+  if (!title) return fail('Please enter a title.');
+  if (!body) return fail('Please enter a message.');
+
+  var eventDate = 'TBD';
+  if (dateVal) {
+    var d = new Date(dateVal + 'T00:00:00');
+    if (!isNaN(d.getTime())) eventDate = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  }
+  var eventTime = 'TBD';
+  if (timeVal) {
+    var hp = timeVal.split(':'), h = parseInt(hp[0], 10);
+    if (!isNaN(h)) eventTime = (h % 12 || 12) + ':' + (hp[1] || '00') + ' ' + (h < 12 ? 'AM' : 'PM');
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
+  try {
+    var flyerUrl = await resolveAttachment(annFlyerFile, el('annFlyerUrl').value, 'announcements');
+    await sb.insert('member_announcements', MF.stamp({
+      member_id: member.id,
+      member_name: shortName(member),
+      member_email: memberEmail(),
+      title: title,
+      category: category,
+      body: body,
+      flyer_url: flyerUrl,
+      event_date: eventDate,
+      event_time: eventTime,
+      event_location: location,
+      status: 'pending'
+    }));
+    ['annTitle', 'annBody', 'annDate', 'annTime', 'annLocation', 'annFlyerUrl'].forEach(function (id) { el(id).value = ''; });
+    clearAnnFlyer();
+    show(okEl);
+    loadMyAnnouncements();
+  } catch (err) {
+    fail('Could not submit: ' + (err.message || 'unknown error'));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Announcement';
+  }
+}
+async function loadMyAnnouncements() {
+  if (!member) return;
+  var node = el('myAnnouncementsList');
+  if (!node) return;
+  try {
+    var rows = await sb.getAll('member_announcements', MF.scope('member_id=eq.' + encodeURIComponent(member.id) + '&order=created_at.desc'));
+    if (!rows || !rows.length) { node.innerHTML = emptyState('bullhorn', 'No submissions yet.', '16px 0'); return; }
+    node.innerHTML = rows.map(function (r) {
+      var meta = [esc(r.category || 'General'), shortDate(r.created_at)].filter(Boolean).join(' · ');
+      return '<div style="border:1px solid var(--p-border);border-radius:8px;padding:12px 16px;margin-bottom:10px;background:rgba(255,255,255,0.02);">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">' +
+          '<div style="display:flex;align-items:center;gap:12px;min-width:0;">' +
+            (r.flyer_url ? '<img src="' + attr(r.flyer_url) + '" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0;" />' : '') +
+            '<div style="min-width:0;"><div style="font-size:0.88rem;font-weight:600;color:var(--p-text);">' + esc(r.title) + '</div>' +
+            '<div style="font-size:0.75rem;color:var(--p-dim-2);margin-top:2px;">' + meta + '</div></div>' +
+          '</div>' + statusPill(r.status) +
+        '</div></div>';
+    }).join('');
+  } catch (err) {
+    node.innerHTML = emptyState('bullhorn', 'Could not load your submissions.', '16px 0');
+  }
+}
+
+async function submitNewsArticle() {
+  var errEl = el('nsErr'), okEl = el('nsSuccess'), btn = el('nsSubmitBtn');
+  hide(errEl); hide(okEl);
+  function fail(msg) { errEl.textContent = msg; show(errEl); }
+  if (!member) return fail('Sign in to submit.');
+  var title = el('nsTitle').value.trim();
+  var excerpt = el('nsExcerpt').value.trim();
+  var body = el('nsBody').value.trim();
+  if (!title) return fail('Please enter a headline.');
+  if (!excerpt) return fail('Please enter a summary.');
+  if (!body) return fail('Please enter the article body.');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
+  try {
+    var imageUrl = await resolveAttachment(nsImageFile, el('nsImageUrl').value, 'news-submissions');
+    await sb.insert('member_news_submissions', MF.stamp({
+      member_id: member.id,
+      member_name: shortName(member),
+      member_email: memberEmail(),
+      title: title,
+      tag: el('nsTag').value || 'Community',
+      excerpt: excerpt,
+      body: body,
+      image_url: imageUrl,
+      placement: el('nsPlacement').value || 'main',
+      status: 'pending'
+    }));
+    ['nsTitle', 'nsExcerpt', 'nsBody', 'nsImageUrl'].forEach(function (id) { el(id).value = ''; });
+    el('nsTag').selectedIndex = 0;
+    el('nsPlacement').selectedIndex = 0;
+    clearNewsImage();
+    show(okEl);
+    loadMyNewsSubmissions();
+  } catch (err) {
+    fail('Could not submit: ' + (err.message || 'unknown error'));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Article';
+  }
+}
+async function loadMyNewsSubmissions() {
+  if (!member) return;
+  var node = el('myNewsSubmissionsList');
+  if (!node) return;
+  try {
+    var rows = await sb.getAll('member_news_submissions', MF.scope('member_id=eq.' + encodeURIComponent(member.id) + '&order=submitted_at.desc'));
+    if (!rows || !rows.length) { node.innerHTML = emptyState('newspaper', 'No submissions yet.', '16px 0'); return; }
+    node.innerHTML = rows.map(function (r) {
+      return '<div style="border:1px solid var(--p-border);border-radius:8px;padding:12px 16px;margin-bottom:10px;background:rgba(255,255,255,0.02);">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">' +
+          '<div style="display:flex;align-items:center;gap:12px;min-width:0;">' +
+            (r.image_url ? '<img src="' + attr(r.image_url) + '" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0;" />' : '') +
+            '<div style="min-width:0;"><div style="font-size:0.88rem;font-weight:600;color:var(--p-text);">' + esc(r.title) + '</div>' +
+            '<div style="font-size:0.75rem;color:var(--p-dim-2);margin-top:2px;">' + esc(r.tag || 'News') + ' · ' + shortDate(r.submitted_at) + '</div></div>' +
+          '</div>' + statusPill(r.status) +
+        '</div>' +
+        (r.admin_note ? '<div style="margin-top:8px;font-size:0.8rem;color:var(--p-dim-2);font-style:italic;"><i class="fas fa-comment" style="margin-right:5px;color:var(--accent);"></i>' + esc(r.admin_note) + '</div>' : '') +
+        '</div>';
+    }).join('');
+  } catch (err) {
+    node.innerHTML = emptyState('newspaper', 'Could not load your submissions.', '16px 0');
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   FINANCE — requisitions + reimbursements
+--------------------------------------------------------------------------- */
+var rqDocFile = null, rbReceiptFile = null, rbMethod = 'zelle';
+
+function setRbMethod(method) {
+  rbMethod = method;
+  document.querySelectorAll('[data-rb-method]').forEach(function (b) {
+    b.classList.toggle('active', b.getAttribute('data-rb-method') === method);
+  });
+  el('rb-zelle-fields').classList.toggle('is-hidden', method !== 'zelle');
+  el('rb-check-fields').classList.toggle('is-hidden', method !== 'check');
+}
+
+async function submitRequisition() {
+  var errEl = el('rqErr'), okEl = el('rqSuccess'), btn = el('rqSubmitBtn');
+  hide(errEl); hide(okEl);
+  function fail(msg) { errEl.textContent = msg; show(errEl); }
+  if (!member) return fail('Sign in to submit.');
+  var description = el('rqDescription').value.trim();
+  var amount = parseFloat(el('rqAmount').value || '0');
+  if (!description) return fail('Please enter a description.');
+  if (!amount || amount <= 0) return fail('Please enter a valid amount.');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
+  try {
+    var docUrl = await resolveAttachment(rqDocFile, el('rqDocUrl').value, 'requisitions');
+    await sb.insert('finance_requisitions', MF.stamp({
+      member_id: member.id,
+      member_name: shortName(member),
+      member_email: memberEmail(),
+      committee: el('rqCommittee').value,
+      description: description,
+      amount_cents: Math.round(amount * 100),
+      // payee_name is NOT NULL in the schema — default to the requester.
+      payee_name: el('rqPayee').value.trim() || shortName(member) || memberEmail(),
+      method: el('rqMethod').value,
+      doc_url: docUrl,
+      status: 'pending'
+    }));
+    ['rqDescription', 'rqAmount', 'rqPayee', 'rqDocUrl'].forEach(function (id) { el(id).value = ''; });
+    rqDocFile = null;
+    hide(el('rqDocPreview'));
+    show(okEl);
+    loadMyRequisitions();
+  } catch (err) {
+    fail('Error submitting: ' + (err.message || 'unknown error'));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Request';
+  }
+}
+async function loadMyRequisitions() {
+  if (!member) return;
+  var node = el('myRequisitionsList');
+  if (!node) return;
+  try {
+    var rows = await sb.getAll('finance_requisitions', MF.scope('member_id=eq.' + encodeURIComponent(member.id) + '&order=submitted_at.desc'));
+    if (!rows || !rows.length) { node.innerHTML = emptyState('file-invoice-dollar', 'No requisitions yet.', '16px 0'); return; }
+    node.innerHTML = rows.map(function (r) {
+      var desc = String(r.description || '');
+      return '<div style="border:1px solid var(--p-border);border-radius:8px;padding:12px 16px;margin-bottom:10px;background:rgba(255,255,255,0.02);">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">' +
+          '<div style="min-width:0;"><div style="font-size:0.88rem;font-weight:600;color:var(--p-text);">' + esc(r.committee || 'Requisition') + ' — ' + money(r.amount_cents) + '</div>' +
+          '<div style="font-size:0.75rem;color:var(--p-dim-2);margin-top:2px;">' + esc(desc.slice(0, 80)) + (desc.length > 80 ? '…' : '') + ' · ' + shortDate(r.submitted_at) + '</div></div>' +
+          statusPill(r.status) +
+        '</div>' +
+        (r.admin_note ? '<div style="margin-top:8px;font-size:0.8rem;color:var(--p-dim-2);font-style:italic;"><i class="fas fa-comment" style="margin-right:5px;color:var(--accent);"></i>' + esc(r.admin_note) + '</div>' : '') +
+        '</div>';
+    }).join('');
+  } catch (err) {
+    node.innerHTML = emptyState('file-invoice-dollar', 'Could not load your requisitions.', '16px 0');
+  }
+}
+
+async function submitReimbursement() {
+  var errEl = el('rbErr'), okEl = el('rbSuccess'), btn = el('rbSubmitBtn');
+  hide(errEl); hide(okEl);
+  function fail(msg) { errEl.textContent = msg; show(errEl); }
+  if (!member) return fail('Sign in to submit.');
+  var description = el('rbDescription').value.trim();
+  var amount = parseFloat(el('rbAmount').value || '0');
+  if (!description) return fail('Please enter a description.');
+  if (!amount || amount <= 0) return fail('Please enter a valid amount.');
+  if (!rbReceiptFile && !el('rbReceiptUrl').value.trim()) return fail('Please attach your receipt or paste a link to it.');
+
+  var details = {}, payeeName = shortName(member);
+  if (rbMethod === 'zelle') {
+    var contact = el('rbZelleContact').value.trim();
+    var zname = el('rbZelleName').value.trim();
+    if (!contact || !zname) return fail('Please enter your Zelle contact and account name.');
+    details = { zelle_contact: contact, zelle_name: zname };
+    payeeName = zname;
+  } else {
+    var street = el('rbCheckStreet').value.trim();
+    var city = el('rbCheckCity').value.trim();
+    var stateZip = el('rbCheckStateZip').value.trim();
+    if (!street || !city || !stateZip) return fail('Please enter your full mailing address.');
+    details = { check_street: street, check_city: city, check_state_zip: stateZip };
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
+  try {
+    var receiptUrl = await resolveAttachment(rbReceiptFile, el('rbReceiptUrl').value, 'reimbursements');
+    if (!receiptUrl) return fail('Please attach your receipt or paste a link to it.');
+    await sb.insert('finance_reimbursements', MF.stamp({
+      member_id: member.id,
+      member_name: shortName(member),
+      member_email: memberEmail(),
+      item_service: description,
+      amount_cents: Math.round(amount * 100),
+      payee_name: payeeName,
+      method: rbMethod,
+      payment_details: details,
+      doc_url: receiptUrl,
+      status: 'pending'
+    }));
+    ['rbDescription', 'rbAmount', 'rbZelleContact', 'rbZelleName', 'rbCheckStreet', 'rbCheckCity', 'rbCheckStateZip', 'rbReceiptUrl']
+      .forEach(function (id) { el(id).value = ''; });
+    rbReceiptFile = null;
+    hide(el('rbReceiptPreview'));
+    show(okEl);
+    loadMyReimbursements();
+  } catch (err) {
+    fail('Error submitting: ' + (err.message || 'unknown error'));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Request';
+  }
+}
+async function loadMyReimbursements() {
+  if (!member) return;
+  var node = el('myReimbursementsList');
+  if (!node) return;
+  try {
+    var rows = await sb.getAll('finance_reimbursements', MF.scope('member_id=eq.' + encodeURIComponent(member.id) + '&order=submitted_at.desc'));
+    if (!rows || !rows.length) { node.innerHTML = emptyState('receipt', 'No reimbursement requests yet.', '16px 0'); return; }
+    node.innerHTML = rows.map(function (r) {
+      var what = String(r.item_service || '');
+      return '<div style="border:1px solid var(--p-border);border-radius:8px;padding:12px 16px;margin-bottom:10px;background:rgba(255,255,255,0.02);">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">' +
+          '<div style="min-width:0;"><div style="font-size:0.88rem;font-weight:600;color:var(--p-text);">' + money(r.amount_cents) +
+            (r.auto_generated ? ' <span class="mc-badge mc-badge-visiting">Auto-generated</span>' : '') + '</div>' +
+          '<div style="font-size:0.75rem;color:var(--p-dim-2);margin-top:2px;">' + esc(what.slice(0, 80)) + ' · ' + shortDate(r.submitted_at) + '</div></div>' +
+          statusPill(r.status) +
+        '</div>' +
+        (r.admin_note ? '<div style="margin-top:8px;font-size:0.8rem;color:var(--p-dim-2);font-style:italic;"><i class="fas fa-comment" style="margin-right:5px;color:var(--accent);"></i>' + esc(r.admin_note) + '</div>' : '') +
+        '</div>';
+    }).join('');
+  } catch (err) {
+    node.innerHTML = emptyState('receipt', 'Could not load your reimbursements.', '16px 0');
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   AI ASSIST — generic craft-announcement edge function, org passed through.
+--------------------------------------------------------------------------- */
+var aiTone = 'Professional', aiResult = '', aiTarget = 'announcement';
+
+function openAiAssist(target) {
+  aiTarget = target || 'announcement';
+  el('aiAssistOverlay').classList.add('open');
+  hide(el('aiAssistErr'));
+  hide(el('aiAssistResult'));
+  setTimeout(function () { var d = el('aiAssistDesc'); if (d) d.focus(); }, 80);
+}
+function closeAiAssist() { el('aiAssistOverlay').classList.remove('open'); }
+function setAiTone(tone, btn) {
+  aiTone = tone;
+  document.querySelectorAll('#aiToneBar .chip').forEach(function (b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+}
+async function generateAi() {
+  var desc = (el('aiAssistDesc').value || '').trim();
+  var errEl = el('aiAssistErr');
+  hide(errEl);
+  function fail(html) { errEl.innerHTML = html; show(errEl); }
+  if (desc.length < 5) return fail('Please describe what you want to say.');
+  var btn = el('aiAssistGenerateBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating…';
+  hide(el('aiAssistResult'));
+  try {
+    var res;
+    try {
+      res = await fetch(sb.url + '/functions/v1/craft-announcement', {
+        method: 'POST',
+        headers: sb.headers(),
+        body: JSON.stringify({
+          org_id: org.id,
+          org_name: org.name,
+          description: desc,
+          title: aiTarget === 'news' ? (el('nsTitle').value || '').trim() : (el('annTitle').value || '').trim(),
+          category: aiTarget === 'news' ? (el('nsTag').value || 'Community') : (el('annCategory').value || 'General'),
+          tone: aiTone
+        })
+      });
+    } catch (netErr) {
+      return fail('<strong>Network error.</strong> Could not reach the AI service. Check your connection and try again.');
+    }
+    var data;
+    try { data = await res.json(); }
+    catch (jsonErr) {
+      return fail(res.status === 404
+        ? '<strong>AI assistant not available.</strong> An administrator needs to deploy the <code>craft-announcement</code> function.'
+        : '<strong>Server error (' + res.status + ').</strong> Please try again in a moment.');
+    }
+    if (!res.ok || data.error) return fail(esc(data.error || 'Could not generate a draft. Please try again.'));
+    aiResult = data.announcement || data.text || '';
+    setText('aiAssistResultText', aiResult);
+    show(el('aiAssistResult'));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> Generate';
+  }
+}
+function useAiResult() {
+  if (aiResult) {
+    if (aiTarget === 'news') el('nsExcerpt').value = aiResult;
+    else el('annBody').value = aiResult;
+  }
+  closeAiAssist();
+}
+
+/* ---------------------------------------------------------------------------
+   PROFILE
+--------------------------------------------------------------------------- */
+function loadProfileForm(m) {
+  if (!m) return;
+  var set = function (id, value) { var n = el(id); if (n) n.value = value == null ? '' : value; };
+  set('pfFirstName', m.first_name);
+  set('pfMiddleName', m.middle_name);
+  set('pfLastName', m.last_name);
+  set('pfSuffix', m.suffix);
+  set('pfBirthday', formatBirthday(m.birthday));
+  set('pfPhone', m.phone);
+  set('pfCity', m.city);
+  set('pfState', m.state);
+  set('pfEmail', m.email || memberEmail());
+  set('pfMemberSince', m.member_since);
+  set('pfMemberNumber', m.member_number);
+  set('pfJoinedAt', m.joined_at);
+  set('pfJoinedVia', m.joined_via);
+  set('pfCollege', m.college);
+  set('pfLifetimeMember', m.is_lifetime_member ? 'yes' : 'no');
+  set('pfLifetimeMemberNumber', m.lifetime_member_number);
+  set('pfLifetimeMemberDate', m.lifetime_member_date || '');
+  set('pfOrgActiveDate', m.org_active_date || '');
+  set('pfRenewalDate', m.renewal_date);
+  set('pfBio', m.bio);
+  set('pfLinkedin', m.linkedin);
+  set('pfMilitaryBranch', m.military_branch);
+  el('pfShareEmail').checked = m.share_email !== false;
+  el('pfSharePhone').checked = m.share_phone !== false;
+  el('pfMilitaryService').checked = !!m.military_service;
+  el('militaryBranchWrap').classList.toggle('is-hidden', !m.military_service);
+  var photo = m.photo_url || '';
+  el('pfPhoto').value = photo;
+  el('pfPhotoUrl').value = /^https?:\/\//i.test(photo) ? photo : '';
+  var fileEl = el('pfPhotoFile');
+  if (fileEl) fileEl.value = '';
+  updateProfilePreview();
+}
+function updateProfilePreview() {
+  var photo = el('pfPhoto').value.trim();
+  var first = el('pfFirstName').value.trim();
+  var middle = el('pfMiddleName').value.trim();
+  var last = el('pfLastName').value.trim();
+  var suffix = el('pfSuffix').value.trim();
+  var initials = ((first[0] || '') + (last[0] || '')).toUpperCase() || '?';
+  var large = el('profileAvatarLarge'), small = el('sidebarAvatar');
+  if (photo) {
+    large.innerHTML = '<img src="' + attr(photo) + '" alt="" />';
+    small.innerHTML = '<img src="' + attr(photo) + '" alt="" />';
+  } else {
+    large.textContent = initials;
+    small.textContent = initials;
+  }
+  var name = [first, middle, last].filter(Boolean).join(' ') + (suffix ? ' ' + suffix : '');
+  setText('profileFullName', name.trim() || 'Your Name');
+  setText('sidebarName', name.trim() || memberEmail() || 'Member');
+  var since = el('pfMemberSince').value.trim();
+  setText('profileMemberSince', since ? 'Member since ' + since : 'Update your profile to add details');
+}
+function clearProfilePhoto() {
+  el('pfPhoto').value = '';
+  el('pfPhotoUrl').value = '';
+  var f = el('pfPhotoFile');
+  if (f) f.value = '';
+  updateProfilePreview();
+}
+function syncPhotoFromUrl() {
+  var u = el('pfPhotoUrl').value.trim();
+  if (u) el('pfPhoto').value = u;
+  updateProfilePreview();
+}
+async function handleProfilePhotoUpload(e) {
+  var file = e.target.files && e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function (ev) {
+    (async function () {
+      try {
+        var dataUrl = await fitProfilePhoto(ev.target.result);
+        el('pfPhoto').value = dataUrl;
+        el('pfPhotoUrl').value = '';
+        updateProfilePreview();
+        showToast('Photo ready — click Save Profile to keep it.');
+      } catch (err) {
+        showToast('Could not process that photo.', 'error');
+      }
+    })();
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+async function saveProfile(e) {
+  e.preventDefault();
+  if (!member) return;
+  var btn = el('saveProfileBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+  try {
+    var photo = el('pfPhoto').value.trim();
+    if (photo && photo.indexOf('data:image') === 0 && photo.length > 450000) {
+      showToast('That photo is still too large. Try a smaller image or paste a hosted image URL.', 'error');
+      return;
+    }
+    // Deliberately omits portal_access / status / member_type / org_id /
+    // auth_user_id: those are admin-controlled and the database trigger
+    // protect_member_privileged_fields would revert them anyway.
+    var updates = {
+      first_name: el('pfFirstName').value.trim(),
+      middle_name: el('pfMiddleName').value.trim(),
+      last_name: el('pfLastName').value.trim(),
+      suffix: el('pfSuffix').value.trim(),
+      birthday: el('pfBirthday').value.trim(),
+      phone: el('pfPhone').value.trim(),
+      city: el('pfCity').value.trim(),
+      state: el('pfState').value.trim(),
+      member_since: el('pfMemberSince').value.trim(),
+      member_number: el('pfMemberNumber').value.trim(),
+      joined_at: el('pfJoinedAt').value.trim(),
+      joined_via: el('pfJoinedVia').value.trim(),
+      college: el('pfCollege').value.trim(),
+      is_lifetime_member: el('pfLifetimeMember').value === 'yes',
+      lifetime_member_number: el('pfLifetimeMemberNumber').value.trim(),
+      lifetime_member_date: dateOrNull(el('pfLifetimeMemberDate').value),
+      renewal_date: el('pfRenewalDate').value.trim(),
+      bio: el('pfBio').value.trim(),
+      linkedin: el('pfLinkedin').value.trim(),
+      photo_url: photo,
+      share_email: el('pfShareEmail').checked,
+      share_phone: el('pfSharePhone').checked,
+      military_service: el('pfMilitaryService').checked,
+      military_branch: el('pfMilitaryService').checked ? (el('pfMilitaryBranch').value.trim() || null) : null
+    };
+    var rows = await sb.update('members', member.id, updates);
+    member = (rows && rows[0]) ? rows[0] : Object.assign({}, member, updates);
+    MFAuth.member = member;
+    showToast('Profile saved.');
+    updateProfilePreview();
+    setText('welcomeName', member.first_name || 'Member');
+    renderMemberCard();
+  } catch (err) {
+    showToast('Error saving profile: ' + (err.message || 'unknown error'), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> Save Profile';
+  }
+}
+
+/** Re-authenticate with the current password, then update it on the live session. */
+async function changePassword(e) {
+  e.preventDefault();
+  var msgEl = el('passMsg'), btn = el('changePassBtn');
+  function say(text, ok) {
+    msgEl.className = 'alert ' + (ok ? 'alert-success' : 'alert-error');
+    msgEl.textContent = text;
+    show(msgEl);
+  }
+  var current = el('currentPass').value;
+  var next = el('newPass').value;
+  var confirm = el('confirmPass').value;
+  if (!current) return say('Enter your current password.', false);
+  if (next.length < 8) return say('Your new password must be at least 8 characters.', false);
+  if (next !== confirm) return say('The new passwords do not match.', false);
+  btn.disabled = true;
+  try {
+    await MFAuth.signIn(memberEmail(), current);   // re-auth; also refreshes the session
+    var res = await fetch(sb.url + '/auth/v1/user', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: sb.key,
+        Authorization: 'Bearer ' + MFAuth.session.access_token
+      },
+      body: JSON.stringify({ password: next })
+    });
+    if (!res.ok) {
+      var err = await res.json().catch(function () { return {}; });
+      throw new Error(err.msg || err.error_description || 'Password update failed.');
+    }
+    el('currentPass').value = ''; el('newPass').value = ''; el('confirmPass').value = '';
+    say('Password updated successfully.', true);
+    showToast('Password updated.');
+  } catch (err) {
+    var m = (err && err.message) || 'Could not update your password.';
+    if (/invalid login|invalid credentials/i.test(m)) m = 'That current password is not correct.';
+    say(m, false);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Access gate + boot
+--------------------------------------------------------------------------- */
+function showGate(title, message) {
+  setText('gateTitle', title);
+  setText('gateMessage', message);
+  var link = el('gateSiteLink');
+  if (link) link.href = 'index.html' + orgQuerySuffix();
+  el('gateScreen').classList.add('show');
+  hideLoading();
+}
+function hideLoading() {
+  var overlay = el('loadingOverlay');
+  if (!overlay) return;
+  overlay.style.opacity = '0';
+  overlay.style.transition = 'opacity 0.4s';
+  setTimeout(function () { overlay.style.display = 'none'; }, 400);
+}
+
+function applyAccessRestrictions() {
+  if (access !== 'visiting') return;
+  document.querySelectorAll('.nav-item[data-panel]').forEach(function (btn) {
+    if (VISITING_PANELS.indexOf(btn.getAttribute('data-panel')) === -1) btn.classList.add('is-hidden');
+  });
+  // Hide a section label when every item under it is hidden.
+  document.querySelectorAll('.nav-section-label').forEach(function (label) {
+    var visible = false, node = label.nextElementSibling;
+    while (node && !node.classList.contains('nav-section-label')) {
+      if (node.classList.contains('nav-item') && !node.classList.contains('is-hidden')) visible = true;
+      node = node.nextElementSibling;
+    }
+    if (!visible) label.classList.add('is-hidden');
+  });
+}
+
+function renderIdentity() {
+  var name = shortName(member) || memberEmail() || 'Member';
+  setText('sidebarName', name);
+  setText('welcomeName', (member && member.first_name) || name);
+  var label = access === 'granted' ? 'Active Member' : (access === 'visiting' ? 'Visiting' : 'Pending Approval');
+  setText('statusText', label);
+  el('statusDot').className = 'status-dot' + (access === 'granted' ? '' : (access === 'visiting' ? ' visiting' : ' pending'));
+  var avatar = el('sidebarAvatar');
+  if (member && member.photo_url) avatar.innerHTML = '<img src="' + attr(member.photo_url) + '" alt="" />';
+  else avatar.textContent = initialsOf(member);
+  var large = el('profileAvatarLarge');
+  if (member && member.photo_url) large.innerHTML = '<img src="' + attr(member.photo_url) + '" alt="" />';
+  else large.textContent = initialsOf(member);
+  setText('profileFullName', fullName(member) || 'Your Name');
+  setText('profileMemberSince', (member && member.member_since) ? 'Member since ' + member.member_since : 'Update your profile to add details');
+  var statusEl = el('profileStatus');
+  statusEl.className = 'member-status ' + (access === 'granted' ? 'active' : (access === 'visiting' ? 'visiting' : 'pending'));
+  statusEl.innerHTML = '<i class="fas fa-circle" style="font-size:6px;"></i> ' + esc(label);
+  var site = el('topbarSiteLink');
+  if (site) site.href = 'index.html' + orgQuerySuffix();
+}
+
+function handleReturnFlash() {
+  var q = new URLSearchParams(window.location.search);
+  var messages = {
+    'dues:success': ['Payment received. Your dues record will be confirmed shortly.', 'success'],
+    'dues:cancel': ['Checkout was canceled.', 'error'],
+    'store:success': ['Order placed and payment received — thank you!', 'success'],
+    'store:cancel': ['Checkout was canceled. Your cart items are still available.', 'error'],
+    'event:success': ['Registration complete. See you there!', 'success'],
+    'event:cancel': ['Registration checkout was canceled.', 'error']
+  };
+  var hit = null;
+  ['dues', 'store', 'event'].forEach(function (key) {
+    var v = q.get(key);
+    if (v && messages[key + ':' + v]) hit = messages[key + ':' + v];
+  });
+  if (!hit) return;
+  showToast(hit[0], hit[1]);
+  history.replaceState({}, '', 'member-portal.html' + orgQuerySuffix());
+}
+
+function wireEvents() {
+  // Nav + any button that jumps to a panel
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-panel]');
+    if (t) { showPanel(t.getAttribute('data-panel')); return; }
+    var goto = e.target.closest('[data-goto]');
+    if (goto) { showPanel(goto.getAttribute('data-goto')); return; }
+
+    var reg = e.target.closest('[data-register-event]');
+    if (reg) { openRegModal(reg.getAttribute('data-register-event')); return; }
+
+    var flyer = e.target.closest('[data-flyer]');
+    if (flyer) {
+      el('flyerLightboxImg').src = flyer.getAttribute('data-flyer');
+      setText('flyerLightboxTitle', flyer.getAttribute('data-flyer-title') || '');
+      el('flyerLightbox').classList.add('open');
+      return;
+    }
+    var rsvp = e.target.closest('[data-rsvp-meeting]');
+    if (rsvp) { submitRsvp(rsvp.getAttribute('data-rsvp-meeting'), rsvp.getAttribute('data-rsvp-value')); return; }
+    var qr = e.target.closest('[data-qr-meeting]');
+    if (qr) { openQrModal(qr.getAttribute('data-qr-meeting')); return; }
+    var ctog = e.target.closest('[data-committee-toggle]');
+    if (ctog) { toggleCommitteeUpload(ctog.getAttribute('data-committee-toggle')); return; }
+    var cfile = e.target.closest('[data-committee-file]');
+    if (cfile) { pickCommitteeFile(cfile.getAttribute('data-committee-file')); return; }
+    var csub = e.target.closest('[data-committee-submit]');
+    if (csub) { submitCommitteeReport(csub.getAttribute('data-committee-submit')); return; }
+
+    var docCat = e.target.closest('[data-doc-cat]');
+    if (docCat) { docsCategory = docCat.getAttribute('data-doc-cat'); renderDocsFilter(); renderDocuments(); return; }
+    var storeCat = e.target.closest('[data-store-cat]');
+    if (storeCat) { storeCategory = storeCat.getAttribute('data-store-cat'); renderStoreFilter(); renderStoreGrid(); return; }
+    var storeItem = e.target.closest('[data-store-item]');
+    if (storeItem) { openItemModal(storeItem.getAttribute('data-store-item')); return; }
+    var cartQty = e.target.closest('[data-cart-qty]');
+    if (cartQty) { cartChangeQty(parseInt(cartQty.getAttribute('data-cart-qty'), 10), parseInt(cartQty.getAttribute('data-delta'), 10)); return; }
+    var cartRm = e.target.closest('[data-cart-remove]');
+    if (cartRm) { removeFromCart(parseInt(cartRm.getAttribute('data-cart-remove'), 10)); return; }
+
+    var dirF = e.target.closest('[data-dir-filter]');
+    if (dirF) {
+      dirFilter = dirF.getAttribute('data-dir-filter');
+      document.querySelectorAll('[data-dir-filter]').forEach(function (b) { b.classList.remove('active'); });
+      dirF.classList.add('active');
+      filterDirectory();
+      return;
+    }
+    var dirS = e.target.closest('[data-dir-sort]');
+    if (dirS) {
+      dirSort = dirS.getAttribute('data-dir-sort');
+      document.querySelectorAll('[data-dir-sort]').forEach(function (b) { b.classList.remove('active'); });
+      dirS.classList.add('active');
+      filterDirectory();
+      return;
+    }
+    var nl = e.target.closest('[data-newsletter]');
+    if (nl) { openNewsletter(nl.getAttribute('data-newsletter')); return; }
+    var rbM = e.target.closest('[data-rb-method]');
+    if (rbM) { setRbMethod(rbM.getAttribute('data-rb-method')); return; }
+    var tone = e.target.closest('#aiToneBar .chip');
+    if (tone) { setAiTone(tone.getAttribute('data-tone'), tone); return; }
+  });
+
+  // Close any modal by clicking its backdrop
+  document.querySelectorAll('.modal-overlay').forEach(function (overlay) {
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) overlay.classList.remove('open');
+    });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(function (o) { o.classList.remove('open'); });
+  });
+
+  el('dirSearch').addEventListener('input', filterDirectory);
+  el('profileForm').addEventListener('submit', saveProfile);
+  el('changePassForm').addEventListener('submit', changePassword);
+  el('pfPhotoUrl').addEventListener('input', syncPhotoFromUrl);
+  el('pfPhotoFile').addEventListener('change', handleProfilePhotoUpload);
+  el('pfMilitaryService').addEventListener('change', function () {
+    el('militaryBranchWrap').classList.toggle('is-hidden', !this.checked);
+  });
+  ['pfFirstName', 'pfMiddleName', 'pfLastName', 'pfSuffix', 'pfMemberSince'].forEach(function (id) {
+    el(id).addEventListener('input', updateProfilePreview);
+  });
+  el('rqMethod').addEventListener('change', function () {
+    el('rqReimbNotice').classList.toggle('is-hidden', this.value !== 'personal_reimbursement');
+  });
+
+  // Attachment pickers
+  el('annFlyerDropzone').addEventListener('click', function () { el('annFlyerInput').click(); });
+  el('annFlyerInput').addEventListener('change', function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    annFlyerFile = f;
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      el('annFlyerPreview').src = ev.target.result;
+      show(el('annFlyerPreviewWrap'));
+      hide(el('annFlyerDropzone'));
+    };
+    reader.readAsDataURL(f);
+  });
+  el('nsImageDropzone').addEventListener('click', function () { el('nsImageInput').click(); });
+  el('nsImageInput').addEventListener('change', function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    nsImageFile = f;
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      el('nsImagePreview').src = ev.target.result;
+      show(el('nsImagePreviewWrap'));
+      hide(el('nsImageDropzone'));
+    };
+    reader.readAsDataURL(f);
+  });
+  el('rqDocDropzone').addEventListener('click', function () { el('rqDocInput').click(); });
+  el('rqDocInput').addEventListener('change', function (e) {
+    rqDocFile = e.target.files[0] || null;
+    var p = el('rqDocPreview');
+    if (rqDocFile) { p.innerHTML = '<i class="fas fa-paperclip"></i> ' + esc(rqDocFile.name); show(p); }
+    else hide(p);
+  });
+  el('rbReceiptDropzone').addEventListener('click', function () { el('rbReceiptInput').click(); });
+  el('rbReceiptInput').addEventListener('change', function (e) {
+    rbReceiptFile = e.target.files[0] || null;
+    var p = el('rbReceiptPreview');
+    if (rbReceiptFile) { p.innerHTML = '<i class="fas fa-receipt"></i> ' + esc(rbReceiptFile.name); show(p); }
+    else hide(p);
+  });
+}
+
+PANEL_LOADERS = {
+  events: renderEventsPanel,
+  meetings: loadMeetings,
+  dues: renderDuesPanel,
+  documents: function () { if (!allDocs.length) loadDocuments(); else renderDocuments(); },
+  'news-feed': loadNewsFeed,
+  store: function () { if (!storeProducts.length) loadStore(); else { renderStoreGrid(); loadMyOrders(); } },
+  directory: function () { if (!allMembers.length) loadDirectory(); else filterDirectory(); },
+  newsletters: loadNewsletters,
+  card: renderMemberCard,
+  'announcements-submit': loadMyAnnouncements,
+  'news-submit': loadMyNewsSubmissions,
+  requisition: loadMyRequisitions,
+  reimbursement: loadMyReimbursements,
+  profile: function () { loadProfileForm(member); }
+};
+
+async function init() {
+  org = await MF.ready;
+  if (!org) return;                       // org-context.js already painted "not found"
+
+  if (!MFAuth.loadSession()) {
+    window.location.href = 'member-login.html' + orgQuerySuffix();
+    return;
+  }
+
+  try {
+    member = await MFAuth.loadMember();
+  } catch (err) {
+    console.error('member lookup failed', err);
+    member = null;
+  }
+  if (!member) {
+    // Authenticated, but no members row for THIS org. Never self-provision
+    // access here — the original auto-granted itself, which was the bug.
+    showGate('We could not find your membership',
+      'You are signed in, but there is no member record for this organization. Ask an administrator to add you, then sign in again.');
+    return;
+  }
+
+  access = member.portal_access || 'pending';
+  if (access === 'pending' || access === 'revoked') {
+    showGate(
+      access === 'revoked' ? 'Your portal access was removed' : 'Your access is pending approval',
+      access === 'revoked'
+        ? 'Your access to this member portal has been revoked. Contact an administrator if you think this is a mistake.'
+        : 'An administrator still needs to approve your portal access. You will be able to sign in as soon as that happens.'
+    );
+    return;
+  }
+
+  applyAccessRestrictions();
+  renderIdentity();
+  loadProfileForm(member);
+  prefillDuesFields();
+  wireEvents();
+  handleReturnFlash();
+
+  await loadDuesConfig();
+  renderDuesLateFeeNotice();
+
+  await loadEvents();
+  loadDashboardAnnouncements();
+
+  // Dashboard stat tiles that need their own reads.
+  if (access === 'granted') {
+    loadDocuments().catch(function () {});
+    loadDirectory().catch(function () {});
+  }
+  if (member) {
+    sb.getAll('dues_payments', MF.scope('member_id=eq.' + encodeURIComponent(member.id) + '&order=created_at.desc'))
+      .then(updateDuesStat)
+      .catch(function () {});
+  }
+
+  hideLoading();
+}
+
+/* Public surface used by inline handlers in the markup. */
+window.MFPortal = {
+  showPanel: showPanel,
+  toggleSidebar: toggleSidebar,
+  closeSidebar: closeSidebar,
+  signOut: signOut,
+  loadNewsFeed: loadNewsFeed,
+  loadMeetings: loadMeetings,
+  startDuesCheckout: startDuesCheckout,
+  closeRegModal: closeRegModal,
+  submitRegistration: submitRegistration,
+  openCart: openCart,
+  closeCart: closeCart,
+  closeItemModal: closeItemModal,
+  changeQty: changeQty,
+  addToCart: addToCart,
+  placeOrder: placeOrder,
+  printCard: printCard,
+  closeQrModal: closeQrModal,
+  copyQrLink: copyQrLink,
+  closeNewsletter: closeNewsletter,
+  closeFlyer: function () { el('flyerLightbox').classList.remove('open'); },
+  openAiAssist: openAiAssist,
+  closeAiAssist: closeAiAssist,
+  generateAi: generateAi,
+  useAiResult: useAiResult,
+  submitAnnouncement: submitAnnouncement,
+  submitNewsArticle: submitNewsArticle,
+  submitRequisition: submitRequisition,
+  submitReimbursement: submitReimbursement,
+  clearAnnFlyer: clearAnnFlyer,
+  clearNewsImage: clearNewsImage,
+  clearProfilePhoto: clearProfilePhoto
+};
+
+document.addEventListener('DOMContentLoaded', init);
+})();
+
+</script>
