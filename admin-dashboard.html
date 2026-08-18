@@ -1001,4 +1001,519 @@
         </div>
       </div>
     </div>
-<!--PART2-->
+    <!-- ══════ OFFICERS ══════ -->
+    <div class="panel" id="panel-officers">
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-star icon-brand"></i>Lead Officer</h3>
+          <span>Featured at the top of the Leadership page</span>
+        </div>
+        <div class="section-card-body">
+          <div class="form-grid">
+            <div class="field-group"><label>Full Name</label><input type="text" id="presName" placeholder="e.g. Jordan Ellis" /></div>
+            <div class="field-group"><label>Title / Term</label><input type="text" id="presTitle" placeholder="e.g. 12th President" /></div>
+            <div class="field-group"><label>Badge / Sub-title</label><input type="text" id="presBadge" placeholder="e.g. Founded 1984" /></div>
+            <div class="field-group"><label>Administration Year Label</label><input type="text" id="presYear" placeholder="e.g. 2025–2026 Administration" /></div>
+            <div class="field-group">
+              <label>Photo URL</label>
+              <div style="display:flex;gap:8px;align-items:flex-start;">
+                <div id="presPhotoPreview" style="width:56px;height:56px;border-radius:6px;border:1.5px solid var(--gray-200);background:var(--gray-100);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--gray-400);font-size:1.4rem;"><i class="fas fa-user"></i></div>
+                <div style="flex:1;">
+                  <input type="text" id="presPhoto" placeholder="Upload a photo or paste a hosted image URL" oninput="updatePresPhotoPreview()" />
+                  <div style="display:flex;gap:8px;margin-top:6px;">
+                    <button type="button" class="upload-btn" onclick="document.getElementById('presPhotoInput').click()" style="font-size:0.75rem;padding:5px 10px;"><i class="fas fa-upload"></i> Upload Photo</button>
+                    <span style="font-size:0.72rem;color:var(--gray-400);line-height:1.4;">Or paste a URL above</span>
+                  </div>
+                </div>
+              </div>
+              <p class="hint">Accepted: JPG, PNG, GIF, WEBP. Uploads are stored in your organization's media bucket.</p>
+            </div>
+            <div class="field-group span2"><label>Bio / Description</label><textarea id="presBio" rows="3" placeholder="Brief biography paragraph…"></textarea></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+            <button type="button" class="btn-sm success" onclick="openInstallLeaderModal()"><i class="fas fa-crown"></i> Install New <span data-mf-term="leader_noun">Leader</span></button>
+            <button class="btn-save" onclick="savePresident()"><i class="fas fa-save"></i> Save Lead Officer</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-users icon-brand"></i>Executive Officers <span id="officerCountBadge" style="background:var(--a-brand);color:var(--a-on-brand);padding:2px 8px;border-radius:100px;font-size:0.75rem;font-weight:800;margin-left:8px;">0</span></h3>
+          <span>Displayed on the Leadership page</span>
+        </div>
+        <div class="section-card-body">
+          <p class="hint-text">Enter each officer's position, name, and a photo URL (or upload one). Empty photos show a placeholder on the public site.</p>
+          <div class="table-scroll">
+            <table class="grid-table" id="officersTable">
+              <thead>
+                <tr>
+                  <th style="width:36px;">#</th>
+                  <th style="width:180px;">Position / Title</th>
+                  <th style="width:160px;">Name</th>
+                  <th>Photo URL</th>
+                  <th style="width:56px;">Photo</th>
+                  <th style="width:40px;"></th>
+                </tr>
+              </thead>
+              <tbody id="officersTableBody"></tbody>
+            </table>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;flex-wrap:wrap;gap:10px;">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="btn-sm success" onclick="addOfficer()"><i class="fas fa-plus-circle"></i> Add Officer Slot</button>
+              <button type="button" class="btn-sm view" onclick="restoreOfficerDefaults()"><i class="fas fa-undo"></i> Restore Starter Positions</button>
+            </div>
+            <button class="btn-save" onclick="saveOfficers()"><i class="fas fa-save"></i> Save All Officers</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ PAST LEADERS ══════ -->
+    <div class="panel" id="panel-presidents">
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-crown icon-brand"></i>Past Leaders</h3>
+          <span id="presidentsCountLabel">0 leaders</span>
+        </div>
+        <div class="section-card-body">
+          <p class="hint-text">Enter each past leader's name, years served, and photo URL. Click <i class="fas fa-upload" style="color:var(--blue);"></i> <strong>Upload</strong> to attach a photo, or paste a URL directly.</p>
+          <div class="table-scroll">
+            <table class="grid-table" id="presidentsTable">
+              <thead>
+                <tr>
+                  <th style="width:70px;">Order</th>
+                  <th style="width:160px;">Full Name</th>
+                  <th style="width:150px;">Years Served</th>
+                  <th>Photo URL</th>
+                  <th style="width:56px;">Photo</th>
+                  <th style="width:40px;"></th>
+                </tr>
+              </thead>
+              <tbody id="presidentsTableBody"></tbody>
+            </table>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;flex-wrap:wrap;gap:10px;">
+            <button class="btn-sm success" onclick="addPresident()"><i class="fas fa-plus-circle"></i> Add Row</button>
+            <button class="btn-save" onclick="savePresidents()"><i class="fas fa-save"></i> Save All Past Leaders</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ ANNOUNCEMENT BAR ══════ -->
+    <div class="panel" id="panel-announcements">
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-bullhorn icon-brand"></i>Announcement Bar</h3></div>
+        <div class="section-card-body">
+          <p class="hint-text">Edit the banner shown at the top of every public page.</p>
+          <div class="form-grid">
+            <div class="field-group span2"><label>Announcement Text</label><input type="text" id="announceText" placeholder="Tickets now available for our annual fundraiser" oninput="updateAnnouncePreview()" /></div>
+            <div class="field-group"><label>Link Text</label><input type="text" id="announceLinkText" placeholder="Get Your Tickets →" oninput="updateAnnouncePreview()" /></div>
+            <div class="field-group"><label>Link URL</label><input type="text" id="announceLinkUrl" placeholder="https://example.com/tickets" /></div>
+            <div class="field-group span2" style="display:flex;align-items:center;gap:10px;">
+              <input type="checkbox" id="announceActive" checked style="width:16px;height:16px;" />
+              <label for="announceActive" style="margin:0;text-transform:none;letter-spacing:0;font-size:0.85rem;">Show this announcement on the public site</label>
+            </div>
+          </div>
+          <div id="announcePreview" style="background:var(--a-brand);color:var(--a-on-brand);padding:12px 18px;border-radius:6px;margin:18px 0;font-size:0.85rem;font-weight:600;text-align:center;">Preview will appear here</div>
+          <div style="text-align:right;"><button class="btn-save" onclick="saveAnnouncement()"><i class="fas fa-save"></i> Save Announcement</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ DOCUMENTS ══════ -->
+    <div class="panel" id="panel-documents">
+      <input type="file" id="docFileInput" style="display:none;" onchange="handleDocumentUpload(event)" />
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-upload icon-brand"></i>Upload New Document</h3></div>
+        <div class="section-card-body">
+          <p class="hint-text">Upload PDFs, documents, spreadsheets, or any file <span data-mf-term="member_noun_plural">members</span> should be able to download from the member portal.</p>
+          <div class="form-grid">
+            <div class="field-group span2"><label>Title <span class="req">*</span></label><input type="text" id="docTitle" placeholder="e.g. Bylaws 2025" /></div>
+            <div class="field-group span2"><label>Description <span style="color:var(--gray-400);font-weight:400;">(optional)</span></label><input type="text" id="docDescription" placeholder="Brief description of the document" /></div>
+            <div class="field-group">
+              <label>Category</label>
+              <select id="docCategory">
+                <option value="General">General</option>
+                <option value="Bylaws">Bylaws</option>
+                <option value="Minutes">Meeting Minutes</option>
+                <option value="Financial">Financial</option>
+                <option value="Forms">Forms</option>
+                <option value="Policy">Policy</option>
+                <option value="Announcements">Announcements</option>
+              </select>
+            </div>
+            <div class="field-group" style="display:flex;align-items:flex-end;">
+              <button class="btn-save" onclick="document.getElementById('docFileInput').click()" style="width:100%;"><i class="fas fa-file-upload"></i> Choose File &amp; Upload</button>
+            </div>
+          </div>
+          <div id="docUploadStatus" style="display:none;padding:10px 14px;border-radius:6px;font-size:0.85rem;margin-top:4px;"></div>
+        </div>
+      </div>
+      <div class="section-card" id="pendingDocsCard" style="display:none;">
+        <div class="section-card-header">
+          <h3><i class="fas fa-clock" style="color:var(--amber);margin-right:8px;"></i>Pending Submissions</h3>
+          <span id="pendingDocCount"></span>
+        </div>
+        <div class="section-card-body" id="pendingDocsList"></div>
+      </div>
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-folder-open icon-brand"></i>Documents</h3>
+          <span id="docCountLabel">Loading…</span>
+        </div>
+        <div class="section-card-body" id="adminDocumentsList">
+          <div class="empty-state"><i class="fas fa-folder-open"></i><p>Loading documents…</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ EVENT REGISTRATIONS ══════ -->
+    <div class="panel" id="panel-registrations">
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-clipboard-list icon-brand"></i>Event Registrations</h3></div>
+        <div class="section-card-body">
+          <div style="margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+            <select id="regEventFilter" onchange="filterRegistrations()" style="padding:8px 12px;border:1px solid var(--gray-200);border-radius:6px;font-size:0.9rem;min-width:220px;font-family:inherit;">
+              <option value="">— All Events —</option>
+            </select>
+            <span id="regCount" style="color:var(--gray-500);font-size:0.85rem;"></span>
+            <button class="btn-sm view" onclick="exportRegistrationsCsv()" style="margin-left:auto;"><i class="fas fa-file-csv"></i> Download CSV</button>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr><th>Name</th><th>Email</th><th>Phone</th><th>Event</th><th>Status</th><th>Date</th><th style="width:60px;"></th></tr>
+              </thead>
+              <tbody id="registrationsTableBody">
+                <tr><td colspan="7" style="padding:24px;text-align:center;color:var(--gray-400);">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ NEWSLETTER GENERATOR ══════ -->
+    <div class="panel" id="panel-newsletter">
+      <input type="file" id="nlImageInput" accept="image/*" style="display:none;" onchange="nlHandleImageFile(event)" />
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--gray-200);background:var(--white);flex-shrink:0;flex-wrap:wrap;gap:10px;">
+        <h3 style="margin:0;font-size:1rem;font-weight:700;font-family:inherit;"><i class="fas fa-envelope-open-text icon-brand"></i>Newsletter Builder</h3>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <select id="nlTemplateSelect" onchange="nlLoadSelectedTemplate()" style="padding:6px 10px;border:1px solid var(--gray-200);border-radius:6px;font-size:0.82rem;max-width:180px;font-family:inherit;">
+            <option value="">Load template…</option>
+          </select>
+          <button class="btn-sm view" onclick="nlRunPreview()"><i class="fas fa-eye"></i> Preview</button>
+          <button class="btn-sm success" onclick="nlSaveTemplate()"><i class="fas fa-floppy-disk"></i> Save Draft</button>
+          <button class="btn-sm edit" onclick="nlSendToMembers()"><i class="fas fa-paper-plane"></i> Send to <span data-mf-term="member_noun_plural">Members</span></button>
+          <button class="btn-sm view" onclick="copyNewsletterHtml()"><i class="fas fa-copy"></i> Copy HTML</button>
+          <button class="btn-sm view" onclick="downloadNewsletterHtml()"><i class="fas fa-download"></i> Download</button>
+        </div>
+      </div>
+      <div style="display:flex;flex:1;overflow:hidden;min-height:0;">
+        <div style="width:400px;flex-shrink:0;overflow-y:auto;border-right:1px solid var(--gray-200);padding:18px;display:flex;flex-direction:column;gap:14px;background:#fafafa;">
+          <div style="background:var(--white);border:1px solid var(--gray-200);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;">
+            <div class="field-group"><label style="font-size:0.75rem;">Campaign / Email Name</label><input type="text" id="nlCampaignName" oninput="nlSchedulePreview()" /></div>
+            <div class="field-group"><label style="font-size:0.75rem;">Subject Line</label><input type="text" id="nlSubject" oninput="nlSchedulePreview()" /></div>
+            <div class="field-group"><label style="font-size:0.75rem;">Preheader</label><input type="text" id="nlPreheader" placeholder="Preview text shown in the inbox" oninput="nlSchedulePreview()" /></div>
+          </div>
+          <div id="nlBlocksContainer" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <div style="background:var(--white);border:2px dashed var(--gray-300);border-radius:8px;padding:12px;">
+            <div style="font-size:0.72rem;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Add Block</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button type="button" class="btn-sm edit" onclick="nlAddBlock('text')"><i class="fas fa-align-left"></i> Text</button>
+              <button type="button" class="btn-sm view" onclick="nlAddBlock('image')"><i class="fas fa-image"></i> Image</button>
+              <button type="button" class="btn-sm success" onclick="nlAddBlock('cta')"><i class="fas fa-arrow-pointer"></i> Button</button>
+              <button type="button" class="btn-sm view" onclick="nlAddBlock('social')"><i class="fas fa-share-alt"></i> Social</button>
+              <button type="button" class="btn-sm view" onclick="nlAddBlock('divider')"><i class="fas fa-minus"></i> Divider</button>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;background:#e8e8e8;overflow:hidden;min-width:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--white);border-bottom:1px solid var(--gray-200);flex-shrink:0;">
+            <span id="nlPreviewStatus" style="font-size:0.78rem;color:var(--gray-400);font-style:italic;">Add blocks to see a preview</span>
+            <div class="section-tabs" style="margin:0;">
+              <button type="button" class="section-tab active" id="nlDesktopBtn" onclick="nlSetPreviewMode('desktop')">Desktop</button>
+              <button type="button" class="section-tab" id="nlMobileBtn" onclick="nlSetPreviewMode('mobile')">Mobile</button>
+            </div>
+          </div>
+          <div style="flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:24px;">
+            <div id="nlPreviewShell" style="width:640px;max-width:100%;transition:width 0.25s;box-shadow:0 4px 24px rgba(0,0,0,0.15);border-radius:4px;overflow:hidden;">
+              <iframe id="nlPreviewFrame" title="Email Preview" style="width:100%;min-height:560px;border:none;display:block;background:#fff;"></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ══════ MEMBER REQUESTS ══════ -->
+    <div class="panel" id="panel-members">
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-user-check icon-brand"></i><span data-mf-term="member_noun">Member</span> Access Requests</h3>
+          <span><span id="memberPendingCount">0</span> pending</span>
+        </div>
+        <div class="section-card-body">
+          <p class="hint-text">Approve pending requests to grant portal access. Rejected requests stay on record with a "revoked" status.</p>
+          <div style="margin-bottom:14px;"><button class="btn-sm view" onclick="loadMemberRequests()"><i class="fas fa-rotate-right"></i> Refresh Requests</button></div>
+          <div id="memberRequestsList"><div class="hint-text" style="margin:0;">Loading…</div></div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-card-header" onclick="toggleComplianceAccordion()" style="cursor:pointer;user-select:none;">
+          <h3><i class="fas fa-id-badge icon-brand"></i>Compliance Records</h3>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span><span id="memberComplianceCount">0</span> active <span data-mf-term="member_noun_plural">members</span></span>
+            <i class="fas fa-chevron-down" id="complianceChevron" style="color:var(--gray-400);transition:transform 0.2s;"></i>
+          </div>
+        </div>
+        <div id="complianceAccordionBody" style="display:none;">
+          <div class="section-card-body">
+            <p class="hint-text">
+              Set each <span data-mf-term="member_noun">member</span>'s active date and any compliance fields your organization tracks.
+              Compliance fields are free-form key/value pairs — define whichever certifications or checks you need.
+              These values are read-only in the member portal.
+            </p>
+            <div style="margin-bottom:12px;">
+              <button class="btn-sm edit" onclick="event.stopPropagation();document.getElementById('complianceCsvInput').click()"><i class="fas fa-file-upload"></i> Upload Compliance CSV</button>
+              <p class="hint-text" style="margin:8px 0 4px;">
+                Bulk-update compliance data from a CSV. Rows are matched by <code>member_number</code> first, then <code>email</code>.
+                A recognized <code>org_active_date</code> column updates that field directly; every other extra column becomes a
+                compliance key on the matched record. Empty cells are skipped.
+              </p>
+            </div>
+            <div class="dir-search-wrap" style="max-width:320px;">
+              <i class="fas fa-search"></i>
+              <input id="complianceSearch" class="dir-search" type="text" placeholder="Search by name…" oninput="filterComplianceList()" />
+            </div>
+            <div id="memberComplianceList"><div class="hint-text" style="margin:0;">Loading…</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-paper-plane icon-brand"></i>Membership Inquiries</h3>
+          <span><span id="inquiryPendingCount">0</span> pending</span>
+        </div>
+        <div class="section-card-body">
+          <p class="hint-text">Review inquiries submitted through your public membership inquiry form and approve or decline each one.</p>
+          <div id="inquiryRequestsList"><div class="hint-text" style="margin:0;">Loading…</div></div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-address-book icon-brand"></i><span data-mf-term="member_noun">Member</span> Directory</h3>
+          <span><span id="memberDirectoryCount">0</span> records</span>
+        </div>
+        <div class="section-card-body">
+          <p class="hint-text">
+            Maintain your roster and bulk-upload records by CSV. Saving syncs matched records into the
+            <strong>member portal directory</strong> (matched by email, then <span data-mf-term="member_noun">member</span> number).
+            Records without an email stay in this list only until an email is added.
+          </p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+            <button class="btn-sm edit" onclick="openMemberDirectoryUpload()"><i class="fas fa-file-upload"></i> Bulk Upload CSV</button>
+            <button class="btn-sm success" onclick="addMemberDirectoryRow()"><i class="fas fa-user-plus"></i> Add Record</button>
+            <button class="btn-sm view" onclick="loadMemberDirectory()"><i class="fas fa-rotate-right"></i> Refresh</button>
+            <button class="btn-save" style="padding:6px 14px;font-size:0.8rem;" onclick="saveMemberDirectory()"><i class="fas fa-save"></i> Save Directory</button>
+          </div>
+          <p class="hint-text" style="margin-top:0;">
+            CSV headers: <code>member_number,first_name,middle_name,last_name,suffix,email,phone,status,joined_via,joined_at,birthday,lifetime_member_date,lifetime_member_number</code>
+            (minimum required: <code>member_number</code>). Re-uploading merges by <strong>member number</strong> — filled cells update
+            existing rows, empty cells keep current values (no duplicates).
+          </p>
+          <div class="dir-search-wrap">
+            <i class="fas fa-search"></i>
+            <input type="text" class="dir-search" id="memberDirectorySearch" placeholder="Search directory…" oninput="filterMemberDirectoryTable()" />
+          </div>
+          <p class="hint-text" id="memberDirectoryFilterHint" style="margin-top:0;margin-bottom:12px;display:none;"></p>
+          <div class="table-scroll">
+            <table class="grid-table" id="memberDirectoryTable">
+              <thead><tr id="memberDirectoryHeadRow"></tr></thead>
+              <tbody id="memberDirectoryBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ ACCESS & PERMISSIONS ══════ -->
+    <div class="panel" id="panel-access">
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-key icon-brand"></i><span data-mf-term="member_noun">Member</span> Portal Access</h3>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span id="accessGrantedCount" style="font-size:0.78rem;color:var(--gray-400);"></span>
+            <button class="btn-sm view" onclick="loadAccessPanel()" style="font-size:0.75rem;padding:4px 10px;"><i class="fas fa-rotate-right"></i> Refresh</button>
+          </div>
+        </div>
+        <div class="section-card-body">
+          <p class="hint-text">View all portal accounts by status. Grant or revoke portal access, and promote people to dashboard admins.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+            <div class="dir-search-wrap" style="flex:1;min-width:180px;max-width:300px;margin-bottom:0;">
+              <i class="fas fa-search"></i>
+              <input id="accessSearch" class="dir-search" type="text" placeholder="Search name or email…" oninput="renderAccessTable()" />
+            </div>
+            <button class="btn-sm active" id="accessTab-all" onclick="setAccessTab('all')">All</button>
+            <button class="btn-sm" id="accessTab-granted" onclick="setAccessTab('granted')">Granted</button>
+            <button class="btn-sm" id="accessTab-visiting" onclick="setAccessTab('visiting')">Guest</button>
+            <button class="btn-sm" id="accessTab-pending" onclick="setAccessTab('pending')">Pending</button>
+            <button class="btn-sm" id="accessTab-revoked" onclick="setAccessTab('revoked')">Revoked</button>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="cursor:pointer;user-select:none;white-space:nowrap;" onclick="toggleAccessSort()">Name <span id="accessSortIcon" style="font-size:0.7rem;color:var(--gray-400);">▲</span></th>
+                  <th>Email</th><th>Status</th><th>Requested</th><th>Access Granted</th><th style="width:190px;"></th>
+                </tr>
+              </thead>
+              <tbody id="accessTableBody"><tr><td colspan="6" style="padding:24px;text-align:center;color:var(--gray-400);">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-user-shield icon-brand"></i>Admin Dashboard Access</h3></div>
+        <div class="section-card-body">
+          <p class="hint-text">
+            People listed here can sign in to this admin dashboard. Full admins see and manage everything; a limited admin
+            only sees the sections checked below (e.g. a secretary limited to Meetings, Events &amp; Announcements).
+            An optional finance role additionally unlocks the finance sub-portal.
+          </p>
+          <div id="accessAdminsList" style="margin-bottom:20px;"><span class="hint-text">Loading…</span></div>
+          <div style="border-top:1px solid var(--gray-200);padding-top:18px;">
+            <h4 id="accessGrantFormTitle" style="margin:0 0 12px;font-size:0.9rem;color:var(--gray-800);font-family:inherit;">Grant admin dashboard access</h4>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:end;">
+              <div class="field-group"><label for="accessAdminEmail">Email address</label><input type="email" id="accessAdminEmail" placeholder="person@example.com" autocomplete="off" /></div>
+              <div class="field-group" id="accessAdminPasswordGroup">
+                <label for="accessAdminPassword">Temporary password <span style="font-weight:400;color:var(--gray-400);">(min 8 chars)</span></label>
+                <input type="password" id="accessAdminPassword" placeholder="They should change it after first login" autocomplete="new-password" />
+              </div>
+              <div class="field-group">
+                <label for="accessAdminFinanceRole">Finance role <span style="font-weight:400;color:var(--gray-400);">(optional)</span></label>
+                <select id="accessAdminFinanceRole">
+                  <option value="">None</option>
+                  <option value="treasurer">Treasurer</option>
+                  <option value="financial_secretary">Financial Secretary</option>
+                  <option value="president">President</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-top:14px;">
+              <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;font-weight:600;color:var(--gray-800);cursor:pointer;">
+                <input type="checkbox" id="accessAdminIsFull" checked onchange="onAccessFullAdminToggle()" style="width:16px;height:16px;" />
+                Full Admin (all sections, can manage other admins)
+              </label>
+              <div id="accessAdminSectionsGrid" style="display:none;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:6px 16px;margin-top:10px;padding:12px;background:var(--gray-100);border-radius:8px;"></div>
+            </div>
+            <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="btn-save" id="accessGrantSubmitBtn" onclick="grantAdminFromAccessPanel()"><i class="fas fa-user-plus"></i> Grant Admin Access</button>
+              <button type="button" class="btn-sm view" id="accessGrantCancelBtn" onclick="resetAdminGrantForm()" style="display:none;">Cancel</button>
+            </div>
+            <p class="hint-text" style="margin-top:10px;margin-bottom:0;">Admin invitations are created by the <code>grant-org-admin</code> Edge Function.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ MEETINGS ══════ -->
+    <div class="panel" id="panel-meetings">
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-plus-circle icon-brand"></i>Schedule a Meeting</h3></div>
+        <div class="section-card-body">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">
+            <div class="field-group" style="grid-column:span 2;"><label>Meeting Title</label><input type="text" id="mtgTitle" placeholder="e.g. Monthly General Meeting" /></div>
+            <div class="field-group"><label>Date</label><input type="date" id="mtgDate" /></div>
+            <div class="field-group"><label>Start Time</label><input type="time" id="mtgStart" /></div>
+            <div class="field-group"><label>End Time</label><input type="time" id="mtgEnd" /></div>
+            <div class="field-group"><label>Location</label><input type="text" id="mtgLocation" placeholder="Address or venue name" /></div>
+            <div class="field-group" style="grid-column:1/-1;"><label>Agenda / Notes <span style="font-weight:400;color:var(--gray-400);">(optional)</span></label><textarea id="mtgAgenda" rows="3" placeholder="Key agenda items or notes…"></textarea></div>
+          </div>
+          <div id="mtgFormMsg" style="display:none;margin-top:10px;font-size:0.83rem;"></div>
+          <button class="btn-save" style="margin-top:16px;" onclick="saveMeeting()"><i class="fas fa-calendar-plus"></i> Schedule Meeting</button>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-list icon-brand"></i>Scheduled Meetings</h3>
+          <button class="btn-sm view" onclick="loadMeetingsPanel()" style="font-size:0.75rem;padding:4px 10px;"><i class="fas fa-rotate-right"></i> Refresh</button>
+        </div>
+        <div class="section-card-body">
+          <div id="meetingsList"><div class="hint-text">Loading meetings…</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ ORG NEWS FEED ══════ -->
+    <div class="panel" id="panel-chapter-news">
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-pen icon-brand"></i>Post an Update</h3></div>
+        <div class="section-card-body">
+          <div class="form-grid">
+            <div class="field-group span2"><label>Title <span class="req">*</span></label><input type="text" id="cnTitle" placeholder="e.g. Dues Deadline Reminder" /></div>
+            <div class="field-group">
+              <label>Category</label>
+              <select id="cnCategory">
+                <option value="General">General</option>
+                <option value="Announcement">Announcement</option>
+                <option value="Reminder">Reminder</option>
+                <option value="Event Update">Event Update</option>
+                <option value="Financial">Financial</option>
+              </select>
+            </div>
+            <div class="field-group" style="display:flex;align-items:center;gap:10px;padding-top:22px;">
+              <input type="checkbox" id="cnPinned" style="width:16px;height:16px;" />
+              <label for="cnPinned" style="margin:0;text-transform:none;letter-spacing:0;font-size:0.85rem;cursor:pointer;">Pin to top of feed</label>
+            </div>
+            <div class="field-group span2"><label>Message <span class="req">*</span></label><textarea id="cnBody" rows="5" placeholder="Write your update or announcement here…"></textarea></div>
+          </div>
+          <div id="cnPostMsg" style="display:none;font-size:0.83rem;margin-bottom:10px;"></div>
+          <button class="btn-save" onclick="postOrgNews()"><i class="fas fa-paper-plane"></i> Post to Feed</button>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-bullhorn icon-brand"></i>Posted Updates</h3>
+          <button class="btn-sm view" onclick="loadOrgNewsPanel()" style="font-size:0.75rem;padding:4px 10px;"><i class="fas fa-rotate-right"></i> Refresh</button>
+        </div>
+        <div class="section-card-body" id="orgNewsList"><div class="hint-text">Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- ══════ MEMBER ANNOUNCEMENTS ══════ -->
+    <div class="panel" id="panel-member-announcements">
+      <div class="filter-row">
+        <div class="count" id="annAdminCount"></div>
+        <div class="filter-btns">
+          <button class="btn-sm active" onclick="setAnnFilter('all',this)">All</button>
+          <button class="btn-sm" onclick="setAnnFilter('pending',this)">Pending</button>
+          <button class="btn-sm" onclick="setAnnFilter('approved',this)">Approved</button>
+          <button class="btn-sm" onclick="setAnnFilter('rejected',this)">Rejected</button>
+        </div>
+      </div>
+      <div id="annAdminList"><div class="empty-state"><i class="fas fa-bullhorn"></i><p>Loading announcements…</p></div></div>
+    </div>
+
+    <!-- ══════ NEWS SUBMISSIONS ══════ -->
+    <div class="panel" id="panel-news-submissions">
+      <div class="filter-row">
+        <div class="count" id="newsSubAdminCount"></div>
+        <div class="filter-btns">
+          <button class="btn-sm active" onclick="setNewsSubFilter('all',this)">All</button>
+          <button class="btn-sm" onclick="setNewsSubFilter('pending',this)">Pending</button>
+          <button class="btn-sm" onclick="setNewsSubFilter('approved',this)">Approved</button>
+          <button class="btn-sm" onclick="setNewsSubFilter('rejected',this)">Rejected</button>
+        </div>
+      </div>
+      <div id="newsSubAdminList"><div class="empty-state"><i class="fas fa-newspaper"></i><p>Loading submissions…</p></div></div>
+    </div>
+<!--PART4-->
+
+

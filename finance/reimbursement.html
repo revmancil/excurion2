@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reimbursements | Finance Portal | {{ORG_NAME}}</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="stylesheet" href="../css/theme.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <script src="../js/memberforge-client.js"></script>
+  <script src="../js/org-context.js"></script>
+  <script src="../js/auth.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --fin-bg: var(--ink, #111);
+      --fin-panel: color-mix(in srgb, var(--ink) 85%, #fff 8%);
+      --fin-line: rgba(255,255,255,0.07);
+      --fin-accent: var(--accent, #C9A84C);
+      --fin-accent-pale: color-mix(in srgb, var(--accent) 10%, transparent);
+      --fin-accent-pale2: color-mix(in srgb, var(--accent) 18%, transparent);
+      --white:#ffffff; --gray-400:#9ca3af;
+      --green:#22c55e; --green-pale:rgba(34,197,94,0.1);
+      --red:#ef4444;   --red-pale:rgba(239,68,68,0.1);
+      --blue:#3b82f6;  --blue-pale:rgba(59,130,246,0.1);
+      --amber:#f59e0b; --amber-pale:rgba(245,158,11,0.1);
+      --purple:#8b5cf6; --purple-pale:rgba(139,92,246,0.1);
+      --sidebar-w:260px;
+    }
+    html,body{height:100%;}
+    body{font-family:'Inter',sans-serif;background:var(--fin-bg);color:var(--white);display:flex;min-height:100vh;}
+
+    .sidebar{width:var(--sidebar-w);background:var(--fin-panel);border-right:1px solid color-mix(in srgb, var(--fin-accent) 20%, transparent);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform 0.3s;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+    .sidebar-brand{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;flex-shrink:0;}
+    .sidebar-brand img{width:42px;height:42px;border-radius:50%;border:1.5px solid color-mix(in srgb, var(--fin-accent) 40%, transparent);object-fit:contain;}
+    .sidebar-brand-text .name{font-family:'Playfair Display',serif;font-size:0.88rem;font-weight:700;color:var(--fin-accent);line-height:1.2;}
+    .sidebar-brand-text .sub{font-size:0.62rem;color:rgba(255,255,255,0.3);letter-spacing:0.08em;text-transform:uppercase;}
+    .sidebar-user{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;}
+    .user-avatar{width:34px;height:34px;background:var(--fin-accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.82rem;color:#0a0a0a;flex-shrink:0;overflow:hidden;}
+    .user-avatar img{width:100%;height:100%;object-fit:cover;}
+    .user-info .uname{font-size:0.82rem;font-weight:600;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .user-info .urole{font-size:0.7rem;color:rgba(255,255,255,0.35);margin-top:2px;text-transform:capitalize;}
+    .sidebar-nav{padding:10px 0;flex:1;}
+    .nav-label{font-size:0.62rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.22);padding:10px 20px 5px;}
+    .nav-item{display:flex;align-items:center;gap:11px;padding:10px 20px;color:rgba(255,255,255,0.5);font-size:0.85rem;font-weight:500;cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:color 0.2s,background 0.2s;border-left:3px solid transparent;text-decoration:none;}
+    .nav-item i{width:18px;text-align:center;font-size:0.88rem;}
+    .nav-item:hover{color:var(--white);background:rgba(255,255,255,0.04);}
+    .nav-item.active{color:var(--fin-accent);background:var(--fin-accent-pale);border-left-color:var(--fin-accent);}
+    .nav-divider{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:6px 0;}
+    .sidebar-footer{padding:14px 20px;border-top:1px solid rgba(255,255,255,0.06);}
+    .logout-btn{display:flex;align-items:center;gap:9px;color:rgba(255,255,255,0.4);font-size:0.82rem;background:none;border:none;cursor:pointer;padding:7px 0;transition:color 0.2s;width:100%;}
+    .logout-btn:hover{color:var(--red);}
+
+    .main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;}
+    .topbar{background:var(--fin-panel);border-bottom:1px solid rgba(255,255,255,0.06);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+    .topbar-left{display:flex;align-items:center;gap:12px;}
+    .hamburger{display:none;background:none;border:none;color:var(--white);font-size:1.1rem;cursor:pointer;padding:6px;}
+    .page-title{font-size:1rem;font-weight:600;color:var(--white);}
+    .breadcrumb{font-size:0.78rem;color:var(--gray-400);margin-left:6px;}
+    .topbar-right a{display:flex;align-items:center;gap:6px;color:var(--gray-400);text-decoration:none;font-size:0.8rem;transition:color 0.2s;}
+    .topbar-right a:hover{color:var(--fin-accent);}
+    .content{padding:28px;flex:1;max-width:860px;}
+
+    .card{background:var(--fin-panel);border:1px solid var(--fin-line);border-radius:12px;margin-bottom:20px;overflow:hidden;}
+    .card-header{padding:16px 22px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;}
+    .card-header h3{font-size:0.92rem;font-weight:700;color:var(--white);display:flex;align-items:center;gap:9px;}
+    .card-header h3 i{color:var(--fin-accent);font-size:0.88rem;}
+    .card-body{padding:22px;}
+
+    .steps{display:flex;align-items:center;margin-bottom:28px;}
+    .step{display:flex;align-items:center;gap:8px;font-size:0.8rem;font-weight:600;}
+    .step-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;}
+    .step.done .step-num{background:var(--green);color:#fff;}
+    .step.active .step-num{background:var(--fin-accent);color:#0a0a0a;}
+    .step.idle .step-num{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.4);}
+    .step.done .step-label{color:var(--green);}
+    .step.active .step-label{color:var(--white);}
+    .step.idle .step-label{color:rgba(255,255,255,0.35);}
+    .step-connector{flex:1;height:2px;background:rgba(255,255,255,0.1);margin:0 8px;min-width:16px;}
+
+    .field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+    .field label{font-size:0.8rem;font-weight:600;color:rgba(255,255,255,0.65);}
+    .field label .req{color:var(--red);margin-left:2px;}
+    .field input,.field textarea,.field select{width:100%;padding:10px 13px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:7px;color:var(--white);font-size:0.88rem;font-family:inherit;transition:border-color 0.2s;}
+    .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:color-mix(in srgb, var(--fin-accent) 50%, transparent);}
+    .field textarea{resize:vertical;min-height:80px;}
+    .field-hint{font-size:0.74rem;color:rgba(255,255,255,0.35);margin-top:3px;}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+    .method-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px;}
+    .method-tile{border:2px solid rgba(255,255,255,0.1);border-radius:9px;padding:16px 14px;cursor:pointer;transition:border-color 0.2s,background 0.2s;text-align:center;position:relative;}
+    .method-tile:hover{border-color:color-mix(in srgb, var(--fin-accent) 40%, transparent);}
+    .method-tile.selected{border-color:var(--fin-accent);background:var(--fin-accent-pale);}
+    .method-tile input[type="radio"]{position:absolute;opacity:0;width:0;height:0;}
+    .method-tile i.icon{font-size:1.4rem;color:var(--fin-accent);display:block;margin-bottom:8px;}
+    .method-tile .mt-label{font-size:0.9rem;font-weight:700;color:var(--white);display:block;}
+    .method-tile .mt-note{font-size:0.73rem;color:rgba(255,255,255,0.4);margin-top:4px;display:block;line-height:1.3;}
+    .mt-check{position:absolute;top:9px;right:11px;color:var(--fin-accent);font-size:0.82rem;display:none;}
+    .method-tile.selected .mt-check{display:block;}
+
+    .pay-details{margin-top:14px;padding:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;}
+    .pay-details-label{font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:12px;}
+
+    .upload-zone{border:2px dashed rgba(255,255,255,0.15);border-radius:8px;padding:22px;text-align:center;cursor:pointer;transition:border-color 0.2s;color:rgba(255,255,255,0.4);font-size:0.83rem;}
+    .upload-zone:hover{border-color:color-mix(in srgb, var(--fin-accent) 40%, transparent);}
+    .upload-zone i{font-size:1.5rem;display:block;margin-bottom:6px;color:var(--fin-accent);}
+    .upload-preview{display:none;margin-top:10px;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:7px;align-items:center;gap:10px;font-size:0.83rem;}
+    .upload-preview i{color:var(--fin-accent);}
+    .fname{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--white);}
+    .fsize{color:rgba(255,255,255,0.35);font-size:0.75rem;white-space:nowrap;}
+    .upload-clear{background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:1rem;padding:0;}
+    .upload-clear:hover{color:var(--red);}
+
+    .btn-submit{padding:12px 28px;background:var(--fin-accent);color:#0a0a0a;border:none;border-radius:8px;font-size:0.92rem;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:9px;transition:opacity 0.2s;}
+    .btn-submit:hover:not(:disabled){opacity:0.85;}
+    .btn-submit:disabled{opacity:0.45;cursor:not-allowed;}
+    .btn-outline{padding:7px 14px;background:none;color:var(--fin-accent);border:1px solid color-mix(in srgb, var(--fin-accent) 35%, transparent);border-radius:7px;font-size:0.8rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:all 0.2s;text-decoration:none;}
+    .btn-outline:hover{background:var(--fin-accent-pale);}
+
+    .notice{padding:12px 16px;border-radius:8px;font-size:0.83rem;line-height:1.5;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start;}
+    .notice i{margin-top:1px;flex-shrink:0;}
+    .notice.amber{background:var(--amber-pale);border:1px solid rgba(245,158,11,0.25);color:#fbbf24;}
+    .notice.green{background:var(--green-pale);border:1px solid rgba(34,197,94,0.25);color:#4ade80;}
+    .notice.red{background:var(--red-pale);border:1px solid rgba(239,68,68,0.3);color:#f87171;}
+    .notice.blue{background:var(--blue-pale);border:1px solid rgba(59,130,246,0.25);color:#93c5fd;}
+    .notice.purple{background:var(--purple-pale);border:1px solid rgba(139,92,246,0.25);color:#c4b5fd;}
+
+    .reimb-row{border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px 18px;margin-bottom:12px;background:rgba(255,255,255,0.015);transition:border-color 0.2s;}
+    .reimb-row.highlighted{border-color:color-mix(in srgb, var(--fin-accent) 50%, transparent);background:var(--fin-accent-pale);}
+    .reimb-row.auto-gen{border-left:3px solid var(--purple);}
+    .reimb-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:8px;}
+    .reimb-title{font-size:0.92rem;font-weight:700;color:var(--white);}
+    .reimb-meta{font-size:0.76rem;color:rgba(255,255,255,0.38);margin-top:3px;}
+    .reimb-desc{font-size:0.84rem;color:rgba(255,255,255,0.5);line-height:1.55;margin-bottom:10px;}
+    .reimb-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;}
+    .badge{display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:10px;text-transform:capitalize;}
+    .badge.pending{background:var(--amber-pale);color:var(--amber);}
+    .badge.approved{background:var(--green-pale);color:var(--green);}
+    .badge.denied{background:var(--red-pale);color:var(--red);}
+    .auto-badge{font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--purple-pale);color:#c4b5fd;display:inline-flex;align-items:center;gap:4px;}
+    .admin-note{font-size:0.8rem;color:rgba(255,255,255,0.45);font-style:italic;display:flex;align-items:flex-start;gap:5px;margin-top:8px;}
+    .admin-note i{color:var(--fin-accent);margin-top:1px;flex-shrink:0;}
+
+    .audit-trail{margin-top:10px;padding:10px 14px;background:rgba(255,255,255,0.025);border-radius:7px;border:1px solid rgba(255,255,255,0.06);}
+    .audit-event{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.78rem;}
+    .audit-event:last-child{border-bottom:none;padding-bottom:0;}
+    .audit-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+    .audit-dot.submitted{background:var(--amber);}
+    .audit-dot.approved{background:var(--green);}
+    .audit-dot.denied{background:var(--red);}
+    .audit-dot.auto{background:var(--purple);}
+    .audit-text{color:rgba(255,255,255,0.5);}
+    .audit-time{margin-left:auto;color:rgba(255,255,255,0.25);white-space:nowrap;padding-left:8px;}
+
+    .overdue-flag{display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;font-weight:700;color:var(--amber);background:var(--amber-pale);border:1px solid rgba(245,158,11,0.3);border-radius:5px;padding:2px 7px;}
+
+    .empty-state{text-align:center;padding:36px 16px;color:rgba(255,255,255,0.3);}
+    .empty-state i{font-size:2rem;display:block;margin-bottom:10px;}
+    .empty-state p{font-size:0.88rem;}
+
+    @media(max-width:768px){
+      .sidebar{transform:translateX(-100%);} .sidebar.open{transform:translateX(0);}
+      .main{margin-left:0;} .hamburger{display:block;}
+      .content{padding:18px 14px;} .method-grid{grid-template-columns:1fr;} .field-row{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <img data-mf="org_logo" src="../images/default-logo.svg" alt="" />
+    <div class="sidebar-brand-text">
+      <div class="name" data-mf="org_name">Organization</div>
+      <div class="sub">Finance Portal</div>
+    </div>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-avatar" id="sidebarAvatar">?</div>
+    <div class="user-info">
+      <div class="uname" id="sidebarName">Loading…</div>
+      <div class="urole" id="sidebarRole" data-mf-term="member_noun">Member</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Finance</div>
+    <a class="nav-item" href="dashboard.html"><i class="fas fa-chart-pie"></i> Dashboard</a>
+    <a class="nav-item" href="pay-dues.html"><i class="fas fa-dollar-sign"></i> Pay Dues</a>
+    <hr class="nav-divider" />
+    <div class="nav-label">Requests</div>
+    <a class="nav-item" href="requisition.html"><i class="fas fa-file-invoice-dollar"></i> Requisitions</a>
+    <a class="nav-item active" href="reimbursement.html"><i class="fas fa-receipt"></i> Reimbursements</a>
+    <hr class="nav-divider" />
+    <div class="nav-label">Account</div>
+    <a class="nav-item" href="../member-portal.html"><i class="fas fa-arrow-left"></i> Member Portal</a>
+    <a class="nav-item" id="adminNavLink" href="admin/index.html" style="display:none;"><i class="fas fa-shield-halved"></i> Finance Admin</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Menu"><i class="fas fa-bars"></i></button>
+      <div>
+        <span class="page-title">Reimbursements</span>
+        <span class="breadcrumb">Finance Portal</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <a href="../index.html"><i class="fas fa-external-link-alt"></i> View Website</a>
+    </div>
+  </header>
+
+  <main class="content">
+
+    <div id="authGate" style="display:none;">
+      <div class="notice amber"><i class="fas fa-lock"></i><span>Sign in to access reimbursements.</span></div>
+    </div>
+
+    <div id="mainUI" style="display:none;">
+
+      <div class="steps">
+        <div class="step active"><div class="step-num">1</div><span class="step-label">Submit Request</span></div>
+        <div class="step-connector"></div>
+        <div class="step idle"><div class="step-num">2</div><span class="step-label">Treasurer Review</span></div>
+        <div class="step-connector"></div>
+        <div class="step idle"><div class="step-num">3</div><span class="step-label">Payment Issued</span></div>
+      </div>
+
+      <div id="autoGenBanner" class="notice purple" style="display:none;">
+        <i class="fas fa-magic-wand-sparkles"></i>
+        <span>A reimbursement request was automatically created from your approved requisition. Review it below.</span>
+      </div>
+
+      <div class="notice blue">
+        <i class="fas fa-info-circle"></i>
+        <span>Submit a reimbursement request if you paid for an organization expense out of pocket. Attach your receipt or invoice. The Treasurer will review and issue payment via Zelle or Check.</span>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3><i class="fas fa-receipt"></i> New Reimbursement Request</h3></div>
+        <div class="card-body">
+          <div class="field">
+            <label>Item / Service Purchased <span class="req">*</span></label>
+            <textarea id="rbItem" rows="2" placeholder="e.g. Office supplies for a meeting — printer paper, folders"></textarea>
+          </div>
+          <div class="field-row">
+            <div class="field" style="margin-bottom:0;">
+              <label>Amount Paid <span class="req">*</span></label>
+              <input type="number" id="rbAmount" min="0.01" step="0.01" placeholder="0.00" />
+            </div>
+            <div class="field" style="margin-bottom:0;">
+              <label>Payee / Vendor <span class="req">*</span></label>
+              <input type="text" id="rbPayee" placeholder="e.g. Staples, Amazon, Jane Smith" />
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:18px;">
+            <label>How Should We Pay You Back? <span class="req">*</span></label>
+            <div class="method-grid">
+              <label class="method-tile" onclick="selectMethod('zelle')">
+                <input type="radio" name="rbMethod" value="zelle" />
+                <i class="fas fa-check mt-check"></i>
+                <i class="fas fa-bolt icon"></i>
+                <span class="mt-label">Zelle</span>
+                <span class="mt-note">Fast — typically same day</span>
+              </label>
+              <label class="method-tile" onclick="selectMethod('check')">
+                <input type="radio" name="rbMethod" value="check" />
+                <i class="fas fa-check mt-check"></i>
+                <i class="fas fa-money-check-alt icon"></i>
+                <span class="mt-label">Check</span>
+                <span class="mt-note">Mailed to your address</span>
+              </label>
+            </div>
+          </div>
+
+          <div id="zelleDetails" class="pay-details" style="display:none;">
+            <div class="pay-details-label">Zelle Payment Details</div>
+            <div class="field-row">
+              <div class="field" style="margin-bottom:0;">
+                <label>Zelle Email <span style="font-weight:400;color:rgba(255,255,255,0.3);">or</span> Phone</label>
+                <input type="text" id="rbZelleContact" placeholder="email@example.com or (555) 000-0000" />
+                <div class="field-hint">Enter the email or phone registered with your Zelle account.</div>
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label>Name on Zelle Account</label>
+                <input type="text" id="rbZelleName" placeholder="Full name as it appears" />
+              </div>
+            </div>
+          </div>
+
+          <div id="checkDetails" class="pay-details" style="display:none;">
+            <div class="pay-details-label">Check Mailing Address</div>
+            <div class="field" style="margin-bottom:12px;">
+              <label>Street Address</label>
+              <input type="text" id="rbCheckStreet" placeholder="123 Main St" />
+            </div>
+            <div class="field-row">
+              <div class="field" style="margin-bottom:0;">
+                <label>City</label>
+                <input type="text" id="rbCheckCity" placeholder="City" />
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label>State &amp; ZIP</label>
+                <input type="text" id="rbCheckStateZip" placeholder="TX 75034" />
+              </div>
+            </div>
+            <div class="notice amber" style="margin-top:12px;margin-bottom:0;padding:10px 14px;">
+              <i class="fas fa-clock"></i>
+              <span style="font-size:0.8rem;">Allow 5–10 business days for check delivery after approval.</span>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:18px;">
+            <label>Receipt / Invoice <span class="req">*</span></label>
+            <input type="file" id="rbDocInput" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none;" onchange="handleDocSelect(event)" />
+            <div class="upload-zone" onclick="document.getElementById('rbDocInput').click()">
+              <i class="fas fa-receipt"></i>
+              Click to attach your receipt or invoice (PDF or image)
+            </div>
+            <div class="upload-preview" id="uploadPreview">
+              <i class="fas fa-file"></i>
+              <span class="fname" id="uploadFname">—</span>
+              <span class="fsize" id="uploadFsize">—</span>
+              <button class="upload-clear" onclick="clearDoc()" title="Remove"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="field-hint">A receipt or invoice is required for all reimbursements.</div>
+          </div>
+
+          <div id="rbErr" class="notice red" style="display:none;margin-top:8px;margin-bottom:0;"><i class="fas fa-exclamation-circle"></i><span id="rbErrText"></span></div>
+          <div id="rbSuccess" class="notice green" style="display:none;margin-top:12px;margin-bottom:0;"><i class="fas fa-check-circle"></i><span>Reimbursement request submitted. The Treasurer will review and issue payment once approved.</span></div>
+
+          <div style="margin-top:20px;">
+            <button class="btn-submit" id="rbSubmitBtn" onclick="submitReimbursement()"><i class="fas fa-paper-plane"></i> Submit Request</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3><i class="fas fa-list-check"></i> My Reimbursements</h3>
+          <button onclick="loadMyReimbursements()" style="font-size:0.78rem;color:var(--fin-accent);background:none;border:none;cursor:pointer;font-weight:500;"><i class="fas fa-rotate-right"></i> Refresh</button>
+        </div>
+        <div class="card-body" id="myReimbList">
+          <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+var selectedMethod = null;
+var _docFile = null;
+
+function esc(s){ var d=document.createElement('div'); d.textContent=String(s||''); return d.innerHTML; }
+function fmt(c){ return '$'+(c/100).toFixed(2); }
+function formatBytes(b){ if(b<1024)return b+' B'; if(b<1048576)return(b/1024).toFixed(1)+' KB'; return(b/1048576).toFixed(1)+' MB'; }
+
+function doLogout(){ MFAuth.signOut(); redirectToLogin(); }
+function redirectToLogin(){
+  var slug = MF.org ? MF.org.slug : new URLSearchParams(location.search).get('org');
+  window.location.href = '../member-login.html' + (slug ? ('?org='+encodeURIComponent(slug)) : '');
+}
+
+async function init() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('from') === 'requisition') {
+    document.getElementById('autoGenBanner').style.display = '';
+  }
+
+  await MF.ready;
+  if (!MF.org) return;
+  MFAuth.loadSession();
+  if (!MFAuth.isSignedIn()) { showAuthGate(); return; }
+
+  await MFAuth.loadMember();
+  if (!MFAuth.member) { showAuthGate(); return; }
+  await MFAuth.loadAdminPermissions();
+
+  document.getElementById('mainUI').style.display = '';
+  renderSidebarUser();
+  showAdminLinkIfEligible();
+  prefillFromProfile();
+  loadMyReimbursements();
+
+  var highlightId = params.get('id');
+  if (highlightId) { setTimeout(function(){ highlightRow(highlightId); }, 800); }
+}
+
+function showAuthGate(){
+  document.getElementById('authGate').style.display='';
+  document.getElementById('mainUI').style.display='none';
+}
+
+function renderSidebarUser(){
+  var m = MFAuth.member;
+  var name = m ? [m.first_name,m.last_name].filter(Boolean).join(' ') : (MFAuth.session&&MFAuth.session.user?MFAuth.session.user.email:'Member');
+  document.getElementById('sidebarName').textContent=name||'Member';
+  var initials=name?name.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase():'?';
+  var av=document.getElementById('sidebarAvatar');
+  if(m&&m.photo_url){av.innerHTML='<img src="'+esc(m.photo_url)+'" alt="" />';}
+  else{av.textContent=initials;}
+  var financeRole = MFAuth.adminPermissions && MFAuth.adminPermissions.financeRole;
+  if (financeRole) document.getElementById('sidebarRole').textContent = financeRole.replace(/_/g,' ');
+}
+
+function showAdminLinkIfEligible(){
+  if (MFAuth.hasFinanceRole('treasurer','financial_secretary','president')) {
+    document.getElementById('adminNavLink').style.display='';
+  }
+}
+
+function prefillFromProfile(){
+  var m = MFAuth.member;
+  if(!m)return;
+  var name=[m.first_name,m.last_name].filter(Boolean).join(' ');
+  if(document.getElementById('rbZelleName')&&!document.getElementById('rbZelleName').value){
+    document.getElementById('rbZelleName').value=name;
+  }
+}
+
+function selectMethod(m){
+  selectedMethod=m;
+  document.querySelectorAll('.method-tile').forEach(function(t){
+    t.classList.toggle('selected', t.querySelector('input').value===m);
+  });
+  document.getElementById('zelleDetails').style.display = m==='zelle' ? '' : 'none';
+  document.getElementById('checkDetails').style.display = m==='check' ? '' : 'none';
+}
+
+function handleDocSelect(e){
+  var file=e.target.files&&e.target.files[0]; if(!file)return;
+  _docFile=file;
+  document.getElementById('uploadFname').textContent=file.name;
+  document.getElementById('uploadFsize').textContent=formatBytes(file.size);
+  document.getElementById('uploadPreview').style.display='flex';
+}
+function clearDoc(){
+  _docFile=null; document.getElementById('rbDocInput').value='';
+  document.getElementById('uploadPreview').style.display='none';
+}
+
+async function uploadDoc(file){
+  var ext=(file.name.split('.').pop()||'pdf').toLowerCase();
+  var path = MF.org.id+'/finance/'+MFAuth.member.id+'/reimbursements/'+Date.now()+'.'+ext;
+  var res=await fetch(sb.url+'/storage/v1/object/org-media/'+path,{
+    method:'POST',
+    headers:{'apikey':sb.key,'Authorization':'Bearer '+MFAuth.session.access_token,'Content-Type':file.type,'x-upsert':'true'},
+    body:file
+  });
+  if(!res.ok)throw new Error('Document upload failed');
+  return sb.url+'/storage/v1/object/public/org-media/'+path;
+}
+
+async function submitReimbursement(){
+  var errEl=document.getElementById('rbErr'), errTxt=document.getElementById('rbErrText'), sucEl=document.getElementById('rbSuccess');
+  errEl.style.display='none'; sucEl.style.display='none';
+
+  if(!MFAuth.member||!MFAuth.isSignedIn()){errTxt.textContent='Sign in to submit.';errEl.style.display='';return;}
+
+  var item=(document.getElementById('rbItem').value||'').trim();
+  var amtRaw=parseFloat(document.getElementById('rbAmount').value||'0');
+  var payee=(document.getElementById('rbPayee').value||'').trim();
+
+  if(!item){errTxt.textContent='Describe the item or service purchased.';errEl.style.display='';return;}
+  if(isNaN(amtRaw)||amtRaw<=0){errTxt.textContent='Enter a valid amount.';errEl.style.display='';return;}
+  if(!payee){errTxt.textContent='Enter the payee or vendor name.';errEl.style.display='';return;}
+  if(!selectedMethod){errTxt.textContent='Select a payment method.';errEl.style.display='';return;}
+  if(!_docFile){errTxt.textContent='Please attach a receipt or invoice.';errEl.style.display='';return;}
+
+  if(selectedMethod==='zelle'){
+    var zContact=(document.getElementById('rbZelleContact').value||'').trim();
+    if(!zContact){errTxt.textContent='Enter your Zelle email or phone number.';errEl.style.display='';return;}
+  }
+  if(selectedMethod==='check'){
+    var chStreet=(document.getElementById('rbCheckStreet').value||'').trim();
+    if(!chStreet){errTxt.textContent='Enter your mailing address for the check.';errEl.style.display='';return;}
+  }
+
+  var btn=document.getElementById('rbSubmitBtn');
+  btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Submitting…';
+
+  try {
+    var docUrl=null;
+    try { docUrl=await uploadDoc(_docFile); }
+    catch(fe){errTxt.textContent='Receipt upload failed: '+(fe.message||'error');errEl.style.display='';btn.disabled=false;btn.innerHTML='<i class="fas fa-paper-plane"></i> Submit Request';return;}
+
+    var memberName=[MFAuth.member.first_name,MFAuth.member.last_name].filter(Boolean).join(' ');
+    var paymentDetails = selectedMethod==='zelle'
+      ? { zelle_contact:(document.getElementById('rbZelleContact').value||'').trim(), zelle_name:(document.getElementById('rbZelleName').value||'').trim() }
+      : { check_street:(document.getElementById('rbCheckStreet').value||'').trim(), check_city:(document.getElementById('rbCheckCity').value||'').trim(), check_state_zip:(document.getElementById('rbCheckStateZip').value||'').trim() };
+
+    await sb.insert('finance_reimbursements', MF.stamp({
+      member_id:       MFAuth.member.id,
+      member_name:     memberName,
+      member_email:    MFAuth.member.email||(MFAuth.session.user&&MFAuth.session.user.email)||'',
+      item_service:    item,
+      amount_cents:    Math.round(amtRaw*100),
+      payee_name:      payee,
+      method:          selectedMethod,
+      payment_details: paymentDetails,
+      doc_url:         docUrl,
+      status:          'pending',
+      auto_generated:  false,
+      submitted_at:    new Date().toISOString()
+    }));
+
+    document.getElementById('rbItem').value='';
+    document.getElementById('rbAmount').value='';
+    document.getElementById('rbPayee').value='';
+    document.querySelectorAll('.method-tile').forEach(function(t){t.classList.remove('selected');});
+    selectedMethod=null;
+    document.getElementById('zelleDetails').style.display='none';
+    document.getElementById('checkDetails').style.display='none';
+    clearDoc();
+    sucEl.style.display=''; loadMyReimbursements();
+  } catch(e){
+    errTxt.textContent='Could not submit: '+(e.message||'error'); errEl.style.display='';
+  } finally {
+    btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> Submit Request';
+  }
+}
+
+async function loadMyReimbursements(){
+  if(!MFAuth.member||!MFAuth.isSignedIn())return;
+  var el=document.getElementById('myReimbList');
+  try {
+    var rows=await sb.getAll('finance_reimbursements', MF.scope('member_id=eq.'+MFAuth.member.id+'&order=submitted_at.desc'));
+    if(!rows||!rows.length){el.innerHTML='<div class="empty-state"><i class="fas fa-receipt"></i><p>No reimbursement requests yet.</p></div>';return;}
+    el.innerHTML=rows.map(renderReimbRow).join('');
+  } catch(e){
+    el.innerHTML='<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Could not load reimbursements.</p></div>';
+  }
+}
+
+function isOverdue(submittedAt){
+  if(!submittedAt)return false;
+  var ms=Date.now()-new Date(submittedAt).getTime();
+  return ms>7*24*60*60*1000;
+}
+
+function renderReimbRow(r){
+  var subDate=r.submitted_at?new Date(r.submitted_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+  var revDate=r.reviewed_at?new Date(r.reviewed_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):null;
+  var amt=r.amount_cents!=null?fmt(r.amount_cents):'—';
+  var mLabel=r.method==='zelle'?'Zelle':r.method==='check'?'Check':r.method||'—';
+  var overdue=r.status==='pending'&&isOverdue(r.submitted_at);
+
+  var auditEvents=[{dot:'auto',text:r.auto_generated?'Auto-generated from your approved requisition':'Submitted by '+(r.member_name||'you'),time:subDate}];
+  if(r.status==='approved'&&revDate)auditEvents.push({dot:'approved',text:'Approved by Treasurer',time:revDate});
+  if(r.status==='denied'&&revDate)auditEvents.push({dot:'denied',text:'Denied by Treasurer',time:revDate});
+
+  var auditHtml='<div class="audit-trail">'+auditEvents.map(function(ev){
+    return '<div class="audit-event"><div class="audit-dot '+ev.dot+'"></div><span class="audit-text">'+ev.text+'</span><span class="audit-time">'+ev.time+'</span></div>';
+  }).join('')+'</div>';
+
+  return '<div class="reimb-row'+(r.auto_generated?' auto-gen':'')+'" id="reimb-'+esc(String(r.id))+'">'+
+    '<div class="reimb-top">'+
+      '<div>'+
+        '<div class="reimb-title">'+amt+' — '+esc((r.item_service||'').substring(0,80)+(r.item_service&&r.item_service.length>80?'…':''))+'</div>'+
+        '<div class="reimb-meta">'+esc(mLabel)+' · Submitted '+subDate+'</div>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">'+
+        (overdue?'<span class="overdue-flag"><i class="fas fa-clock"></i> Overdue</span>':'')+
+        (r.auto_generated?'<span class="auto-badge"><i class="fas fa-magic-wand-sparkles"></i> Auto-generated</span>':'')+
+        '<span class="badge '+(r.status||'pending')+'">'+(r.status||'pending')+'</span>'+
+      '</div>'+
+    '</div>'+
+    (r.payee_name?'<div class="reimb-desc">Payee: '+esc(r.payee_name)+'</div>':'')+
+    (r.admin_note?'<div class="admin-note"><i class="fas fa-comment"></i>'+esc(r.admin_note)+'</div>':'')+
+    auditHtml+
+    '<div class="reimb-footer">'+
+      (r.doc_url?'<a class="btn-outline" href="'+esc(r.doc_url)+'" target="_blank" rel="noopener"><i class="fas fa-receipt"></i> Receipt</a>':'')+
+      (r.requisition_id?'<a class="btn-outline" href="requisition.html"><i class="fas fa-file-invoice-dollar"></i> View Requisition</a>':'')+
+    '</div>'+
+  '</div>';
+}
+
+function highlightRow(id){
+  var el=document.getElementById('reimb-'+id);
+  if(!el)return;
+  el.classList.add('highlighted');
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  setTimeout(function(){el.classList.remove('highlighted');},3000);
+}
+
+init();
+</script>
+</body>
+</html>

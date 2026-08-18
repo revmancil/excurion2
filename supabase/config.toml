@@ -1,0 +1,28 @@
+# Deploy functions: supabase functions deploy stripe-checkout
+# and register stripe-webhook URL in Stripe Dashboard → Webhooks.
+# Set secrets: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SUPABASE_SERVICE_ROLE_KEY
+# Optional: PUBLIC_SITE_URL, MEMBERFORGE_ROOT_DOMAIN (default memberforge.app), DUES_AMOUNT_CENTS
+#
+# Org admin grants: supabase functions deploy grant-org-admin
+# (Uses SUPABASE_SERVICE_ROLE_KEY + SUPABASE_ANON_KEY automatically in hosted env.)
+# After changing CORS or this function, redeploy so browser preflight (OPTIONS) succeeds.
+
+[functions.stripe-checkout]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.grant-org-admin]
+# JWT is validated inside the function (getUser). verify_jwt=true breaks browser
+# CORS preflight (OPTIONS) from the org's site before the function runs.
+verify_jwt = false
+
+[functions.send-rsvp-confirmation]
+verify_jwt = false
+
+[functions.send-admin-notification]
+verify_jwt = false
+
+[functions.send-newsletter]
+verify_jwt = false
