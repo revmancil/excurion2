@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Events | {{ORG_NAME}}</title>
+  <meta name="description" content="Upcoming events and registration — powered by MemberForge." />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <script src="js/memberforge-client.js"></script>
+  <script src="js/org-context.js"></script>
+  <style>
+    /* ── Featured Event Hero ── */
+    .ev-feature-hero { background: var(--ink); padding: 80px 0; position: relative; overflow: hidden; }
+    .ev-feature-hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0.15; }
+    .ev-feature-inner { position: relative; z-index: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+    .ev-feature-img { border-radius: 6px; overflow: hidden; position: relative; }
+    .ev-feature-img img { width: 100%; min-height: 300px; aspect-ratio: 3/4; object-fit: cover; object-position: center top; display: block; }
+    .ev-feature-img .ev-no-flyer { width: 100%; min-height: 300px; aspect-ratio: 3/4; background: linear-gradient(135deg, var(--ink-deep) 0%, var(--ink) 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+    .ev-feature-img .ev-no-flyer i { font-size: 3rem; color: color-mix(in srgb, var(--accent) 30%, transparent); }
+    .ev-feature-img .ev-no-flyer span { font-size: 0.78rem; color: rgba(255,255,255,0.2); letter-spacing: 0.1em; text-transform: uppercase; }
+    .ev-feature-text .events-feature-badge { display: inline-block; background: var(--accent); color: var(--on-accent); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; padding: 5px 14px; border-radius: 2px; margin-bottom: 20px; }
+    .ev-feature-text h2 { font-size: clamp(1.8rem, 3vw, 2.8rem); color: var(--white); margin-bottom: 18px; }
+    .ev-feature-details { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .ev-feature-detail { display: flex; align-items: center; gap: 12px; color: rgba(255,255,255,0.8); font-size: 0.9rem; }
+    .ev-feature-detail i { color: var(--accent-light); width: 18px; }
+
+    /* ── All Events List ── */
+    .ev-all-events { padding: 90px 0; background: var(--gray-100); }
+    .ev-full-card { background: var(--white); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 14px rgba(0,0,0,0.06); display: grid; grid-template-columns: 120px 1fr; margin-bottom: 20px; transition: all 0.3s ease; cursor: pointer; }
+    .ev-full-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.1); transform: translateY(-2px); }
+    .ev-full-card.is-featured { border-left: 4px solid var(--accent); }
+    .ev-full-date { background: var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; flex-shrink: 0; }
+    .ev-full-date .day { font-family: 'Playfair Display', serif; font-size: 2.8rem; font-weight: 800; color: var(--accent-light); line-height: 1; }
+    .ev-full-date .month { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; color: rgba(255,255,255,0.55); text-transform: uppercase; margin-top: 4px; }
+    .ev-full-date .year { font-size: 0.68rem; color: rgba(255,255,255,0.3); margin-top: 2px; }
+    .ev-full-body { padding: 24px 28px; display: flex; align-items: center; gap: 20px; }
+    .ev-full-info { flex: 1; }
+    .ev-full-info h3 { font-size: 1.15rem; font-weight: 700; color: var(--gray-800); margin-bottom: 6px; }
+    .ev-full-info .ev-desc { font-size: 0.9rem; color: var(--gray-600); margin-top: 4px; line-height: 1.6; }
+    .ev-full-info .ev-meta { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; }
+    .ev-full-info .ev-meta span { font-size: 0.83rem; color: var(--gray-600); display: flex; align-items: center; gap: 6px; }
+    .ev-full-info .ev-meta i { color: var(--accent); font-size: 0.8rem; }
+    .ev-flyer-thumb { width: 80px; height: 80px; border-radius: 6px; overflow: hidden; flex-shrink: 0; border: 1.5px solid var(--gray-200); }
+    .ev-flyer-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .ev-featured-tag { display: inline-flex; align-items: center; gap: 5px; background: var(--accent-pale); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 10px; border-radius: 100px; margin-bottom: 6px; }
+    .ev-no-events-msg { text-align: center; padding: 60px 20px; color: var(--gray-400); }
+    .ev-no-events-msg i { font-size: 2.5rem; margin-bottom: 14px; display: block; }
+    .ev-view-detail-hint { font-size: 0.76rem; color: var(--accent); margin-top: 6px; display: flex; align-items: center; gap: 4px; opacity: 0.8; }
+
+    @media (max-width: 768px) {
+      .ev-feature-inner { grid-template-columns: 1fr; gap: 36px; }
+      .ev-full-card { grid-template-columns: 90px 1fr; }
+      .ev-flyer-thumb { width: 60px; height: 60px; }
+    }
+
+    /* ── Event Detail Modal ── */
+    .ev-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 2000; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+    .ev-modal-overlay.open { display: flex; }
+    .ev-modal { background: #fff; border-radius: 14px; max-width: 760px; width: 100%; max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch; box-shadow: 0 24px 80px rgba(0,0,0,0.35); animation: evModalIn 0.28s cubic-bezier(0.34,1.56,0.64,1) both; position: relative; }
+    @keyframes evModalIn { from { opacity: 0; transform: scale(0.92) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    .ev-modal-close { position: absolute; top: 14px; right: 16px; background: rgba(0,0,0,0.08); border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #333; transition: background 0.2s; z-index: 10; }
+    .ev-modal-close:hover { background: rgba(0,0,0,0.16); }
+    .ev-modal-flyer { width: 100%; max-height: 380px; overflow: hidden; border-radius: 14px 14px 0 0; background: var(--ink); display: flex; align-items: center; justify-content: center; }
+    .ev-modal-flyer img { width: 100%; max-height: 380px; object-fit: contain; display: block; }
+    .ev-modal-flyer.ev-no-flyer-modal { padding: 40px; min-height: 120px; }
+    .ev-modal-flyer.ev-no-flyer-modal i { font-size: 3rem; color: rgba(255,255,255,0.2); }
+    .ev-modal-body { padding: 28px 32px 32px; }
+    .ev-modal-badge { display: inline-flex; align-items: center; gap: 5px; background: var(--accent-pale); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); color: var(--accent); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 10px; border-radius: 100px; margin-bottom: 10px; }
+    .ev-modal-title { font-family: 'Playfair Display', serif; font-size: 1.7rem; font-weight: 800; color: var(--gray-800); margin-bottom: 14px; line-height: 1.25; }
+    .ev-modal-meta { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 18px; }
+    .ev-modal-meta span { display: flex; align-items: center; gap: 7px; font-size: 0.88rem; color: var(--gray-600); }
+    .ev-modal-meta i { color: var(--accent); }
+    .ev-modal-desc { font-size: 0.97rem; color: var(--gray-700); line-height: 1.75; margin-bottom: 24px; white-space: pre-line; }
+    .ev-modal-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    @media (max-width: 600px) {
+      .ev-modal-body { padding: 20px 18px 24px; }
+      .ev-modal-title { font-size: 1.3rem; }
+      .ev-modal-flyer { max-height: 240px; }
+      .ev-modal-flyer img { max-height: 240px; }
+    }
+
+    /* ── Registration modals ── */
+    .ev-reg-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 2100; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+    .ev-reg-overlay.open { display: flex; }
+    .ev-reg-modal { background: #fff; border-radius: 14px; max-width: 440px; width: 100%; max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch; box-shadow: 0 24px 80px rgba(0,0,0,0.35); position: relative; animation: evModalIn 0.28s cubic-bezier(0.34,1.56,0.64,1) both; }
+    .ev-reg-close { position: absolute; top: 12px; right: 14px; background: rgba(0,0,0,0.08); border: none; border-radius: 50%; width: 34px; height: 34px; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #333; z-index: 10; }
+    .ev-reg-close:hover { background: rgba(0,0,0,0.14); }
+    .ev-reg-body { padding: 26px 28px 28px; }
+    .ev-reg-body h3 { font-family: 'Playfair Display', serif; font-size: 1.25rem; color: var(--gray-800); margin-bottom: 6px; padding-right: 36px; }
+    .ev-reg-fee { font-size: 0.88rem; color: var(--accent); font-weight: 700; margin-bottom: 18px; }
+    .ev-reg-field { margin-bottom: 14px; }
+    .ev-reg-field label { display: block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gray-600); margin-bottom: 6px; }
+    .ev-reg-field input { width: 100%; padding: 11px 12px; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 0.92rem; font-family: inherit; }
+    .ev-reg-field input:focus { outline: none; border-color: var(--accent); }
+    .ev-reg-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    .ev-reg-error { display: none; font-size: 0.82rem; color: #b91c1c; margin-top: 12px; line-height: 1.4; }
+    .ev-reg-error.show { display: block; }
+    .ev-reg-choice-options { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+    .ev-reg-choice-options .btn { width: 100%; justify-content: center; text-align: center; }
+    .ev-reg-choice-hint { font-size: 0.84rem; color: var(--gray-600); line-height: 1.5; margin-bottom: 4px; }
+    .ev-reg-flash { position: fixed; top: 0; left: 0; right: 0; z-index: 3000; padding: 14px 20px; text-align: center; font-size: 0.9rem; font-weight: 600; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+    .ev-reg-flash.success { background: #ecfdf5; color: #065f46; border-bottom: 1px solid #6ee7b7; }
+    .ev-reg-flash.cancel { background: #fffbeb; color: #92400e; border-bottom: 1px solid #fcd34d; }
+  </style>
+</head>
+<body>
+
+<!-- Announcement Bar -->
+<div class="announce-bar" id="announceBar" style="display:none;"></div>
+
+<div id="pageShell">
+<!-- Navigation -->
+<nav class="site-nav" id="siteNav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">
+      <img data-mf="org_logo" src="images/default-logo.svg" alt="Organization logo" class="nav-logo" />
+      <div class="nav-brand-text">
+        <span class="org-name" data-mf="org_name">Organization</span>
+        <span class="tagline" data-mf="org_tagline"></span>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="leadership.html">Leadership</a>
+      <a href="events.html" class="active">Events</a>
+      <a href="membership.html">Membership</a>
+      <a href="news.html">News</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="contact.html">Contact</a>
+      <a href="membership-inquiry.html" class="nav-interested" data-mf-term="nav_inquiry_label">Become a Member</a>
+      <a href="member-login.html" class="nav-cta nav-login"><i class="fas fa-user-circle"></i> Member Login</a>
+    </div>
+    <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Menu -->
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-close" id="mobileClose" aria-label="Close menu">&times;</button>
+  <a href="index.html">Home</a>
+  <a href="about.html">About</a>
+  <a href="leadership.html">Leadership</a>
+  <a href="events.html">Events</a>
+  <a href="membership.html">Membership</a>
+  <a href="news.html">News</a>
+  <a href="gallery.html">Gallery</a>
+  <a href="contact.html">Contact</a>
+  <a href="membership-inquiry.html" class="nav-interested" data-mf-term="nav_inquiry_label">Become a Member</a>
+  <a href="member-login.html" class="nav-login-mobile">🔒 Member Login</a>
+</div>
+
+<div id="pageContent">
+<!-- Page Header -->
+<section class="page-header">
+  <div class="container">
+    <span class="section-label">What's Happening</span>
+    <h1>Events</h1>
+    <p>Join us at our upcoming events, social gatherings, and community programs.</p>
+  </div>
+</section>
+
+<!-- Featured Event -->
+<section class="ev-feature-hero" id="featured-event">
+  <div class="ev-feature-hero-bg" id="featuredBg"></div>
+  <div class="container">
+    <div class="ev-feature-inner" id="featuredEventInner"></div>
+  </div>
+</section>
+
+<!-- All Events -->
+<section class="ev-all-events">
+  <div class="container">
+    <span class="section-label">Upcoming</span>
+    <h2 class="section-title" style="margin-bottom: 40px;">Upcoming Events</h2>
+    <div id="allEventsList"></div>
+  </div>
+</section>
+
+<section class="ev-all-events" id="pastEventsSection" style="display:none;">
+  <div class="container">
+    <span class="section-label">Archive</span>
+    <h2 class="section-title" style="margin-bottom: 40px;">Past Events</h2>
+    <div id="pastEventsList"></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="membership-cta">
+  <div class="membership-cta-inner">
+    <span class="section-label">Stay Connected</span>
+    <h2>Questions About Events?</h2>
+    <p>Reach out to our team for sponsorship opportunities, ticket information, or any event inquiries.</p>
+    <div class="cta-actions">
+      <a href="contact.html" class="btn btn-primary"><i class="fas fa-envelope"></i> Contact Us</a>
+      <a href="fundraiser.html" id="eventsFundraiserLink" class="btn btn-outline" style="display:none;">Support Our Cause</a>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- ========================
+     FOOTER
+======================== -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo-row">
+          <img data-mf="org_logo" src="images/default-logo.svg" alt="Organization logo" class="footer-logo" />
+          <div>
+            <div class="footer-brand-name" data-mf="org_name">Organization</div>
+            <div class="footer-brand-sub" data-mf="org_tagline"></div>
+          </div>
+        </div>
+        <p data-mf="org_creed"></p>
+        <div class="footer-social">
+          <a href="#" target="_blank" rel="noopener" data-mf-social="facebook" aria-label="Facebook" style="display:none;"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="instagram" aria-label="Instagram" style="display:none;"><i class="fab fa-instagram"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="youtube" aria-label="YouTube" style="display:none;"><i class="fab fa-youtube"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="linkedin" aria-label="LinkedIn" style="display:none;"><i class="fab fa-linkedin-in"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="x" aria-label="X" style="display:none;"><i class="fab fa-x-twitter"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Navigate</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="leadership.html">Leadership</a></li>
+          <li><a href="events.html">Events</a></li>
+          <li><a href="membership.html">Membership</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="gallery.html">Gallery</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Get Involved</h4>
+        <ul>
+          <li><a href="membership-inquiry.html" data-mf-term="nav_inquiry_label">Become a Member</a></li>
+          <li><a href="fundraiser.html" id="footerFundraiserLink" style="display:none;">Support Us</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <div class="footer-contact-item">
+          <i class="fas fa-map-marker-alt"></i>
+          <span data-mf="org_address"></span>
+        </div>
+        <div class="footer-contact-item">
+          <i class="fas fa-envelope"></i>
+          <a href="#" data-mf="org_email" style="color: rgba(255,255,255,0.55);"></a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; <span data-mf="year"></span> <span data-mf="org_name">Organization</span>. All rights reserved. &nbsp;|&nbsp; <a href="admin-login.html" style="color:rgba(255,255,255,0.25); font-size:0.75rem; text-decoration:none;"><i class="fas fa-lock" style="margin-right:4px;"></i>Admin Login</a> &nbsp;|&nbsp; <a href="https://memberforge.app" style="color:rgba(255,255,255,0.35); font-size:0.75rem; text-decoration:none;">Powered by MemberForge</a></p>
+      <p class="footer-creed" data-mf="org_creed" style="display:none;"></p>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script>
+/* ============================================================
+   EVENTS PAGE — fully dynamic, org-scoped via MF.scope()/MF.stamp()
+============================================================ */
+
+let allEventsStore = [];
+
+function isAbsoluteHttpUrl(url) { return /^https?:\/\//i.test(String(url || '').trim()); }
+function eventIdsMatch(a, b) { return String(a ?? '') === String(b ?? ''); }
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function normalizeEventRecord(r) {
+  const fee = Math.max(0, parseInt(String(r.registration_fee_cents ?? 0), 10) || 0);
+  const regUrlRaw = String(r.reg_url || r.registrationUrl || '').trim();
+  const regUrl = isAbsoluteHttpUrl(regUrlRaw) ? regUrlRaw : '';
+  const freeUrlRaw = String(r.free_registration_url || '').trim();
+  const freeUrl = isAbsoluteHttpUrl(freeUrlRaw) ? freeUrlRaw : '';
+  const chapterOn = !!r.chapter_registration_enabled;
+  let freeEnabled = r.free_registration_enabled != null ? !!r.free_registration_enabled : false;
+  let paidEnabled = r.paid_registration_enabled != null ? !!r.paid_registration_enabled : false;
+  if (chapterOn && !freeEnabled && !paidEnabled) {
+    if (regUrl) paidEnabled = true;
+    else if (fee > 0) paidEnabled = true;
+    else freeEnabled = true;
+  }
+  if (freeUrl) freeEnabled = true;
+  if (regUrl) paidEnabled = true;
+  const dtRaw = r.datetime ? String(r.datetime).trim() : '';
+  const datePart = dtRaw.split(' ')[0] || '';
+  const segs = datePart.split('/');
+  const fallbackDate = segs.length === 3 && /^\d{4}$/.test(String(segs[2] || ''))
+    ? String(segs[2]) + '-' + String(segs[0] || '').padStart(2, '0') + '-' + String(segs[1] || '').padStart(2, '0')
+    : '';
+  const normalizedDate = (r.event_date ? String(r.event_date) : '').trim() || fallbackDate;
+  return {
+    id: r.id, name: r.name || '', location: r.location || '', datetime: r.datetime || '',
+    eventDate: normalizedDate, featured: !!r.featured,
+    flyer: r.flyer || r.flyer_url || r.flyerUrl || '', description: r.description || '',
+    registrationUrl: regUrl, freeRegistrationEnabled: freeEnabled, freeRegistrationUrl: freeUrl,
+    paidRegistrationEnabled: paidEnabled, registrationFeeCents: fee,
+    sponsorEnabled: !!r.sponsor_enabled, sponsorUrl: String(r.sponsor_url || '').trim(),
+    sponsorLabel: String(r.sponsor_label || 'Become a Sponsor').trim() || 'Become a Sponsor',
+    membersOnly: !!(r.members_only)
+  };
+}
+
+function getRegistrationOptions(ev) {
+  if (!ev || ev.membersOnly) return [];
+  const opts = [];
+  const freeUrl = isAbsoluteHttpUrl(ev.freeRegistrationUrl) ? ev.freeRegistrationUrl.trim() : '';
+  const paidUrl = isAbsoluteHttpUrl(ev.registrationUrl) ? ev.registrationUrl.trim() : '';
+  const hasId = ev.id != null && String(ev.id) !== '';
+  if (freeUrl) opts.push({ kind: 'link', label: 'Free Registration', url: freeUrl, feeCents: 0 });
+  else if (ev.freeRegistrationEnabled && hasId) opts.push({ kind: 'chapter', label: 'Free Registration', feeCents: 0 });
+  if (paidUrl) opts.push({ kind: 'link', label: 'Purchase Tickets', url: paidUrl });
+  else if (ev.paidRegistrationEnabled && hasId && (ev.registrationFeeCents || 0) > 0) {
+    opts.push({ kind: 'chapter', label: 'Paid Registration — $' + ((ev.registrationFeeCents || 0) / 100).toFixed(2), feeCents: ev.registrationFeeCents });
+  }
+  return opts;
+}
+
+function eventHasSponsor(ev) { return !!(ev && ev.sponsorEnabled && (ev.sponsorUrl || '').trim()); }
+
+function renderSponsorButtonHtml(ev, className) {
+  if (!eventHasSponsor(ev)) return '';
+  return '<a href="' + escHtml(ev.sponsorUrl) + '" target="_blank" class="' + className + '">' + escHtml(ev.sponsorLabel || 'Become a Sponsor') + '</a>';
+}
+
+function buildRegisterButtonHtml(ev, extraStyle, stopPropagation) {
+  const opts = getRegistrationOptions(ev);
+  if (!opts.length) return '';
+  const styleAttr = extraStyle ? ' style="' + extraStyle + '"' : '';
+  if (opts.length === 1 && opts[0].kind === 'link') {
+    const stop = stopPropagation ? ' onclick="event.stopPropagation();"' : '';
+    return '<a href="' + escHtml(opts[0].url) + '" target="_blank" rel="noopener" class="btn btn-primary"' + styleAttr + stop + '><i class="fas fa-ticket-alt"></i> Register</a>';
+  }
+  if (ev.id == null || String(ev.id) === '') return '';
+  const safeId = escHtml(String(ev.id));
+  const stop = stopPropagation
+    ? ' onclick="event.stopPropagation(); openRegistrationChoiceFromStore(\'' + safeId + '\')"'
+    : ' onclick="openRegistrationChoiceFromStore(\'' + safeId + '\')"';
+  return '<button type="button" class="btn btn-primary"' + styleAttr + stop + '><i class="fas fa-ticket-alt"></i> Register</button>';
+}
+
+function openRegistrationChoiceFromStore(eventId) {
+  const idStr = String(eventId ?? '');
+  const ev = allEventsStore.find(x => eventIdsMatch(x.id, idStr));
+  if (!ev) return;
+  const opts = getRegistrationOptions(ev);
+  if (!opts.length) return;
+  if (opts.length === 1) { handleRegistrationOption(ev, opts[0]); return; }
+  const list = document.getElementById('regChoiceOptions');
+  const title = document.getElementById('regChoiceTitle');
+  if (!list || !title) return;
+  title.textContent = ev.name || 'Register';
+  list.innerHTML = '';
+  opts.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn ' + ((opt.feeCents || 0) > 0 ? 'btn-primary' : 'btn-outline');
+    const icon = opt.kind === 'link' ? 'fa-external-link-alt' : ((opt.feeCents || 0) > 0 ? 'fa-lock' : 'fa-check');
+    btn.innerHTML = '<i class="fas ' + icon + '"></i> ' + escHtml(opt.label);
+    btn.onclick = function() { closeRegistrationChoiceModal(); handleRegistrationOption(ev, opt); };
+    list.appendChild(btn);
+  });
+  document.getElementById('regChoiceModalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeRegistrationChoiceModal() {
+  const overlay = document.getElementById('regChoiceModalOverlay');
+  if (overlay) overlay.classList.remove('open');
+  if (!document.getElementById('eventModalOverlay').classList.contains('open') &&
+      !document.getElementById('regModalOverlay').classList.contains('open')) {
+    document.body.style.overflow = '';
+  }
+}
+
+function handleRegistrationOption(ev, opt) {
+  if (!ev || !opt) return;
+  if (opt.kind === 'link') { window.open(opt.url, '_blank', 'noopener'); return; }
+  openChapterRegModal(ev, opt.feeCents || 0);
+}
+
+function parseEventDate(dtStr) {
+  if (!dtStr) return { day: '—', month: '—', year: '—', time: '' };
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const rangeIdx = dtStr.search(/ - (?=\d{1,2}\/\d{1,2}\/\d{4})/);
+  let startStr = dtStr, endDateStr = '';
+  if (rangeIdx !== -1) { startStr = dtStr.slice(0, rangeIdx); endDateStr = dtStr.slice(rangeIdx + 3).trim().split(' ')[0]; }
+  const startParts = startStr.trim().split(' ');
+  const segs = (startParts[0] || '').split('/');
+  if (segs.length < 3) {
+    const fb = new Date(dtStr);
+    if (!isNaN(fb.getTime())) return { day: String(fb.getDate()), month: monthNames[fb.getMonth()], year: String(fb.getFullYear()), time: '' };
+    return { day: '—', month: '—', year: '—', time: '' };
+  }
+  const m = parseInt(segs[0], 10);
+  const d = parseInt(segs[1], 10);
+  const y = segs[2] || '';
+  const timeRaw = startParts.slice(1).join(' ');
+  const timeSepIdx = timeRaw.indexOf(' - ');
+  const time = timeSepIdx !== -1 ? timeRaw.slice(0, timeSepIdx).trim() : timeRaw.trim();
+  let endDay = 0;
+  if (endDateStr) { const eSegs = endDateStr.split('/'); endDay = parseInt(eSegs[1], 10) || 0; }
+  const startDay = isNaN(d) ? '?' : String(d);
+  const day = (endDay && endDay !== d) ? startDay + '–' + endDay : startDay;
+  return { day, month: (!isNaN(m) && m >= 1 && m <= 12) ? monthNames[m - 1] : segs[0], year: y, time };
+}
+
+function renderFeaturedEvent(events) {
+  const inner = document.getElementById('featuredEventInner');
+  const bg = document.getElementById('featuredBg');
+  const featured = events.find(e => e.featured) || events[events.length - 1];
+  if (!featured) {
+    document.getElementById('featured-event').style.display = 'none';
+    return;
+  }
+  bg.style.backgroundImage = featured.flyer ? `url('${featured.flyer}')` : 'none';
+  let flyerHtml;
+  if (featured.flyer) {
+    flyerHtml = `<img src="${featured.flyer}" alt="${escHtml(featured.name)} flyer" onerror="this.parentElement.innerHTML='<div class=\\'ev-no-flyer\\'><i class=\\'fas fa-calendar-alt\\'></i><span>Flyer Coming Soon</span></div>'" />`;
+  } else {
+    flyerHtml = `<div class="ev-no-flyer"><i class="fas fa-calendar-alt"></i><span>Flyer Coming Soon</span></div>`;
+  }
+  const parsed = parseEventDate(featured.datetime);
+  const dateLabel = parsed.month !== '—' ? `${parsed.month} ${parsed.day}, ${parsed.year}` : featured.datetime;
+  inner.innerHTML = `
+    <div class="ev-feature-img fade-up">${flyerHtml}</div>
+    <div class="ev-feature-text fade-up">
+      <span class="events-feature-badge">🏆 Featured Event</span>
+      <h2>${escHtml(featured.name)}</h2>
+      <div class="ev-feature-details">
+        ${dateLabel ? `<div class="ev-feature-detail"><i class="fas fa-calendar"></i> <strong>${escHtml(dateLabel)}</strong></div>` : ''}
+        ${parsed.time ? `<div class="ev-feature-detail"><i class="fas fa-clock"></i> Doors open at ${escHtml(parsed.time)}</div>` : ''}
+        ${featured.location ? `<div class="ev-feature-detail"><i class="fas fa-map-marker-alt"></i> ${escHtml(featured.location)}</div>` : ''}
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+        ${featured.membersOnly
+          ? `<span style="font-size:0.8rem;font-weight:700;color:var(--accent-light);letter-spacing:0.05em;text-transform:uppercase;"><i class="fas fa-lock"></i> Registration available in the Member Portal</span>`
+          : buildRegisterButtonHtml(featured, '', false)}
+        ${(featured.flyer || featured.description)
+          ? `<button type="button" class="btn btn-outline" onclick="openEventModal(allEventsStore.find(e=>e.featured)||allEventsStore[allEventsStore.length-1])"><i class="fas fa-expand-alt"></i> View Full Details</button>`
+          : ''}
+        ${renderSponsorButtonHtml(featured, 'btn btn-outline')}
+      </div>
+    </div>`;
+}
+
+function renderAllEvents(events, opts) {
+  const options = opts || {};
+  const container = document.getElementById(options.containerId || 'allEventsList');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!events || events.length === 0) {
+    container.innerHTML = `<div class="ev-no-events-msg"><i class="fas fa-calendar-times"></i><p>${escHtml(options.emptyMessage || 'No events to display.')}</p></div>`;
+    return;
+  }
+  events.forEach(ev => {
+    const parsed = parseEventDate(ev.datetime);
+    const card = document.createElement('div');
+    card.className = 'ev-full-card fade-up' + (ev.featured ? ' is-featured' : '');
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', 'View details for ' + ev.name);
+    const flyerThumb = ev.flyer
+      ? `<div class="ev-flyer-thumb"><img src="${ev.flyer}" alt="${escHtml(ev.name)} flyer" onerror="this.parentElement.style.display='none'" /></div>`
+      : '';
+    const featuredTag = ev.featured ? `<div class="ev-featured-tag"><i class="fas fa-star"></i> Featured</div>` : '';
+    const hasDetails = ev.flyer || ev.description;
+    const detailHint = hasDetails ? `<div class="ev-view-detail-hint"><i class="fas fa-expand-alt"></i> Click to view details</div>` : '';
+    const actionBtn = ev.membersOnly
+      ? `<div style="white-space:nowrap;flex-shrink:0;font-size:0.76rem;font-weight:700;color:var(--accent);letter-spacing:0.05em;text-transform:uppercase;opacity:0.85;"><i class="fas fa-lock"></i> Members Only</div>`
+      : buildRegisterButtonHtml(ev, 'white-space:nowrap;flex-shrink:0;', true);
+    card.innerHTML = `
+      <div class="ev-full-date">
+        <div class="day">${escHtml(parsed.day)}</div>
+        <div class="month">${escHtml(parsed.month)}</div>
+        <div class="year">${escHtml(parsed.year)}</div>
+      </div>
+      <div class="ev-full-body">
+        <div class="ev-full-info">
+          ${featuredTag}
+          <h3>${escHtml(ev.name)}</h3>
+          <div class="ev-meta">
+            ${parsed.time ? `<span><i class="fas fa-clock"></i> ${escHtml(parsed.time)}</span>` : ''}
+            ${ev.location ? `<span><i class="fas fa-map-marker-alt"></i> ${escHtml(ev.location)}</span>` : ''}
+          </div>
+          ${detailHint}
+        </div>
+        ${flyerThumb}
+        ${actionBtn}
+      </div>`;
+    card.addEventListener('click', e => { if (e.target.closest('a, button')) return; openEventModal(ev); });
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEventModal(ev); } });
+    container.appendChild(card);
+  });
+}
+
+function normalizeEvents(rows) { return (!rows || !rows.length) ? [] : rows.map(normalizeEventRecord); }
+
+function toEventDateValue(ev) {
+  const raw = (ev && ev.eventDate ? String(ev.eventDate) : '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const dtRaw = (ev && ev.datetime ? String(ev.datetime) : '').trim();
+  const datePart = dtRaw.split(' ')[0] || '';
+  const segs = datePart.split('/');
+  if (segs.length === 3) {
+    const mm = String(segs[0] || '').padStart(2, '0');
+    const dd = String(segs[1] || '').padStart(2, '0');
+    const yyyy = String(segs[2] || '');
+    if (/^\d{4}$/.test(yyyy)) return yyyy + '-' + mm + '-' + dd;
+  }
+  return '';
+}
+
+function sortByEventDate(events, dir) {
+  const list = Array.isArray(events) ? events.slice() : [];
+  list.sort((a, b) => {
+    const da = toEventDateValue(a) || '0000-00-00';
+    const db = toEventDateValue(b) || '0000-00-00';
+    if (da === db) return 0;
+    if (dir === 'desc') return da > db ? -1 : 1;
+    return da < db ? -1 : 1;
+  });
+  return list;
+}
+
+function localTodayIso() {
+  const n = new Date();
+  return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+}
+function isEventArchived(ev, todayIso) {
+  const d = toEventDateValue(ev);
+  return d ? d < todayIso : false;
+}
+
+function openEventModal(ev) {
+  if (!ev) return;
+  const overlay = document.getElementById('eventModalOverlay');
+  const parsed = parseEventDate(ev.datetime);
+  const dateLabel = parsed.month !== '—' ? `${parsed.month} ${parsed.day}, ${parsed.year}` : (ev.datetime || '');
+  let flyerHtml = '';
+  if (ev.flyer) {
+    flyerHtml = `<div class="ev-modal-flyer"><img src="${escHtml(ev.flyer)}" alt="${escHtml(ev.name)} flyer" onerror="this.parentElement.className='ev-modal-flyer ev-no-flyer-modal';this.parentElement.innerHTML='<i class=\\'fas fa-calendar-alt\\'></i>';" /></div>`;
+  }
+  const badge = ev.featured ? `<div class="ev-modal-badge"><i class="fas fa-star"></i> Featured Event</div>` : '';
+  const metaDate = dateLabel ? `<span><i class="fas fa-calendar"></i> ${escHtml(dateLabel)}</span>` : '';
+  const metaTime = parsed.time ? `<span><i class="fas fa-clock"></i> ${escHtml(parsed.time)}</span>` : '';
+  const metaLoc = ev.location ? `<span><i class="fas fa-map-marker-alt"></i> ${escHtml(ev.location)}</span>` : '';
+  const desc = ev.description ? `<div class="ev-modal-desc">${escHtml(ev.description)}</div>` : '';
+  let actions = ev.membersOnly
+    ? `<span style="font-size:0.82rem;font-weight:700;color:var(--accent);letter-spacing:0.05em;text-transform:uppercase;"><i class="fas fa-lock"></i> Registration available in the Member Portal</span>`
+    : buildRegisterButtonHtml(ev, '', false);
+  if (eventHasSponsor(ev)) actions += renderSponsorButtonHtml(ev, 'btn btn-outline');
+  actions += `<button type="button" class="btn btn-outline" onclick="closeEventModal()">Close</button>`;
+  overlay.querySelector('.ev-modal').innerHTML = `
+    <button class="ev-modal-close" onclick="closeEventModal()" aria-label="Close">&times;</button>
+    ${flyerHtml}
+    <div class="ev-modal-body">
+      ${badge}
+      <h2 class="ev-modal-title">${escHtml(ev.name)}</h2>
+      <div class="ev-modal-meta">${metaDate}${metaTime}${metaLoc}</div>
+      ${desc}
+      <div class="ev-modal-actions">${actions}</div>
+    </div>`;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeEventModal() {
+  document.getElementById('eventModalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function openChapterRegModal(ev, feeOverride) {
+  if (!ev || ev.id == null || ev.id === '') return;
+  const feeCents = feeOverride != null ? feeOverride : (ev.registrationFeeCents || 0);
+  window.__chapterRegEvent = ev;
+  window.__chapterRegFeeCents = feeCents;
+  document.getElementById('chapterRegTitle').textContent = ev.name || 'Event registration';
+  const feeEl = document.getElementById('chapterRegFeeLine');
+  feeEl.textContent = feeCents <= 0 ? 'Free registration' : 'Registration fee: $' + (feeCents / 100).toFixed(2) + ' (secure payment via Stripe)';
+  document.getElementById('chapterRegName').value = '';
+  document.getElementById('chapterRegPhone').value = '';
+  document.getElementById('chapterRegEmail').value = '';
+  const err = document.getElementById('chapterRegError');
+  err.classList.remove('show'); err.textContent = '';
+  document.getElementById('chapterRegSubmit').innerHTML = feeCents <= 0
+    ? '<i class="fas fa-check"></i> Complete registration'
+    : '<i class="fas fa-lock"></i> Continue to payment';
+  document.getElementById('regModalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeChapterRegModal() {
+  document.getElementById('regModalOverlay').classList.remove('open');
+  if (!document.getElementById('eventModalOverlay').classList.contains('open')) document.body.style.overflow = '';
+  window.__chapterRegEvent = null;
+  window.__chapterRegFeeCents = null;
+}
+
+function showRegFlash(kind, msg) {
+  const el = document.createElement('div');
+  el.className = 'ev-reg-flash ' + (kind === 'success' ? 'success' : 'cancel');
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 7000);
+}
+
+async function registerForEventFree(orgId, eventId, fullName, phone, email) {
+  return sb.rpc('register_for_event_free', {
+    p_org_id: orgId,
+    p_event_id: eventId,
+    p_full_name: fullName,
+    p_phone: phone,
+    p_email: email
+  });
+}
+
+async function submitChapterRegistration(ev) {
+  const errEl = document.getElementById('chapterRegError');
+  errEl.classList.remove('show');
+  const fullName = document.getElementById('chapterRegName').value.trim();
+  const phone = document.getElementById('chapterRegPhone').value.trim();
+  const email = document.getElementById('chapterRegEmail').value.trim();
+  if (fullName.length < 2) { errEl.textContent = 'Please enter your name.'; errEl.classList.add('show'); return; }
+  if (phone.length < 7) { errEl.textContent = 'Please enter a valid phone number.'; errEl.classList.add('show'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = 'Please enter a valid email address.'; errEl.classList.add('show'); return; }
+
+  const btn = document.getElementById('chapterRegSubmit');
+  btn.disabled = true;
+  try {
+    const org = MF.org;
+    const fee = window.__chapterRegFeeCents != null ? window.__chapterRegFeeCents : (ev.registrationFeeCents || 0);
+    if (fee <= 0) {
+      await registerForEventFree(org.id, ev.id, fullName, phone, email);
+      closeChapterRegModal();
+      showRegFlash('success', 'You are registered. We look forward to seeing you!');
+    } else {
+      const r = await fetch(`${sb.url}/functions/v1/stripe-checkout`, {
+        method: 'POST',
+        headers: sb.headers(),
+        body: JSON.stringify({
+          mode: 'event',
+          org_id: org.id,
+          eventId: ev.id,
+          fullName: fullName,
+          phone: phone,
+          email: email
+        })
+      });
+      let payload = null;
+      try { payload = await r.json(); } catch (e2) { payload = { error: await r.text() }; }
+      if (!r.ok) throw new Error((payload && payload.error) ? payload.error : 'Could not start checkout.');
+      if (payload.url) { window.location.href = payload.url; return; }
+      throw new Error((payload && payload.error) ? payload.error : 'Checkout unavailable.');
+    }
+  } catch (e) {
+    let msg = (e && e.message) ? e.message : 'Something went wrong. Please try again.';
+    if (/already registered/i.test(msg) || /unique.*event_registrations|23505/i.test(msg)) {
+      msg = 'You are already registered for this event.';
+    } else if (/row-level security|42501/i.test(msg)) {
+      msg = 'Registration could not be saved. Please try again shortly or contact us.';
+    }
+    errEl.textContent = msg;
+    errEl.classList.add('show');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const overlay = document.getElementById('eventModalOverlay');
+  if (overlay) overlay.addEventListener('click', e => { if (e.target === overlay) closeEventModal(); });
+  const regOverlay = document.getElementById('regModalOverlay');
+  const choiceOverlay = document.getElementById('regChoiceModalOverlay');
+  if (regOverlay) regOverlay.addEventListener('click', e => { if (e.target === regOverlay) closeChapterRegModal(); });
+  if (choiceOverlay) choiceOverlay.addEventListener('click', e => { if (e.target === choiceOverlay) closeRegistrationChoiceModal(); });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (regOverlay && regOverlay.classList.contains('open')) { closeChapterRegModal(); return; }
+    if (choiceOverlay && choiceOverlay.classList.contains('open')) { closeRegistrationChoiceModal(); return; }
+    closeEventModal();
+  });
+});
+
+(function handleStripeReturnQuery() {
+  const q = new URLSearchParams(window.location.search);
+  if (q.get('reg') === 'success') {
+    showRegFlash('success', 'Payment received — your registration is complete. Thank you!');
+    history.replaceState({}, '', 'events.html');
+  } else if (q.get('reg') === 'cancel') {
+    showRegFlash('cancel', 'Checkout was canceled. You can register again anytime.');
+    history.replaceState({}, '', 'events.html');
+  }
+})();
+
+(async function() {
+  const org = await MF.ready;
+  if (!org) return;
+
+  let upcomingEvents = [];
+  let pastEvents = [];
+  try {
+    const todayIso = localTodayIso();
+    const allRows = await sb.getAll('events', `${MF.scope('order=event_date.asc,sort_order.asc')}`);
+    const normalized = normalizeEvents(allRows);
+    const upcomingRaw = normalized.filter(ev => !isEventArchived(ev, todayIso));
+    const pastRaw = normalized.filter(ev => isEventArchived(ev, todayIso));
+    upcomingEvents = sortByEventDate(upcomingRaw, 'asc');
+    pastEvents = sortByEventDate(pastRaw, 'desc');
+  } catch (err) {
+    upcomingEvents = [];
+    pastEvents = [];
+  }
+
+  try {
+    const rows = await sb.getAll('announcements', `${MF.scope('active=eq.true&order=id.desc&limit=1')}`);
+    const row = rows && rows.length ? rows[0] : null;
+    if (row && row.text) {
+      const bar = document.getElementById('announceBar');
+      bar.innerHTML = `${row.text} &nbsp; <a href="${row.link_url || '#featured-event'}">${row.link_text || 'Learn More →'}</a>`;
+      bar.style.display = '';
+    }
+  } catch (err) { /* no announcement */ }
+
+  try {
+    const homeRows = await sb.getAll('site_content', `${MF.scope("content_key=eq.home&select=content_json")}`);
+    const homeContent = homeRows && homeRows[0] ? homeRows[0].content_json : null;
+    if (homeContent && homeContent.fundraiser_enabled) {
+      document.getElementById('footerFundraiserLink').style.display = '';
+      document.getElementById('eventsFundraiserLink').style.display = '';
+    }
+  } catch (err) { /* footer fundraiser link stays hidden */ }
+
+  allEventsStore = upcomingEvents.concat(pastEvents);
+  renderFeaturedEvent(upcomingEvents);
+  renderAllEvents(upcomingEvents, { containerId: 'allEventsList', emptyMessage: 'No upcoming events at this time. Check back soon!' });
+  const pastSection = document.getElementById('pastEventsSection');
+  if (pastEvents.length) {
+    pastSection.style.display = '';
+    renderAllEvents(pastEvents, { containerId: 'pastEventsList', emptyMessage: 'No past events yet.' });
+  } else {
+    pastSection.style.display = 'none';
+  }
+
+  const registerId = new URLSearchParams(window.location.search).get('register');
+  if (registerId) {
+    openRegistrationChoiceFromStore(registerId);
+    history.replaceState({}, '', 'events.html');
+  }
+
+  setTimeout(() => {
+    document.querySelectorAll('.fade-up, .fade-in').forEach(el => {
+      el.classList.add('visible');
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+    });
+  }, 100);
+})();
+</script>
+
+<!-- Registration choice modal -->
+<div class="ev-reg-overlay" id="regChoiceModalOverlay" role="dialog" aria-modal="true" aria-labelledby="regChoiceTitle">
+  <div class="ev-reg-modal" onclick="event.stopPropagation();">
+    <button type="button" class="ev-reg-close" onclick="closeRegistrationChoiceModal()" aria-label="Close">&times;</button>
+    <div class="ev-reg-body">
+      <h3 id="regChoiceTitle">Register</h3>
+      <p class="ev-reg-choice-hint">Choose how you would like to register for this event.</p>
+      <div class="ev-reg-choice-options" id="regChoiceOptions"></div>
+      <div class="ev-reg-actions" style="margin-top:18px;">
+        <button type="button" class="btn btn-outline" onclick="closeRegistrationChoiceModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chapter registration modal -->
+<div class="ev-reg-overlay" id="regModalOverlay" role="dialog" aria-modal="true" aria-labelledby="chapterRegTitle">
+  <div class="ev-reg-modal" onclick="event.stopPropagation();">
+    <button type="button" class="ev-reg-close" onclick="closeChapterRegModal()" aria-label="Close">&times;</button>
+    <div class="ev-reg-body">
+      <h3 id="chapterRegTitle">Register</h3>
+      <p class="ev-reg-fee" id="chapterRegFeeLine"></p>
+      <div class="ev-reg-field"><label for="chapterRegName">Full name</label><input id="chapterRegName" type="text" autocomplete="name" required /></div>
+      <div class="ev-reg-field"><label for="chapterRegPhone">Phone</label><input id="chapterRegPhone" type="tel" autocomplete="tel" required /></div>
+      <div class="ev-reg-field"><label for="chapterRegEmail">Email</label><input id="chapterRegEmail" type="email" autocomplete="email" required /></div>
+      <div class="ev-reg-error" id="chapterRegError" role="alert"></div>
+      <div class="ev-reg-actions">
+        <button type="button" class="btn btn-primary" id="chapterRegSubmit" onclick="if(window.__chapterRegEvent) submitChapterRegistration(window.__chapterRegEvent);"><i class="fas fa-arrow-right"></i> Continue</button>
+        <button type="button" class="btn btn-outline" onclick="closeChapterRegModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Event Detail Modal -->
+<div class="ev-modal-overlay" id="eventModalOverlay" role="dialog" aria-modal="true" aria-label="Event Details">
+  <div class="ev-modal"></div>
+</div>
+
+</body>
+</html>
