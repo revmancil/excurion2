@@ -133,6 +133,43 @@
     document.dispatchEvent(new CustomEvent('mf:branded', { detail: org }));
   }
 
+  // Detects "nobody has pointed js/memberforge-client.js at a real Supabase
+  // project yet" — i.e. this is being viewed (e.g. via GitHub Pages) before
+  // setup, not a real deployment having an outage. Only in that specific
+  // case do we render sample content instead of the "not found" screen, so
+  // there's something to look at before wiring up a backend. A configured
+  // deployment that's genuinely unreachable still gets the honest error.
+  function isUnconfiguredBackend() {
+    return /YOUR-PROJECT-REF|YOUR-SUPABASE-ANON-KEY/.test(sb.url + sb.key);
+  }
+
+  const DEMO_ORG = {
+    id: '00000000-0000-0000-0000-000000000000',
+    slug: 'demo',
+    name: 'Sample Organization',
+    tagline: 'Preview · Connect Supabase to make this live',
+    logo_url: null,
+    favicon_url: null,
+    hero_image_url: null,
+    accent_color: '#4F46E5',
+    ink_color: '#0b0f19',
+    contact_email: 'hello@example.org',
+    contact_phone: '',
+    contact_address: '123 Main St, Anytown, USA',
+    social_links: {},
+    terminology: {},
+    plan: 'demo',
+    custom_domain: null,
+    __demo: true
+  };
+
+  function showDemoBanner() {
+    const bar = document.createElement('div');
+    bar.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#0b0f19;color:#fff;font-family:Inter,sans-serif;font-size:0.78rem;padding:10px 16px;text-align:center;border-top:2px solid #4F46E5;';
+    bar.innerHTML = 'Preview mode — showing sample content because no Supabase project is connected yet. <a href="README.md" style="color:#7C74EF;">Setup instructions</a>';
+    document.body.appendChild(bar);
+  }
+
   function orgNotFound() {
     document.body.innerHTML = `
       <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;background:#0b0f19;color:#fff;text-align:center;padding:24px;">
@@ -170,6 +207,12 @@
   const MF = {
     org: null,
     ready: (async () => {
+      if (isUnconfiguredBackend()) {
+        MF.org = DEMO_ORG;
+        applyBranding(DEMO_ORG);
+        showDemoBanner();
+        return DEMO_ORG;
+      }
       try {
         const org = await resolve();
         if (!org) {
