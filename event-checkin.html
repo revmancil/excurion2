@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Event Check-In | {{ORG_NAME}}</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <script src="js/memberforge-client.js"></script>
+  <script src="js/org-context.js"></script>
+  <style>
+    body.mf-branded { background: var(--ink); }
+    .kiosk-page { min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 24px; }
+    .kiosk-wrap { position: relative; z-index: 2; width: 100%; max-width: 480px; padding-top: 16px; }
+    .kiosk-brand { text-align: center; margin-bottom: 24px; }
+    .kiosk-brand img { height: 64px; width: 64px; object-fit: contain; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--accent) 50%, transparent); margin-bottom: 12px; background: rgba(255,255,255,0.04); }
+    .kiosk-brand h1 { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 800; color: var(--accent); }
+    .kiosk-brand p { font-size: 0.75rem; color: rgba(255,255,255,0.4); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 4px; }
+    .kiosk-card { background: #111; border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent); border-radius: 10px; padding: 24px; margin-bottom: 16px; }
+    .event-info h2 { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--accent); margin-bottom: 8px; }
+    .event-info p { font-size: 0.82rem; color: rgba(255,255,255,0.5); line-height: 1.7; }
+    .event-info p i { width: 16px; }
+    .section-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.35); margin-bottom: 14px; }
+    .kiosk-form label { display: block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 5px; }
+    .kiosk-form input { width: 100%; padding: 11px 12px; background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12); border-radius: 6px; color: #fff; font-family: 'Inter', sans-serif; font-size: 0.9rem; margin-bottom: 14px; }
+    .kiosk-form input:focus { outline: none; border-color: var(--accent); }
+    .kiosk-form input::placeholder { color: rgba(255,255,255,0.2); }
+    .kiosk-submit { width: 100%; padding: 12px; background: var(--accent); color: var(--on-accent); border: none; border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 0.88rem; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .kiosk-submit:hover { background: var(--accent-light); }
+    .kiosk-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+    .err-msg { background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); color: #e74c3c; border-radius: 6px; padding: 10px 14px; font-size: 0.82rem; margin-bottom: 14px; display: none; }
+    .info-msg { background: color-mix(in srgb, var(--accent) 10%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent); border-radius: 6px; padding: 10px 14px; font-size: 0.82rem; margin-bottom: 14px; display: none; }
+    .success-screen { text-align: center; padding: 20px 0; }
+    .success-screen .check { width: 64px; height: 64px; background: rgba(39,174,96,0.12); border: 2px solid #27ae60; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 1.6rem; color: #27ae60; }
+    .success-screen h2 { font-family: 'Playfair Display', serif; color: var(--accent); font-size: 1.2rem; margin-bottom: 8px; }
+    .success-screen p { color: rgba(255,255,255,0.5); font-size: 0.88rem; }
+    .again-btn { margin-top: 20px; padding: 8px 20px; background: transparent; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent); border-radius: 6px; font-size: 0.82rem; cursor: pointer; }
+    .invalid-screen { text-align: center; padding: 20px 0; }
+    .invalid-screen i { font-size: 2rem; color: rgba(231,76,60,0.5); display: block; margin-bottom: 12px; }
+    .invalid-screen p { color: rgba(255,255,255,0.4); font-size: 0.88rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 24px; height: 24px; border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto; }
+  </style>
+</head>
+<body>
+
+<div class="kiosk-page">
+  <div class="kiosk-wrap">
+    <div class="kiosk-brand">
+      <img data-mf="org_logo" src="images/default-logo.svg" alt="Organization logo" />
+      <h1 data-mf="org_name">Organization</h1>
+      <p>Event Check-In</p>
+    </div>
+
+    <div class="kiosk-card" id="loadingScreen">
+      <div style="text-align:center;padding:16px 0;">
+        <div class="spinner"></div>
+        <p style="color:rgba(255,255,255,0.4);margin-top:14px;font-size:0.85rem;">Loading event…</p>
+      </div>
+    </div>
+
+    <div class="kiosk-card" id="invalidScreen" style="display:none;">
+      <div class="invalid-screen">
+        <i class="fas fa-link-slash"></i>
+        <p>This check-in link is invalid or the event no longer exists.</p>
+      </div>
+    </div>
+
+    <div id="mainScreen" style="display:none;">
+      <div class="kiosk-card" style="margin-bottom:14px;">
+        <div class="event-info" id="eventInfo"></div>
+      </div>
+
+      <div class="kiosk-card">
+        <div class="section-label"><i class="fas fa-door-open"></i> Check In</div>
+        <div class="err-msg" id="formErr"></div>
+        <form class="kiosk-form" id="checkinForm">
+          <label>Full Name</label>
+          <input type="text" id="ciName" placeholder="First and last name" required />
+          <label>Email <span style="font-weight:400;color:rgba(255,255,255,0.25);">(optional — prevents duplicate check-ins)</span></label>
+          <input type="email" id="ciEmail" placeholder="you@example.com" />
+          <button type="submit" class="kiosk-submit" id="ciSubmitBtn"><i class="fas fa-check"></i> Check In</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="kiosk-card" id="successScreen" style="display:none;">
+      <div class="success-screen">
+        <div class="check"><i class="fas fa-check"></i></div>
+        <h2>Checked In!</h2>
+        <p id="successMsg">Your attendance has been recorded.</p>
+        <p style="margin-top:12px;font-size:0.75rem;color:rgba(255,255,255,0.25);">You may close this page.</p>
+        <button class="again-btn" id="againBtn">Check In Another Person</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let eventId = null;
+
+  function getParams() {
+    const p = {};
+    window.location.search.replace(/^\?/, '').split('&').forEach(s => {
+      const kv = s.split('=');
+      if (kv.length === 2) p[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+    });
+    return p;
+  }
+  function show(id) {
+    ['loadingScreen', 'invalidScreen', 'mainScreen', 'successScreen'].forEach(s => {
+      const el = document.getElementById(s);
+      if (el) el.style.display = s === id ? 'block' : 'none';
+    });
+  }
+  function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function time24ToAmPm(t) {
+    if (!t) return '';
+    const p = t.split(':');
+    let h = parseInt(p[0], 10);
+    const m = p[1] || '00';
+    const ap = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return h + ':' + m + ' ' + ap;
+  }
+
+  async function loadEvent() {
+    const params = getParams();
+    eventId = params['id'];
+    if (!eventId) { show('invalidScreen'); return; }
+    try {
+      const rows = await sb.getAll('events', `${MF.scope(`id=eq.${encodeURIComponent(eventId)}&limit=1`)}`);
+      if (!rows || !rows.length) { show('invalidScreen'); return; }
+      const ev = rows[0];
+
+      let dateStr = '', timeStr = '';
+      if (ev.event_date) {
+        dateStr = new Date(ev.event_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+      }
+      if (ev.datetime) {
+        const parts = String(ev.datetime).split(' - ');
+        const d = new Date(parts[0]);
+        if (!isNaN(d)) {
+          if (!dateStr) dateStr = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+          timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+      }
+
+      let info = '<h2>' + esc(ev.name || 'Event') + '</h2>';
+      if (dateStr) info += '<p><i class="fas fa-calendar"></i> ' + dateStr + '</p>';
+      if (timeStr) info += '<p><i class="fas fa-clock"></i> ' + timeStr + '</p>';
+      if (ev.location) info += '<p><i class="fas fa-map-marker-alt"></i> ' + esc(ev.location) + '</p>';
+      document.getElementById('eventInfo').innerHTML = info;
+
+      show('mainScreen');
+    } catch (err) {
+      show('invalidScreen');
+    }
+  }
+
+  document.getElementById('checkinForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const errEl = document.getElementById('formErr');
+    errEl.style.display = 'none';
+    const name = document.getElementById('ciName').value.trim();
+    const email = document.getElementById('ciEmail').value.trim();
+    if (!name) { errEl.textContent = 'Please enter a name.'; errEl.style.display = 'block'; return; }
+
+    const btn = document.getElementById('ciSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking In…';
+    try {
+      const payload = MF.stamp({ event_id: eventId, member_name: name });
+      if (email) payload.member_email = email;
+      await sb.insert('event_attendance', payload);
+      document.getElementById('successMsg').textContent = 'Welcome, ' + name.split(' ')[0] + '! Attendance recorded.';
+      document.getElementById('checkinForm').reset();
+      show('successScreen');
+    } catch (err) {
+      // Unique constraint (event_id, email) — already checked in with this email.
+      const msg = String(err.message || '');
+      if (msg.includes('409') || msg.includes('23505') || msg.toLowerCase().includes('duplicate')) {
+        document.getElementById('successMsg').textContent = name.split(' ')[0] + ' is already checked in for this event.';
+        document.getElementById('checkinForm').reset();
+        show('successScreen');
+      } else {
+        errEl.textContent = 'Check-in failed: ' + (msg || 'Please try again.');
+        errEl.style.display = 'block';
+      }
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-check"></i> Check In';
+    }
+  });
+
+  document.getElementById('againBtn').addEventListener('click', () => {
+    show('mainScreen');
+    document.getElementById('ciName').focus();
+  });
+
+  (async function () {
+    const org = await MF.ready;
+    if (!org) return; // org-context.js already rendered the "not found" page
+    await loadEvent();
+  })();
+</script>
+
+</body>
+</html>

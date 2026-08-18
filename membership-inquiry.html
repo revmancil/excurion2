@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Become a Member | {{ORG_NAME}}</title>
+  <meta name="description" content="Submit a membership or guest inquiry — powered by MemberForge." />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <script src="js/memberforge-client.js"></script>
+  <script src="js/org-context.js"></script>
+  <style>
+    .mi-section { padding: 90px 0; }
+    .mi-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 30px; align-items: start; }
+    .mi-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: 8px; padding: 26px; }
+    .mi-intro { background: var(--ink); color: var(--white); border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent); }
+    .mi-intro p { color: rgba(255,255,255,0.65); line-height: 1.7; }
+    .mi-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .mi-field.full { grid-column: span 2; }
+    .mi-field label { display: block; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gray-600); margin-bottom: 6px; }
+    .mi-field input, .mi-field textarea, .mi-field select {
+      width: 100%; border: 1px solid var(--gray-200); border-radius: 6px; padding: 10px 12px;
+      font-family: 'Inter', sans-serif; font-size: 0.9rem; color: var(--gray-800); background: #fff;
+    }
+    .mi-field textarea { min-height: 100px; resize: vertical; }
+    .mi-field input:focus, .mi-field textarea:focus, .mi-field select:focus { border-color: var(--accent); outline: none; }
+    .mi-msg { margin-top: 12px; font-size: 0.84rem; display: none; padding: 10px 12px; border-radius: 6px; }
+    .mi-msg.show { display: block; }
+    .mi-msg.ok { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); color: #15803d; }
+    .mi-msg.err { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); color: #b91c1c; }
+    @media (max-width: 980px) {
+      .mi-grid, .mi-form-grid { grid-template-columns: 1fr; }
+      .mi-field.full { grid-column: span 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Announcement Bar -->
+<div class="announce-bar" style="display:none;"></div>
+
+<div id="pageShell">
+<!-- Navigation -->
+<nav class="site-nav" id="siteNav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">
+      <img data-mf="org_logo" src="images/default-logo.svg" alt="Organization logo" class="nav-logo" />
+      <div class="nav-brand-text">
+        <span class="org-name" data-mf="org_name">Organization</span>
+        <span class="tagline" data-mf="org_tagline"></span>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="leadership.html">Leadership</a>
+      <a href="events.html">Events</a>
+      <a href="membership.html">Membership</a>
+      <a href="news.html">News</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="contact.html">Contact</a>
+      <a href="membership-inquiry.html" class="nav-interested active" data-mf-term="nav_inquiry_label">Become a Member</a>
+      <a href="member-login.html" class="nav-cta nav-login"><i class="fas fa-user-circle"></i> Member Login</a>
+    </div>
+    <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Menu -->
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-close" id="mobileClose" aria-label="Close menu">&times;</button>
+  <a href="index.html">Home</a>
+  <a href="about.html">About</a>
+  <a href="leadership.html">Leadership</a>
+  <a href="events.html">Events</a>
+  <a href="membership.html">Membership</a>
+  <a href="news.html">News</a>
+  <a href="gallery.html">Gallery</a>
+  <a href="contact.html">Contact</a>
+  <a href="membership-inquiry.html" class="nav-interested" data-mf-term="nav_inquiry_label">Become a Member</a>
+  <a href="member-login.html" class="nav-login-mobile">🔒 Member Login</a>
+</div>
+
+<div id="pageContent">
+<section class="page-header">
+  <div class="container">
+    <span class="section-label">Get Involved</span>
+    <h1 data-mf-term="nav_inquiry_label">Become a Member</h1>
+    <p>Interested in joining, or just visiting? Tell us a bit about yourself and our team will follow up.</p>
+  </div>
+</section>
+
+<section class="mi-section">
+  <div class="container">
+    <div class="mi-grid">
+      <div class="mi-card mi-intro">
+        <span class="section-label">Welcome</span>
+        <h2 class="section-title light" style="font-size:1.9rem;">Submit Your Information</h2>
+        <div class="accent-bar left"></div>
+        <p style="margin-bottom:16px;">Use this form to introduce yourself — whether you're interested in membership, visiting one of our events, or simply want to connect. After you submit, our team will review your request.</p>
+        <p style="font-size:0.85rem;color:rgba(255,255,255,0.55);margin:0;">Fields marked with * are required.</p>
+      </div>
+      <div class="mi-card">
+        <form id="inquiryForm" novalidate>
+          <div class="mi-form-grid">
+            <div class="mi-field"><label for="miFirstName">First Name *</label><input type="text" id="miFirstName" required /></div>
+            <div class="mi-field"><label for="miLastName">Last Name *</label><input type="text" id="miLastName" required /></div>
+            <div class="mi-field"><label for="miEmail">Email *</label><input type="email" id="miEmail" required /></div>
+            <div class="mi-field"><label for="miPhone">Phone</label><input type="tel" id="miPhone" /></div>
+            <div class="mi-field"><label for="miCity">City</label><input type="text" id="miCity" /></div>
+            <div class="mi-field"><label for="miState">State</label><input type="text" id="miState" maxlength="2" /></div>
+            <div class="mi-field full"><label for="miReferredBy">Referred By</label><input type="text" id="miReferredBy" placeholder="Who told you about us?" /></div>
+            <div class="mi-field full"><label for="miMessage">Message</label><textarea id="miMessage" placeholder="Tell us why you're reaching out — membership interest, a visit, reactivating a past connection, or anything else."></textarea></div>
+          </div>
+          <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="submit" class="btn btn-primary" id="miSubmitBtn"><i class="fas fa-paper-plane"></i> Submit Inquiry</button>
+          </div>
+          <div id="miMsg" class="mi-msg"></div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- ========================
+     FOOTER
+======================== -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo-row">
+          <img data-mf="org_logo" src="images/default-logo.svg" alt="Organization logo" class="footer-logo" />
+          <div>
+            <div class="footer-brand-name" data-mf="org_name">Organization</div>
+            <div class="footer-brand-sub" data-mf="org_tagline"></div>
+          </div>
+        </div>
+        <p data-mf="org_creed"></p>
+        <div class="footer-social">
+          <a href="#" target="_blank" rel="noopener" data-mf-social="facebook" aria-label="Facebook" style="display:none;"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="instagram" aria-label="Instagram" style="display:none;"><i class="fab fa-instagram"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="youtube" aria-label="YouTube" style="display:none;"><i class="fab fa-youtube"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="linkedin" aria-label="LinkedIn" style="display:none;"><i class="fab fa-linkedin-in"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="x" aria-label="X" style="display:none;"><i class="fab fa-x-twitter"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Navigate</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="events.html">Events</a></li>
+          <li><a href="membership.html">Membership</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="gallery.html">Gallery</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Get Involved</h4>
+        <ul>
+          <li><a href="membership-inquiry.html" data-mf-term="nav_inquiry_label">Become a Member</a></li>
+          <li><a href="fundraiser.html" id="footerFundraiserLink" style="display:none;">Support Us</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <div class="footer-contact-item">
+          <i class="fas fa-map-marker-alt"></i>
+          <span data-mf="org_address"></span>
+        </div>
+        <div class="footer-contact-item">
+          <i class="fas fa-envelope"></i>
+          <a href="#" data-mf="org_email" style="color: rgba(255,255,255,0.55);"></a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; <span data-mf="year"></span> <span data-mf="org_name">Organization</span>. All rights reserved. &nbsp;|&nbsp; <a href="admin-login.html" style="color:rgba(255,255,255,0.25); font-size:0.75rem; text-decoration:none;"><i class="fas fa-lock" style="margin-right:4px;"></i>Admin Login</a> &nbsp;|&nbsp; <a href="https://memberforge.app" style="color:rgba(255,255,255,0.35); font-size:0.75rem; text-decoration:none;">Powered by MemberForge</a></p>
+      <p class="footer-creed" data-mf="org_creed" style="display:none;"></p>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script>
+function miVal(id) {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+
+function showMiMsg(ok, text) {
+  const msg = document.getElementById('miMsg');
+  msg.className = 'mi-msg show ' + (ok ? 'ok' : 'err');
+  msg.textContent = text;
+}
+
+(async function() {
+  const org = await MF.ready;
+  if (!org) return;
+
+  document.getElementById('inquiryForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const firstName = miVal('miFirstName');
+    const lastName = miVal('miLastName');
+    const email = miVal('miEmail');
+    if (!firstName || !lastName || !email) {
+      showMiMsg(false, 'Please complete First Name, Last Name, and Email.');
+      return;
+    }
+    const btn = document.getElementById('miSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+    const payload = {
+      first_name: firstName,
+      last_name: lastName,
+      email: email,
+      phone: miVal('miPhone'),
+      city: miVal('miCity'),
+      state: miVal('miState'),
+      message: miVal('miMessage'),
+      referred_by: miVal('miReferredBy')
+    };
+
+    try {
+      await sb.insert('membership_inquiries', MF.stamp(payload));
+
+      try {
+        await fetch(`${sb.url}/functions/v1/send-admin-notification`, {
+          method: 'POST',
+          headers: sb.headers(),
+          body: JSON.stringify({
+            org_id: org.id,
+            kind: 'membership_inquiry',
+            name: firstName + ' ' + lastName,
+            email: email
+          })
+        });
+      } catch (notifyErr) { /* best-effort notification only */ }
+
+      showMiMsg(true, 'Thank you — your inquiry has been submitted. Our team will be in touch soon.');
+      document.getElementById('inquiryForm').reset();
+    } catch (err) {
+      showMiMsg(false, 'Could not submit inquiry: ' + (err.message || 'unknown error'));
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Inquiry';
+    }
+  });
+
+  try {
+    const homeRows = await sb.getAll('site_content', `${MF.scope("content_key=eq.home&select=content_json")}`);
+    const homeContent = homeRows && homeRows[0] ? homeRows[0].content_json : null;
+    if (homeContent && homeContent.fundraiser_enabled) {
+      const link = document.getElementById('footerFundraiserLink');
+      if (link) link.style.display = '';
+    }
+  } catch (err) { /* footer fundraiser link stays hidden */ }
+  try {
+    const rows = await sb.getAll('announcements', `${MF.scope('active=eq.true&order=id.desc&limit=1')}`);
+    const row = rows && rows.length ? rows[0] : null;
+    const bar = document.querySelector('.announce-bar');
+    if (bar && row && row.text) {
+      bar.innerHTML = `${row.text} &nbsp; <a href="${row.link_url || 'events.html'}">${row.link_text || 'Learn More →'}</a>`;
+      bar.style.display = '';
+    }
+  } catch (err) { /* no announcement */ }
+})();
+</script>
+</body>
+</html>

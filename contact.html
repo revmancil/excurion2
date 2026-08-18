@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact | {{ORG_NAME}}</title>
+  <meta name="description" content="Get in touch with our organization — powered by MemberForge." />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <script src="js/memberforge-client.js"></script>
+  <script src="js/org-context.js"></script>
+  <style>
+    .ct-section { padding: 90px 0; background: var(--white); }
+    .ct-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; }
+    .ct-cards { display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px; }
+    .ct-card { display: flex; gap: 18px; padding: 22px; background: var(--gray-100); border-radius: 6px; border-left: 4px solid var(--accent); transition: all 0.3s ease; }
+    .ct-card:hover { background: var(--accent-pale); transform: translateX(4px); }
+    .ct-card .icon { width: 46px; height: 46px; background: var(--ink); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ct-card .icon i { color: var(--accent-light); font-size: 1rem; }
+    .ct-card .info h4 { font-size: 0.88rem; font-weight: 700; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .ct-card .info p, .ct-card .info a { font-size: 0.95rem; color: var(--gray-800); font-weight: 500; }
+    .ct-card .info a:hover { color: var(--accent); }
+    .ct-follow { background: var(--ink); border-radius: 8px; padding: 28px; text-align: center; }
+    .ct-follow-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.15em; color: var(--accent-light); text-transform: uppercase; margin-bottom: 14px; }
+    .ct-follow .footer-social { justify-content: center; }
+    .ct-form { background: var(--gray-100); border-radius: 8px; padding: 40px; }
+    .ct-form-group { margin-bottom: 20px; }
+    .ct-form-group label { display: block; font-size: 0.82rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gray-800); margin-bottom: 8px; }
+    .ct-form-group input, .ct-form-group select, .ct-form-group textarea { width: 100%; padding: 13px 16px; border: 1.5px solid var(--gray-200); border-radius: 4px; font-family: 'Inter', sans-serif; font-size: 0.95rem; color: var(--gray-800); background: var(--white); transition: all 0.25s ease; }
+    .ct-form-group input:focus, .ct-form-group select:focus, .ct-form-group textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); }
+    .ct-form-group textarea { resize: vertical; min-height: 130px; }
+    .ct-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .ct-form-submit { width: 100%; justify-content: center; padding: 16px; font-size: 0.9rem; box-sizing: border-box; text-decoration: none; text-align: center; }
+    @media (max-width: 768px) {
+      .ct-layout { grid-template-columns: 1fr; }
+      .ct-form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Announcement Bar -->
+<div class="announce-bar" style="display:none;"></div>
+
+<div id="pageShell">
+<!-- Navigation -->
+<nav class="site-nav" id="siteNav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">
+      <img data-mf="org_logo" src="images/default-logo.svg" alt="Organization logo" class="nav-logo" />
+      <div class="nav-brand-text">
+        <span class="org-name" data-mf="org_name">Organization</span>
+        <span class="tagline" data-mf="org_tagline"></span>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="leadership.html">Leadership</a>
+      <a href="events.html">Events</a>
+      <a href="membership.html">Membership</a>
+      <a href="news.html">News</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="contact.html" class="active">Contact</a>
+      <a href="membership-inquiry.html" class="nav-interested" data-mf-term="nav_inquiry_label">Become a Member</a>
+      <a href="member-login.html" class="nav-cta nav-login"><i class="fas fa-user-circle"></i> Member Login</a>
+    </div>
+    <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Menu -->
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-close" id="mobileClose" aria-label="Close menu">&times;</button>
+  <a href="index.html">Home</a>
+  <a href="about.html">About</a>
+  <a href="leadership.html">Leadership</a>
+  <a href="events.html">Events</a>
+  <a href="membership.html">Membership</a>
+  <a href="news.html">News</a>
+  <a href="gallery.html">Gallery</a>
+  <a href="contact.html">Contact</a>
+  <a href="membership-inquiry.html" class="nav-interested" data-mf-term="nav_inquiry_label">Become a Member</a>
+  <a href="member-login.html" class="nav-login-mobile">🔒 Member Login</a>
+</div>
+
+<div id="pageContent">
+<section class="page-header">
+  <div class="container">
+    <span class="section-label">Reach Out</span>
+    <h1>Contact Us</h1>
+    <p>Questions about membership, events, or anything else — we're here to help.</p>
+  </div>
+</section>
+
+<section class="ct-section">
+  <div class="container">
+    <div class="ct-layout">
+      <!-- Left: Info -->
+      <div class="fade-up">
+        <span class="section-label">Get In Touch</span>
+        <h2 class="section-title" style="font-size: 2rem;">We'd Love to Hear From You</h2>
+        <div class="accent-bar left"></div>
+        <p style="color:var(--gray-600); margin-bottom:28px;">Whether you're curious about membership, planning to attend an event, or simply want to connect — reach out and someone will be in touch.</p>
+
+        <div class="ct-cards">
+          <div class="ct-card" id="ctAddressCard" style="display:none;">
+            <div class="icon"><i class="fas fa-map-marker-alt"></i></div>
+            <div class="info">
+              <h4>Mailing Address</h4>
+              <p data-mf="org_address"></p>
+            </div>
+          </div>
+          <div class="ct-card" id="ctEmailCard" style="display:none;">
+            <div class="icon"><i class="fas fa-envelope"></i></div>
+            <div class="info">
+              <h4>General Inquiries</h4>
+              <a href="#" data-mf="org_email"></a>
+            </div>
+          </div>
+          <div class="ct-card" id="ctPhoneCard" style="display:none;">
+            <div class="icon"><i class="fas fa-phone"></i></div>
+            <div class="info">
+              <h4>Phone</h4>
+              <a href="#" data-mf="org_phone"></a>
+            </div>
+          </div>
+        </div>
+
+        <div class="ct-follow">
+          <div class="ct-follow-label">Follow Us</div>
+          <div class="footer-social">
+            <a href="#" target="_blank" rel="noopener" data-mf-social="facebook" aria-label="Facebook" style="display:none;"><i class="fab fa-facebook-f"></i></a>
+            <a href="#" target="_blank" rel="noopener" data-mf-social="instagram" aria-label="Instagram" style="display:none;"><i class="fab fa-instagram"></i></a>
+            <a href="#" target="_blank" rel="noopener" data-mf-social="youtube" aria-label="YouTube" style="display:none;"><i class="fab fa-youtube"></i></a>
+            <a href="#" target="_blank" rel="noopener" data-mf-social="linkedin" aria-label="LinkedIn" style="display:none;"><i class="fab fa-linkedin-in"></i></a>
+            <a href="#" target="_blank" rel="noopener" data-mf-social="x" aria-label="X" style="display:none;"><i class="fab fa-x-twitter"></i></a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Form -->
+      <div class="ct-form fade-up">
+        <h3 style="font-family:'Playfair Display',serif; font-size:1.4rem; color:var(--gray-800); margin-bottom:24px;">Send a Message</h3>
+        <form id="contactForm" novalidate>
+          <div class="ct-form-row">
+            <div class="ct-form-group">
+              <label for="ctFirstName">First Name *</label>
+              <input type="text" id="ctFirstName" placeholder="Jane" required />
+            </div>
+            <div class="ct-form-group">
+              <label for="ctLastName">Last Name *</label>
+              <input type="text" id="ctLastName" placeholder="Doe" required />
+            </div>
+          </div>
+          <div class="ct-form-group">
+            <label for="ctEmail">Email Address *</label>
+            <input type="email" id="ctEmail" placeholder="your@email.com" required />
+          </div>
+          <div class="ct-form-group">
+            <label for="ctSubject">Subject</label>
+            <select id="ctSubject">
+              <option value="">Select a topic...</option>
+              <option value="membership">Membership Inquiry</option>
+              <option value="events">Events</option>
+              <option value="sponsorship">Sponsorship</option>
+              <option value="general">General Question</option>
+            </select>
+          </div>
+          <div class="ct-form-group">
+            <label for="ctMessage">Message *</label>
+            <textarea id="ctMessage" placeholder="Tell us how we can help you..." required></textarea>
+          </div>
+          <a href="#" id="ctSubmitBtn" class="btn btn-primary ct-form-submit">
+            <i class="fas fa-envelope"></i> <span id="ctSubmitLabel">Send Message</span>
+          </a>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- ========================
+     FOOTER
+======================== -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo-row">
+          <img data-mf="org_logo" src="images/default-logo.svg" alt="Organization logo" class="footer-logo" />
+          <div>
+            <div class="footer-brand-name" data-mf="org_name">Organization</div>
+            <div class="footer-brand-sub" data-mf="org_tagline"></div>
+          </div>
+        </div>
+        <p data-mf="org_creed"></p>
+        <div class="footer-social">
+          <a href="#" target="_blank" rel="noopener" data-mf-social="facebook" aria-label="Facebook" style="display:none;"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="instagram" aria-label="Instagram" style="display:none;"><i class="fab fa-instagram"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="youtube" aria-label="YouTube" style="display:none;"><i class="fab fa-youtube"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="linkedin" aria-label="LinkedIn" style="display:none;"><i class="fab fa-linkedin-in"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="x" aria-label="X" style="display:none;"><i class="fab fa-x-twitter"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Navigate</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="events.html">Events</a></li>
+          <li><a href="membership.html">Membership</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="gallery.html">Gallery</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Get Involved</h4>
+        <ul>
+          <li><a href="membership-inquiry.html" data-mf-term="nav_inquiry_label">Become a Member</a></li>
+          <li><a href="fundraiser.html" id="footerFundraiserLink" style="display:none;">Support Us</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <div class="footer-contact-item">
+          <i class="fas fa-map-marker-alt"></i>
+          <span data-mf="org_address"></span>
+        </div>
+        <div class="footer-contact-item">
+          <i class="fas fa-envelope"></i>
+          <a href="#" data-mf="org_email" style="color: rgba(255,255,255,0.55);"></a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; <span data-mf="year"></span> <span data-mf="org_name">Organization</span>. All rights reserved. &nbsp;|&nbsp; <a href="admin-login.html" style="color:rgba(255,255,255,0.25); font-size:0.75rem; text-decoration:none;"><i class="fas fa-lock" style="margin-right:4px;"></i>Admin Login</a> &nbsp;|&nbsp; <a href="https://memberforge.app" style="color:rgba(255,255,255,0.35); font-size:0.75rem; text-decoration:none;">Powered by MemberForge</a></p>
+      <p class="footer-creed" data-mf="org_creed" style="display:none;"></p>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script>
+function ctVal(id) {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+
+function updateMailtoLink(org) {
+  const email = (org && org.contact_email) ? org.contact_email.trim() : '';
+  const btn = document.getElementById('ctSubmitBtn');
+  if (!email) {
+    btn.style.opacity = '0.5';
+    btn.style.pointerEvents = 'none';
+    document.getElementById('ctSubmitLabel').textContent = 'No contact email on file';
+    return;
+  }
+  btn.addEventListener('click', function(e) {
+    e.preventDefault();
+    const first = ctVal('ctFirstName');
+    const last = ctVal('ctLastName');
+    const from = ctVal('ctEmail');
+    const subject = ctVal('ctSubject') || 'general';
+    const message = ctVal('ctMessage');
+    if (!first || !last || !from || !message) {
+      alert('Please fill in your name, email, and message before sending.');
+      return;
+    }
+    const subjectLine = encodeURIComponent(`[${subject}] Message from ${first} ${last}`);
+    const body = encodeURIComponent(`${message}\n\n— ${first} ${last} (${from})`);
+    window.location.href = `mailto:${email}?subject=${subjectLine}&body=${body}`;
+  });
+}
+
+(async function() {
+  const org = await MF.ready;
+  if (!org) return;
+
+  if (org.contact_address) document.getElementById('ctAddressCard').style.display = '';
+  if (org.contact_email) document.getElementById('ctEmailCard').style.display = '';
+  if (org.contact_phone) document.getElementById('ctPhoneCard').style.display = '';
+
+  updateMailtoLink(org);
+
+  try {
+    const homeRows = await sb.getAll('site_content', `${MF.scope("content_key=eq.home&select=content_json")}`);
+    const homeContent = homeRows && homeRows[0] ? homeRows[0].content_json : null;
+    if (homeContent && homeContent.fundraiser_enabled) {
+      const link = document.getElementById('footerFundraiserLink');
+      if (link) link.style.display = '';
+    }
+  } catch (err) { /* footer fundraiser link stays hidden */ }
+  try {
+    const rows = await sb.getAll('announcements', `${MF.scope('active=eq.true&order=id.desc&limit=1')}`);
+    const row = rows && rows.length ? rows[0] : null;
+    const bar = document.querySelector('.announce-bar');
+    if (bar && row && row.text) {
+      bar.innerHTML = `${row.text} &nbsp; <a href="${row.link_url || 'events.html'}">${row.link_text || 'Learn More →'}</a>`;
+      bar.style.display = '';
+    }
+  } catch (err) { /* no announcement */ }
+
+  // Pre-select subject from ?subject= query param (used by other pages linking here)
+  const params = new URLSearchParams(window.location.search);
+  const subject = params.get('subject');
+  if (subject) {
+    const sel = document.getElementById('ctSubject');
+    for (let i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === subject) { sel.selectedIndex = i; break; }
+    }
+  }
+})();
+</script>
+</body>
+</html>

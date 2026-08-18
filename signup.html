@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Your Organization | MemberForge</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <script src="js/memberforge-client.js"></script>
+  <style>
+    /* No org branding on this page (there is no org yet) — theme.css defaults
+       (--accent/--ink etc.) are used as-is as MemberForge's own product look. */
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--ink);
+      padding: 24px;
+    }
+    .signup-wrap { width: 100%; max-width: 460px; }
+    .signup-brand { text-align: center; margin-bottom: 28px; }
+    .signup-brand .mark {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 56px; height: 56px; border-radius: 14px;
+      background: var(--accent); color: var(--on-accent);
+      font-family: 'Playfair Display', serif; font-weight: 800; font-size: 1.5rem;
+      margin-bottom: 14px;
+    }
+    .signup-brand h1 { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 800; color: #fff; }
+    .signup-brand p { font-size: 0.85rem; color: rgba(255,255,255,0.45); margin-top: 6px; }
+    .signup-card { background: #111; border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent); border-radius: 10px; padding: 36px 32px; }
+    .signup-card h2 { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: #fff; margin-bottom: 6px; }
+    .signup-sub { font-size: 0.83rem; color: rgba(255,255,255,0.4); margin-bottom: 26px; }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
+    .input-wrap { position: relative; }
+    .input-wrap i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.25); font-size: 0.9rem; }
+    .input-wrap input { width: 100%; padding: 13px 14px 13px 40px; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-family: 'Inter', sans-serif; font-size: 0.95rem; transition: all 0.25s ease; }
+    .input-wrap input:focus { outline: none; border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
+    .input-wrap input::placeholder { color: rgba(255,255,255,0.2); }
+    .input-wrap.invalid input { border-color: #e74c3c; }
+    .slug-prefix { display: flex; align-items: stretch; }
+    .slug-prefix .input-wrap { flex: 1; }
+    .slug-hint { font-size: 0.76rem; color: rgba(255,255,255,0.35); margin-top: 6px; }
+    .slug-hint.error { color: #e74c3c; }
+    .slug-hint.ok { color: #27ae60; }
+    .toggle-pw { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: rgba(255,255,255,0.3); cursor: pointer; font-size: 0.9rem; padding: 4px; }
+    .toggle-pw:hover { color: var(--accent); }
+    .msg { display: none; align-items: flex-start; gap: 8px; border-radius: 6px; padding: 12px 16px; font-size: 0.85rem; margin-bottom: 18px; line-height: 1.5; }
+    .msg.show { display: flex; }
+    .msg.error { background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); color: #e74c3c; }
+    .signup-submit { width: 100%; padding: 14px; background: var(--accent); color: var(--on-accent); border: none; border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: all 0.25s ease; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; }
+    .signup-submit:hover { background: var(--accent-light); transform: translateY(-1px); box-shadow: var(--shadow-accent); }
+    .signup-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.3); border-top-color: currentColor; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    .signup-links { margin-top: 20px; text-align: center; }
+    .signup-links a { font-size: 0.82rem; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.2s; }
+    .signup-links a:hover { color: var(--accent); }
+    /* Success state */
+    .success-state { text-align: center; padding: 8px 0; }
+    .success-state .check { width: 64px; height: 64px; background: rgba(39,174,96,0.12); border: 2px solid #27ae60; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; font-size: 1.7rem; color: #27ae60; }
+    .success-state h2 { font-family: 'Playfair Display', serif; color: #fff; font-size: 1.25rem; margin-bottom: 10px; }
+    .success-state p { color: rgba(255,255,255,0.5); font-size: 0.9rem; margin-bottom: 6px; }
+    .success-state .org-url { display: inline-block; margin: 14px 0 22px; padding: 10px 18px; background: rgba(255,255,255,0.05); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); border-radius: 6px; color: var(--accent); font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 600; word-break: break-all; }
+    @media (max-width: 480px) { .signup-card { padding: 28px 20px; } }
+  </style>
+</head>
+<body>
+
+<div class="signup-wrap">
+  <div class="signup-brand">
+    <div class="mark">MF</div>
+    <h1>MemberForge</h1>
+    <p>Membership management for organizations of any size.</p>
+  </div>
+
+  <div class="signup-card">
+    <div id="formState">
+      <h2>Create Your Organization</h2>
+      <p class="signup-sub">Set up your admin account and claim your organization's URL.</p>
+
+      <div class="msg error" id="errorMsg"><i class="fas fa-exclamation-circle"></i><span id="errorText">Something went wrong.</span></div>
+
+      <form id="signupForm" novalidate>
+        <div class="form-group">
+          <label for="orgName">Organization Name</label>
+          <div class="input-wrap">
+            <i class="fas fa-building"></i>
+            <input type="text" id="orgName" placeholder="e.g. Riverside Alumni Association" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="slug">Organization URL</label>
+          <div class="input-wrap">
+            <i class="fas fa-link"></i>
+            <input type="text" id="slug" placeholder="riverside-alumni" autocomplete="off" required />
+          </div>
+          <div class="slug-hint" id="slugHint">Lowercase letters, numbers, and hyphens only. This will be your organization's URL: <span id="slugPreview">yourorg</span>.memberforge.app</div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Your Email Address</label>
+          <div class="input-wrap">
+            <i class="fas fa-envelope"></i>
+            <input type="email" id="email" placeholder="you@example.com" autocomplete="email" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="password" placeholder="Minimum 8 characters" autocomplete="new-password" required />
+            <button type="button" class="toggle-pw" id="togglePw"><i class="fas fa-eye" id="toggleIcon"></i></button>
+          </div>
+        </div>
+
+        <button type="submit" class="signup-submit" id="signupBtn"><i class="fas fa-arrow-right"></i> Create Organization</button>
+      </form>
+
+      <div class="signup-links">
+        <a href="admin-login.html">Already have an account? Sign in</a>
+      </div>
+    </div>
+
+    <div id="successState" style="display:none;">
+      <div class="success-state">
+        <div class="check"><i class="fas fa-check"></i></div>
+        <h2>You're all set!</h2>
+        <p>Your organization has been created. Here's your site:</p>
+        <div class="org-url" id="orgUrlDisplay"></div>
+        <a href="#" id="signInLink" class="signup-submit" style="text-decoration:none;"><i class="fas fa-sign-in-alt"></i> Sign In to Get Started</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Configurable root domain for the org URL shown after signup.
+  const ROOT_DOMAIN = window.MEMBERFORGE_ROOT_DOMAIN || 'memberforge.app';
+
+  const slugInput = document.getElementById('slug');
+  const slugHint = document.getElementById('slugHint');
+  const slugPreview = document.getElementById('slugPreview');
+  const orgNameInput = document.getElementById('orgName');
+  const SLUG_PATTERN = /^[a-z0-9-]+$/;
+
+  function updateSlugPreview() {
+    slugPreview.textContent = slugInput.value.trim() || 'yourorg';
+  }
+  function validateSlugLive() {
+    const val = slugInput.value.trim();
+    updateSlugPreview();
+    slugInput.parentElement.classList.remove('invalid');
+    slugHint.classList.remove('error', 'ok');
+    if (!val) {
+      slugHint.textContent = 'Lowercase letters, numbers, and hyphens only. This will be your organization’s URL: ';
+      slugHint.appendChild(slugPreview);
+      slugHint.append('.' + ROOT_DOMAIN);
+      return;
+    }
+    if (!SLUG_PATTERN.test(val)) {
+      slugInput.parentElement.classList.add('invalid');
+      slugHint.classList.add('error');
+      slugHint.textContent = 'Only lowercase letters, numbers, and hyphens are allowed.';
+      return;
+    }
+    if (val.length < 3) {
+      slugInput.parentElement.classList.add('invalid');
+      slugHint.classList.add('error');
+      slugHint.textContent = 'Choose a URL of at least 3 characters.';
+      return;
+    }
+    slugHint.classList.add('ok');
+    slugHint.textContent = `Your site will be at ${val}.${ROOT_DOMAIN}`;
+  }
+
+  let slugManuallyEdited = false;
+  slugInput.addEventListener('input', () => { slugManuallyEdited = true; validateSlugLive(); });
+  orgNameInput.addEventListener('input', () => {
+    if (slugManuallyEdited) return;
+    slugInput.value = orgNameInput.value.trim().toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+    validateSlugLive();
+  });
+  validateSlugLive();
+
+  document.getElementById('togglePw').addEventListener('click', () => {
+    const pw = document.getElementById('password');
+    const icon = document.getElementById('toggleIcon');
+    if (pw.type === 'password') { pw.type = 'text'; icon.className = 'fas fa-eye-slash'; }
+    else { pw.type = 'password'; icon.className = 'fas fa-eye'; }
+  });
+
+  function showError(msg) {
+    const errorMsg = document.getElementById('errorMsg');
+    document.getElementById('errorText').textContent = msg;
+    errorMsg.classList.add('show');
+  }
+  function hideError() { document.getElementById('errorMsg').classList.remove('show'); }
+
+  document.getElementById('signupForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    hideError();
+
+    const orgName = orgNameInput.value.trim();
+    const slug = slugInput.value.trim().toLowerCase();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    if (!orgName) { showError('Please enter your organization’s name.'); return; }
+    if (!SLUG_PATTERN.test(slug) || slug.length < 3) { showError('Choose a URL of at least 3 characters using only lowercase letters, numbers, and hyphens.'); return; }
+    if (!email) { showError('Please enter your email address.'); return; }
+    if (password.length < 8) { showError('Password must be at least 8 characters.'); return; }
+
+    const btn = document.getElementById('signupBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div> Creating your organization…';
+
+    try {
+      // Step 1: create the Supabase Auth user (same raw pattern as
+      // MFAuth.registerMember, but there is no org yet to stamp anything with).
+      const signupRes = await fetch(`${sb.url}/auth/v1/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: sb.key },
+        body: JSON.stringify({ email, password })
+      });
+      const signupData = await signupRes.json();
+      if (!signupRes.ok) {
+        throw new Error(signupData.error_description || signupData.msg || 'Could not create your account.');
+      }
+      if (!signupData.access_token) {
+        // Email confirmation is required before a session is issued — the
+        // create_organization RPC needs an authenticated bearer token, so we
+        // can't proceed until the project's auth settings allow immediate sessions.
+        throw new Error('Please check your email to confirm your address, then sign in to finish creating your organization.');
+      }
+
+      // Step 2: authenticate as the new user for the RPC call below.
+      sb.session = {
+        access_token: signupData.access_token,
+        refresh_token: signupData.refresh_token,
+        expires_at: signupData.expires_at,
+        user: signupData.user
+      };
+
+      // Step 3: create the organization + this user's full-admin row atomically.
+      const org = await sb.rpc('create_organization', { p_slug: slug, p_name: orgName, p_contact_email: email });
+      const newOrg = Array.isArray(org) ? org[0] : org;
+
+      const orgUrl = `https://${newOrg.slug}.${ROOT_DOMAIN}`;
+      document.getElementById('orgUrlDisplay').textContent = orgUrl;
+      document.getElementById('signInLink').href = `admin-login.html?org=${encodeURIComponent(newOrg.slug)}`;
+      document.getElementById('formState').style.display = 'none';
+      document.getElementById('successState').style.display = 'block';
+    } catch (err) {
+      const message = String(err.message || '');
+      if (message.includes('23505') || /duplicate key|already exists|already taken/i.test(message)) {
+        showError('That URL is taken, try another.');
+      } else {
+        showError(message || 'Something went wrong. Please try again.');
+      }
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-arrow-right"></i> Create Organization';
+    }
+  });
+</script>
+
+</body>
+</html>

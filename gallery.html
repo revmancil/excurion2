@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gallery | {{ORG_NAME}}</title>
+  <meta name="description" content="Photos from our programs, service projects, and community events — powered by MemberForge." />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <script src="js/memberforge-client.js"></script>
+  <script src="js/org-context.js"></script>
+  <style>
+    .gl-section { padding: 72px 0 96px; background: var(--gray-100); min-height: 42vh; }
+    .gl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px; margin-top: 8px; }
+    .gl-card { border: none; padding: 0; margin: 0; background: var(--white); border-radius: 8px; overflow: hidden; cursor: pointer; text-align: left; box-shadow: 0 2px 16px rgba(0,0,0,0.06); transition: transform 0.25s ease, box-shadow 0.25s ease; width: 100%; }
+    .gl-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.1); }
+    .gl-card:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    .gl-card img { width: 100%; min-height: 200px; aspect-ratio: 4/3; object-fit: cover; object-position: center; display: block; background: var(--gray-200); }
+    .gl-card-cap { padding: 14px 16px 16px; }
+    .gl-card-title { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--gray-800); margin-bottom: 4px; line-height: 1.35; }
+    .gl-card-desc { font-size: 0.82rem; color: var(--gray-600); line-height: 1.55; margin: 0; }
+    .gl-empty { text-align: center; padding: 56px 24px; background: var(--white); border-radius: 8px; border: 1px dashed var(--gray-200); max-width: 520px; margin: 32px auto 0; }
+    .gl-empty i { font-size: 2.2rem; color: var(--accent); opacity: 0.5; margin-bottom: 14px; }
+    .gl-empty p { font-size: 0.95rem; color: var(--gray-600); line-height: 1.65; margin: 0; }
+
+    .gl-lightbox { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 24px; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
+    .gl-lightbox.open { opacity: 1; visibility: visible; }
+    .gl-lightbox-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.88); cursor: pointer; }
+    .gl-lightbox-dialog { position: relative; z-index: 2; max-width: min(1100px, 100%); max-height: 92vh; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .gl-lightbox-dialog img { max-width: 100%; max-height: calc(92vh - 120px); object-fit: contain; border-radius: 4px; box-shadow: 0 8px 40px rgba(0,0,0,0.45); }
+    .gl-lightbox-meta { text-align: center; max-width: 640px; color: rgba(255,255,255,0.92); }
+    .gl-lightbox-meta h3 { font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 700; margin: 0 0 6px; color: var(--accent-light); }
+    .gl-lightbox-meta p { margin: 0; font-size: 0.9rem; color: rgba(255,255,255,0.65); line-height: 1.55; }
+    .gl-lb-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3; width: 48px; height: 48px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25); background: rgba(0,0,0,0.45); color: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s ease, border-color 0.2s ease; }
+    .gl-lb-nav:hover { background: color-mix(in srgb, var(--accent) 25%, transparent); border-color: var(--accent); color: var(--accent-light); }
+    .gl-lb-nav:disabled { opacity: 0.25; cursor: not-allowed; pointer-events: none; }
+    .gl-lb-prev { left: 8px; }
+    .gl-lb-next { right: 8px; }
+    .gl-lb-close { position: absolute; top: 12px; right: 12px; z-index: 4; width: 44px; height: 44px; border-radius: 50%; border: none; background: rgba(255,255,255,0.1); color: var(--white); font-size: 1.4rem; line-height: 1; cursor: pointer; transition: background 0.2s ease; }
+    .gl-lb-close:hover { background: color-mix(in srgb, var(--accent) 35%, transparent); color: var(--accent-light); }
+    @media (max-width: 640px) {
+      .gl-lb-nav { width: 40px; height: 40px; font-size: 0.85rem; }
+      .gl-lb-prev { left: 4px; }
+      .gl-lb-next { right: 4px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Announcement Bar -->
+<div class="announce-bar" style="display:none;"></div>
+
+<div id="pageShell">
+<!-- Navigation -->
+<nav class="site-nav" id="siteNav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">
+      <img data-mf="org_logo" src="images/default-logo.svg" alt="Organization logo" class="nav-logo" />
+      <div class="nav-brand-text">
+        <span class="org-name" data-mf="org_name">Organization</span>
+        <span class="tagline" data-mf="org_tagline"></span>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="leadership.html">Leadership</a>
+      <a href="events.html">Events</a>
+      <a href="membership.html">Membership</a>
+      <a href="news.html">News</a>
+      <a href="gallery.html" class="active">Gallery</a>
+      <a href="contact.html">Contact</a>
+      <a href="membership-inquiry.html" class="nav-interested" data-mf-term="nav_inquiry_label">Become a Member</a>
+      <a href="member-login.html" class="nav-cta nav-login"><i class="fas fa-user-circle"></i> Member Login</a>
+    </div>
+    <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Menu -->
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-close" id="mobileClose" aria-label="Close menu">&times;</button>
+  <a href="index.html">Home</a>
+  <a href="about.html">About</a>
+  <a href="leadership.html">Leadership</a>
+  <a href="events.html">Events</a>
+  <a href="membership.html">Membership</a>
+  <a href="news.html">News</a>
+  <a href="gallery.html">Gallery</a>
+  <a href="contact.html">Contact</a>
+  <a href="membership-inquiry.html" class="nav-interested" data-mf-term="nav_inquiry_label">Become a Member</a>
+  <a href="member-login.html" class="nav-login-mobile">🔒 Member Login</a>
+</div>
+
+<div id="pageContent">
+<section class="page-header">
+  <div class="container">
+    <span class="section-label">Photo Gallery</span>
+    <h1>Event Photos</h1>
+    <p>A visual record of our programs, service, and community events.</p>
+  </div>
+</section>
+
+<section class="gl-section">
+  <div class="container">
+    <div class="gl-grid" id="galleryGrid" aria-live="polite"></div>
+    <div class="gl-empty" id="galleryEmpty" hidden>
+      <i class="fas fa-images" aria-hidden="true"></i>
+      <p>Photos from our events will appear here soon. Visit <a href="events.html" class="text-accent">Upcoming Events</a> to join us.</p>
+    </div>
+  </div>
+</section>
+
+<div class="gl-lightbox" id="galleryLightbox" role="dialog" aria-modal="true" aria-label="Photo viewer">
+  <div class="gl-lightbox-backdrop" id="lbBackdrop"></div>
+  <button type="button" class="gl-lb-close" id="lbClose" aria-label="Close">&times;</button>
+  <button type="button" class="gl-lb-nav gl-lb-prev" id="lbPrev" aria-label="Previous photo"><i class="fas fa-chevron-left"></i></button>
+  <button type="button" class="gl-lb-nav gl-lb-next" id="lbNext" aria-label="Next photo"><i class="fas fa-chevron-right"></i></button>
+  <div class="gl-lightbox-dialog">
+    <img id="lbImg" src="" alt="" />
+    <div class="gl-lightbox-meta" id="lbMeta"></div>
+  </div>
+</div>
+</div>
+
+<!-- ========================
+     FOOTER
+======================== -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo-row">
+          <img data-mf="org_logo" src="images/default-logo.svg" alt="Organization logo" class="footer-logo" />
+          <div>
+            <div class="footer-brand-name" data-mf="org_name">Organization</div>
+            <div class="footer-brand-sub" data-mf="org_tagline"></div>
+          </div>
+        </div>
+        <p data-mf="org_creed"></p>
+        <div class="footer-social">
+          <a href="#" target="_blank" rel="noopener" data-mf-social="facebook" aria-label="Facebook" style="display:none;"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="instagram" aria-label="Instagram" style="display:none;"><i class="fab fa-instagram"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="youtube" aria-label="YouTube" style="display:none;"><i class="fab fa-youtube"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="linkedin" aria-label="LinkedIn" style="display:none;"><i class="fab fa-linkedin-in"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="x" aria-label="X" style="display:none;"><i class="fab fa-x-twitter"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Navigate</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="events.html">Events</a></li>
+          <li><a href="membership.html">Membership</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="gallery.html">Gallery</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Get Involved</h4>
+        <ul>
+          <li><a href="membership-inquiry.html" data-mf-term="nav_inquiry_label">Become a Member</a></li>
+          <li><a href="fundraiser.html" id="footerFundraiserLink" style="display:none;">Support Us</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <div class="footer-contact-item">
+          <i class="fas fa-map-marker-alt"></i>
+          <span data-mf="org_address"></span>
+        </div>
+        <div class="footer-contact-item">
+          <i class="fas fa-envelope"></i>
+          <a href="#" data-mf="org_email" style="color: rgba(255,255,255,0.55);"></a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; <span data-mf="year"></span> <span data-mf="org_name">Organization</span>. All rights reserved. &nbsp;|&nbsp; <a href="admin-login.html" style="color:rgba(255,255,255,0.25); font-size:0.75rem; text-decoration:none;"><i class="fas fa-lock" style="margin-right:4px;"></i>Admin Login</a> &nbsp;|&nbsp; <a href="https://memberforge.app" style="color:rgba(255,255,255,0.35); font-size:0.75rem; text-decoration:none;">Powered by MemberForge</a></p>
+      <p class="footer-creed" data-mf="org_creed" style="display:none;"></p>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script>
+const GALLERY_CONTENT_KEY = 'event_gallery';
+const GALLERY_BUCKET = 'org-media';
+
+let galleryPhotos = [];
+let lbIndex = 0;
+let galleryUiBound = false;
+
+function getVisibleGalleryItems() {
+  return galleryPhotos.filter(x => x && x.photo && String(x.photo).trim());
+}
+
+function isImageFileName(name) {
+  return /\.(jpg|jpeg|png|webp|gif|avif)$/i.test(String(name || '').toLowerCase());
+}
+
+async function listGalleryStorage(orgId) {
+  const prefix = orgId + '/gallery/';
+  const res = await fetch(`${sb.url}/storage/v1/object/list/${GALLERY_BUCKET}`, {
+    method: 'POST',
+    headers: sb.headers(),
+    body: JSON.stringify({ limit: 200, offset: 0, sortBy: { column: 'name', order: 'desc' }, prefix })
+  });
+  if (!res.ok) return [];
+  const files = await res.json();
+  if (!Array.isArray(files)) return [];
+  return files
+    .filter(f => f && f.name && isImageFileName(f.name))
+    .map(f => {
+      const fullPath = prefix + f.name;
+      return {
+        name: f.name,
+        path: fullPath,
+        photo: `${sb.url}/storage/v1/object/public/${GALLERY_BUCKET}/${encodeURIComponent(fullPath).replace(/%2F/g, '/')}`
+      };
+    });
+}
+
+function renderGalleryGrid() {
+  const grid = document.getElementById('galleryGrid');
+  const empty = document.getElementById('galleryEmpty');
+  if (!grid || !empty) return;
+  grid.innerHTML = '';
+  const items = getVisibleGalleryItems();
+  if (!items.length) { empty.hidden = false; return; }
+  empty.hidden = true;
+  items.forEach((item, index) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gl-card fade-up visible';
+    btn.setAttribute('aria-label', (item.title || 'Event photo') + ', view larger');
+    const img = document.createElement('img');
+    img.src = item.photo;
+    img.alt = item.title || 'Event photo';
+    img.loading = 'lazy';
+    img.onerror = function() { img.style.display = 'none'; };
+    btn.appendChild(img);
+    const hasCap = (item.title && String(item.title).trim()) || (item.caption && String(item.caption).trim());
+    if (hasCap) {
+      const cap = document.createElement('div');
+      cap.className = 'gl-card-cap';
+      if (item.title) {
+        const t = document.createElement('div');
+        t.className = 'gl-card-title';
+        t.textContent = item.title;
+        cap.appendChild(t);
+      }
+      if (item.caption) {
+        const p = document.createElement('p');
+        p.className = 'gl-card-desc';
+        p.textContent = item.caption;
+        cap.appendChild(p);
+      }
+      btn.appendChild(cap);
+    }
+    btn.addEventListener('click', () => openLightbox(index));
+    grid.appendChild(btn);
+  });
+}
+
+function openLightbox(index) {
+  const items = getVisibleGalleryItems();
+  if (!items.length) return;
+  lbIndex = Math.max(0, Math.min(index, items.length - 1));
+  const box = document.getElementById('galleryLightbox');
+  if (box) { box.classList.add('open'); document.body.style.overflow = 'hidden'; }
+  updateLightbox();
+}
+
+function closeLightbox() {
+  const box = document.getElementById('galleryLightbox');
+  if (box) box.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function updateLightbox() {
+  const items = getVisibleGalleryItems();
+  const imgEl = document.getElementById('lbImg');
+  const meta = document.getElementById('lbMeta');
+  const prev = document.getElementById('lbPrev');
+  const next = document.getElementById('lbNext');
+  if (!items.length || !imgEl || !meta) return;
+  const item = items[lbIndex];
+  imgEl.src = item.photo;
+  imgEl.alt = item.title || 'Event photo';
+  meta.innerHTML = '';
+  if (item.title) {
+    const h = document.createElement('h3');
+    h.textContent = item.title;
+    meta.appendChild(h);
+  }
+  if (item.caption) {
+    const p = document.createElement('p');
+    p.textContent = item.caption;
+    meta.appendChild(p);
+  }
+  if (prev) prev.disabled = lbIndex <= 0;
+  if (next) next.disabled = lbIndex >= items.length - 1;
+}
+
+function stepLightbox(delta) {
+  const items = getVisibleGalleryItems();
+  if (!items.length) return;
+  lbIndex = Math.max(0, Math.min(lbIndex + delta, items.length - 1));
+  updateLightbox();
+}
+
+function bindLightboxUi() {
+  if (galleryUiBound) return;
+  const closeBtn = document.getElementById('lbClose');
+  const backdrop = document.getElementById('lbBackdrop');
+  const prevBtn = document.getElementById('lbPrev');
+  const nextBtn = document.getElementById('lbNext');
+  if (!closeBtn || !backdrop || !prevBtn || !nextBtn) return;
+  closeBtn.addEventListener('click', closeLightbox);
+  backdrop.addEventListener('click', closeLightbox);
+  prevBtn.addEventListener('click', e => { e.stopPropagation(); stepLightbox(-1); });
+  nextBtn.addEventListener('click', e => { e.stopPropagation(); stepLightbox(1); });
+  document.addEventListener('keydown', e => {
+    const box = document.getElementById('galleryLightbox');
+    if (!box || !box.classList.contains('open')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') stepLightbox(-1);
+    if (e.key === 'ArrowRight') stepLightbox(1);
+  });
+  galleryUiBound = true;
+}
+
+(async function() {
+  const org = await MF.ready;
+  if (!org) return;
+  bindLightboxUi();
+
+  try {
+    const [metaRows, storageItems] = await Promise.all([
+      sb.getAll('site_content', `${MF.scope(`content_key=eq.${GALLERY_CONTENT_KEY}&select=content_json`)}`),
+      listGalleryStorage(org.id)
+    ]);
+    const rawMeta = metaRows && metaRows[0] ? metaRows[0].content_json : null;
+    const metaByPath = new Map();
+    if (Array.isArray(rawMeta)) {
+      rawMeta.forEach(row => {
+        if (!row || typeof row !== 'object') return;
+        const path = String(row.path || '').trim();
+        const photoValue = row.photo || row.image || row.url || row.src;
+        if (path) metaByPath.set(path, row);
+        else if (photoValue) metaByPath.set(String(photoValue).trim(), row);
+      });
+    }
+    galleryPhotos = storageItems.map(file => {
+      const meta = metaByPath.get(file.path) || metaByPath.get(file.photo) || {};
+      return {
+        photo: file.photo,
+        path: file.path,
+        title: meta.title ? String(meta.title) : '',
+        caption: meta.caption ? String(meta.caption) : ''
+      };
+    });
+    if (!galleryPhotos.length && Array.isArray(rawMeta)) {
+      galleryPhotos = rawMeta.map(row => {
+        if (!row || typeof row !== 'object') return null;
+        const photoValue = row.photo || row.image || row.url || row.src;
+        const photo = photoValue ? String(photoValue).trim() : '';
+        if (!photo) return null;
+        return { photo, path: row.path ? String(row.path).trim() : '', title: row.title ? String(row.title) : '', caption: row.caption ? String(row.caption) : '' };
+      }).filter(Boolean);
+    }
+    renderGalleryGrid();
+  } catch (err) {
+    renderGalleryGrid();
+  }
+
+  try {
+    const homeRows = await sb.getAll('site_content', `${MF.scope("content_key=eq.home&select=content_json")}`);
+    const homeContent = homeRows && homeRows[0] ? homeRows[0].content_json : null;
+    if (homeContent && homeContent.fundraiser_enabled) {
+      const link = document.getElementById('footerFundraiserLink');
+      if (link) link.style.display = '';
+    }
+  } catch (err) { /* footer fundraiser link stays hidden */ }
+  try {
+    const rows = await sb.getAll('announcements', `${MF.scope('active=eq.true&order=id.desc&limit=1')}`);
+    const row = rows && rows.length ? rows[0] : null;
+    const bar = document.querySelector('.announce-bar');
+    if (bar && row && row.text) {
+      bar.innerHTML = `${row.text} &nbsp; <a href="${row.link_url || 'events.html'}">${row.link_text || 'Learn More →'}</a>`;
+      bar.style.display = '';
+    }
+  } catch (err) { /* no announcement */ }
+})();
+</script>
+</body>
+</html>
