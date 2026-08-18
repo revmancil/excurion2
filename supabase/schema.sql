@@ -533,9 +533,11 @@ drop policy if exists "announcements_write_auth" on public.announcements;
 create policy "announcements_write_auth" on public.announcements for all to authenticated
 using ( public.current_user_can_manage(org_id, 'announcements') ) with check ( public.current_user_can_manage(org_id, 'announcements') );
 
+-- Members read the newsletter archive too (member-portal.html's
+-- Newsletters panel), not just admins editing/sending them.
 drop policy if exists "newsletter_templates_read_auth" on public.newsletter_templates;
 create policy "newsletter_templates_read_auth" on public.newsletter_templates for select to authenticated
-using ( public.current_user_is_org_admin(org_id) );
+using ( public.current_user_is_org_admin(org_id) or public.current_user_is_org_member(org_id) );
 drop policy if exists "newsletter_templates_write_auth" on public.newsletter_templates;
 create policy "newsletter_templates_write_auth" on public.newsletter_templates for all to authenticated
 using ( public.current_user_can_manage(org_id, 'newsletter') ) with check ( public.current_user_can_manage(org_id, 'newsletter') );

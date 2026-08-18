@@ -1,3 +1,6 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Member Portal | {{ORG_NAME}}</title>
@@ -517,6 +520,8 @@
     .mf-card { box-shadow: none; }
   }
 </style>
+</head>
+<body>
 
 <div id="loadingOverlay">
   <img data-mf="org_logo" src="images/default-logo.svg" alt="Loading" />
@@ -3380,7 +3385,9 @@ async function saveProfile(e) {
       military_branch: el('pfMilitaryService').checked ? (el('pfMilitaryBranch').value.trim() || null) : null
     };
     var rows = await sb.update('members', member.id, updates);
-    member = (rows && rows[0]) ? rows[0] : Object.assign({}, member, updates);
+    // Merge rather than replace: the returned representation is authoritative,
+    // but a proxy answering `return=minimal` must not blank the cached row.
+    member = Object.assign({}, member, updates, (rows && rows[0]) ? rows[0] : {});
     MFAuth.member = member;
     showToast('Profile saved.');
     updateProfilePreview();
@@ -3763,3 +3770,5 @@ document.addEventListener('DOMContentLoaded', init);
 })();
 
 </script>
+</body>
+</html>
