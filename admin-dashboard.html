@@ -1514,6 +1514,897 @@
       </div>
       <div id="newsSubAdminList"><div class="empty-state"><i class="fas fa-newspaper"></i><p>Loading submissions…</p></div></div>
     </div>
-<!--PART4-->
+    <!-- ══════ REQUISITIONS ══════ -->
+    <div class="panel" id="panel-requisitions">
+      <div class="filter-row">
+        <div class="count" id="reqAdminCount"></div>
+        <div class="filter-btns">
+          <button class="btn-sm active" onclick="setReqFilter('all',this)">All</button>
+          <button class="btn-sm" onclick="setReqFilter('pending',this)">Pending</button>
+          <button class="btn-sm" onclick="setReqFilter('approved',this)">Approved</button>
+          <button class="btn-sm" onclick="setReqFilter('denied',this)">Denied</button>
+        </div>
+      </div>
+      <div id="reqAdminList"><div class="empty-state"><i class="fas fa-file-invoice-dollar"></i><p>Loading requisitions…</p></div></div>
+    </div>
+
+    <!-- ══════ REIMBURSEMENTS ══════ -->
+    <div class="panel" id="panel-reimbursements">
+      <div class="filter-row">
+        <div class="count" id="reimbAdminCount"></div>
+        <div class="filter-btns">
+          <button class="btn-sm active" onclick="setReimbFilter('all',this)">All</button>
+          <button class="btn-sm" onclick="setReimbFilter('pending',this)">Pending</button>
+          <button class="btn-sm" onclick="setReimbFilter('approved',this)">Approved</button>
+          <button class="btn-sm" onclick="setReimbFilter('denied',this)">Denied</button>
+        </div>
+      </div>
+      <div id="reimbAdminList"><div class="empty-state"><i class="fas fa-receipt"></i><p>Loading reimbursements…</p></div></div>
+    </div>
+
+    <!-- ══════ STORE ══════ -->
+    <div class="panel" id="panel-store">
+      <div class="tab-bar">
+        <button id="storeTabItems" class="active" onclick="switchStoreTab('items')"><i class="fas fa-box-open"></i> Items</button>
+        <button id="storeTabOrders" onclick="switchStoreTab('orders')"><i class="fas fa-receipt"></i> Orders <span class="nav-badge" id="storePendingBadge"></span></button>
+      </div>
+      <div id="storeTabPaneItems">
+        <div class="filter-row">
+          <div class="count" id="storeItemCount"></div>
+          <button class="btn-save" onclick="openStoreItemModal(null)"><i class="fas fa-plus"></i> Add Item</button>
+        </div>
+        <div id="storeItemsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;">
+          <div class="empty-state"><i class="fas fa-store"></i><p>Loading store items…</p></div>
+        </div>
+      </div>
+      <div id="storeTabPaneOrders" style="display:none;">
+        <div class="filter-btns" style="margin-bottom:16px;">
+          <button class="btn-sm active" onclick="setOrderFilter('all',this)">All</button>
+          <button class="btn-sm" onclick="setOrderFilter('pending',this)">Pending</button>
+          <button class="btn-sm" onclick="setOrderFilter('paid',this)">Paid</button>
+          <button class="btn-sm" onclick="setOrderFilter('fulfilled',this)">Fulfilled</button>
+        </div>
+        <div id="storeOrdersList"><div class="empty-state"><i class="fas fa-receipt"></i><p>No orders yet.</p></div></div>
+      </div>
+    </div>
+
+    <!-- ══════ FUNDRAISER SETTINGS ══════ -->
+    <div class="panel" id="panel-fundraiser">
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3><i class="fas fa-hand-holding-heart icon-brand"></i>Fundraiser Settings</h3>
+          <div style="display:flex;gap:10px;">
+            <a class="btn-sm view" href="fundraiser.html" target="_blank"><i class="fas fa-external-link-alt"></i> Preview Page</a>
+            <button class="btn-save" id="fundraiserSaveBtn" onclick="saveFundraiserSettings()"><i class="fas fa-save"></i> Save Changes</button>
+          </div>
+        </div>
+        <div class="section-card-body">
+          <div id="fundraiserStatus" style="display:none;"></div>
+
+          <h4 class="sub-head" style="margin-top:0;">Event Details</h4>
+          <div class="settings-grid">
+            <div class="field-group"><label>Fundraiser Name</label><input type="text" id="frName" placeholder="e.g. Annual Scholarship Gala" /></div>
+            <div class="field-group"><label>Edition Number</label><input type="number" id="frEdition" min="1" placeholder="14" /></div>
+            <div class="field-group"><label>Event Year</label><input type="number" id="frYear" min="2000" placeholder="2026" /></div>
+            <div class="field-group"><label>Event Date (displayed text)</label><input type="text" id="frEventDate" placeholder="Friday, June 13, 2026" /></div>
+            <div class="field-group"><label>Short Date Label</label><input type="text" id="frDateLabel" placeholder="June 13" /></div>
+            <div class="field-group"><label>Doors Open Time</label><input type="text" id="frDoorsTime" placeholder="5:30 PM" /></div>
+            <div class="field-group"><label>Program Start Time</label><input type="text" id="frProgramTime" placeholder="6:00 PM" /></div>
+          </div>
+
+          <h4 class="sub-head">Venue</h4>
+          <div class="settings-grid">
+            <div class="field-group"><label>Venue Name</label><input type="text" id="frVenueName" /></div>
+            <div class="field-group"><label>Venue Address</label><input type="text" id="frVenueAddress" /></div>
+            <div class="field-group"><label>Dress Code</label><input type="text" id="frDressCode" /></div>
+            <div class="field-group"><label>Dress Code Sub-text</label><input type="text" id="frDressCodeSub" /></div>
+          </div>
+
+          <h4 class="sub-head">Links &amp; Files</h4>
+          <div class="settings-grid">
+            <div class="field-group"><label>Ticket Purchase URL</label><input type="url" id="frTicketUrl" placeholder="https://…" /></div>
+            <div class="field-group"><label>Sponsorship Packet URL</label><input type="text" id="frSponsorshipUrl" placeholder="https://… (PDF)" /></div>
+          </div>
+
+          <h4 class="sub-head">Highlight Statistics</h4>
+          <div class="settings-grid">
+            <div class="field-group"><label>Stat 1 Label</label><input type="text" id="frStat1Label" placeholder="Years of Giving" /></div>
+            <div class="field-group"><label>Stat 1 Value</label><input type="text" id="frStat1Value" placeholder="14" /></div>
+            <div class="field-group"><label>Stat 2 Label</label><input type="text" id="frStat2Label" placeholder="People Supported" /></div>
+            <div class="field-group"><label>Stat 2 Value</label><input type="text" id="frStat2Value" placeholder="100+" /></div>
+          </div>
+          <div class="field-group" style="margin-top:16px;"><label>Banner Tagline</label><input type="text" id="frTagline" /></div>
+          <div class="field-group" style="margin-top:16px;"><label>Announcement Bar Text</label><input type="text" id="frAnnounceBarText" /></div>
+
+          <h4 class="sub-head">Images</h4>
+          <div class="settings-grid">
+            <div class="field-group"><label>Hero / Feature Image URL</label><input type="text" id="frHeroImage" placeholder="https://…" /></div>
+            <div class="field-group"><label>About Section Image URL</label><input type="text" id="frAboutImage" placeholder="https://…" /></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ SETTINGS ══════ -->
+    <div class="panel" id="panel-settings">
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-cog icon-brand"></i>Organization Settings</h3></div>
+        <div class="section-card-body">
+          <p class="hint-text">These settings brand every public page and this dashboard. Colors are applied on the next page load.</p>
+          <div class="settings-grid" style="margin-bottom:20px;">
+            <div class="field-group"><label>Organization Name</label><input type="text" id="setOrgName" /></div>
+            <div class="field-group"><label>Tagline</label><input type="text" id="setTagline" /></div>
+            <div class="field-group"><label>Contact Email</label><input type="email" id="setEmail" /></div>
+            <div class="field-group"><label>Contact Phone</label><input type="text" id="setPhone" /></div>
+            <div class="field-group span2"><label>Mailing Address</label><input type="text" id="setAddress" /></div>
+            <div class="field-group"><label>Logo URL</label><input type="text" id="setLogoUrl" placeholder="https://…" /></div>
+            <div class="field-group"><label>Hero Image URL</label><input type="text" id="setHeroUrl" placeholder="https://…" /></div>
+            <div class="field-group"><label>Accent Color</label><input type="text" id="setAccentColor" placeholder="#4F46E5" /></div>
+            <div class="field-group"><label>Ink / Dark Color</label><input type="text" id="setInkColor" placeholder="#0b0f19" /></div>
+          </div>
+
+          <h4 class="sub-head">Terminology</h4>
+          <p class="hint-text">Words this app uses for your people and leaders. Leave blank to keep the defaults.</p>
+          <div class="settings-grid" style="margin-bottom:20px;">
+            <div class="field-group"><label>Member (singular)</label><input type="text" id="setTermMember" placeholder="Member" /></div>
+            <div class="field-group"><label>Members (plural)</label><input type="text" id="setTermMembers" placeholder="Members" /></div>
+            <div class="field-group"><label>Organization Unit Noun</label><input type="text" id="setTermUnit" placeholder="Organization" /></div>
+            <div class="field-group"><label>Leader Noun</label><input type="text" id="setTermLeader" placeholder="President" /></div>
+          </div>
+
+          <h4 class="sub-head">Social Links</h4>
+          <div class="settings-grid" style="margin-bottom:20px;">
+            <div class="field-group"><label>Facebook</label><input type="url" id="setSocialFacebook" /></div>
+            <div class="field-group"><label>Instagram</label><input type="url" id="setSocialInstagram" /></div>
+            <div class="field-group"><label>YouTube</label><input type="url" id="setSocialYoutube" /></div>
+            <div class="field-group"><label>LinkedIn</label><input type="url" id="setSocialLinkedin" /></div>
+            <div class="field-group"><label>X</label><input type="url" id="setSocialX" /></div>
+          </div>
+
+          <div style="text-align:right;margin-bottom:24px;">
+            <button class="btn-save" onclick="saveSettings()"><i class="fas fa-save"></i> Save Settings</button>
+          </div>
+
+          <div class="pw-change-section">
+            <h4><i class="fas fa-shield-alt"></i> Change Your Password</h4>
+            <div class="pw-grid">
+              <div class="field-group"><label>New Password</label><input type="password" id="newPw" placeholder="Min 8 characters" /></div>
+              <div class="field-group"><label>Confirm Password</label><input type="password" id="confirmPw" placeholder="Repeat new password" /></div>
+              <div class="field-group" style="display:flex;align-items:flex-end;">
+                <button class="btn-save" style="width:100%;" onclick="changePassword()"><i class="fas fa-key"></i> Update Password</button>
+              </div>
+            </div>
+            <p class="hint-text" style="margin:12px 0 0;">This updates the password of the account you are signed in with.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ DUES & PAYMENTS ══════ -->
+    <div class="panel" id="panel-dues-admin">
+      <div class="tab-bar">
+        <button id="duesAdminTabHistory" class="active" onclick="switchDuesTab('history')"><i class="fas fa-history"></i> Payment History</button>
+        <button id="duesAdminTabRecord" onclick="switchDuesTab('record')"><i class="fas fa-plus-circle"></i> Record Payment</button>
+        <button id="duesAdminTabConfig" onclick="switchDuesTab('config')"><i class="fas fa-sliders-h"></i> Configure</button>
+      </div>
+
+      <div id="duesAdminPaneHistory">
+        <div class="filter-row">
+          <input type="text" id="duesSearchInput" placeholder="Search by name or email…" oninput="filterDuesPayments()" style="padding:8px 12px;border:1px solid var(--gray-200);border-radius:6px;font-size:0.88rem;width:260px;max-width:100%;font-family:inherit;" />
+          <div class="count" id="duesPaymentCount"></div>
+        </div>
+        <div class="table-scroll">
+          <table class="data-table" id="duesPaymentsTable">
+            <thead>
+              <tr><th>Name</th><th>Email</th><th>Category</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th><th>Notes</th><th></th></tr>
+            </thead>
+            <tbody id="duesPaymentsBody">
+              <tr><td colspan="9" style="padding:30px;text-align:center;color:var(--gray-400);"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="duesAdminPaneRecord" style="display:none;">
+        <div class="section-card" style="max-width:640px;">
+          <div class="section-card-header"><h3><i class="fas fa-plus-circle icon-brand"></i>Record a Payment</h3></div>
+          <div class="section-card-body">
+            <p class="hint-text">Use this form to manually record dues received outside of online checkout (cash, check, transfer…).</p>
+            <div class="field-group" style="margin-bottom:14px;">
+              <label><span data-mf-term="member_noun">Member</span></label>
+              <select id="duesRecordMember"><option value="">— select (optional) —</option></select>
+            </div>
+            <div class="form-grid">
+              <div class="field-group"><label>Full Name <span class="req">*</span></label><input type="text" id="duesRecordName" /></div>
+              <div class="field-group"><label>Email <span class="req">*</span></label><input type="email" id="duesRecordEmail" /></div>
+              <div class="field-group"><label>Phone</label><input type="tel" id="duesRecordPhone" /></div>
+              <div class="field-group"><label>Amount ($) <span class="req">*</span></label><input type="number" id="duesRecordAmount" min="0.01" step="0.01" placeholder="150.00" /></div>
+              <div class="field-group"><label>Dues Category</label><input type="text" id="duesRecordCategory" placeholder="e.g. annual" /></div>
+              <div class="field-group"><label>Category Label</label><input type="text" id="duesRecordCategoryLabel" placeholder="e.g. Annual Dues" /></div>
+              <div class="field-group"><label>Fiscal Year</label><input type="text" id="duesRecordFiscalYear" placeholder="e.g. 2026" /></div>
+              <div class="field-group"><label>Reference Number</label><input type="text" id="duesRecordReference" placeholder="Check #, confirmation…" /></div>
+              <div class="field-group">
+                <label>Payment Method</label>
+                <select id="duesRecordMethod">
+                  <option value="cash">Cash</option>
+                  <option value="check">Check</option>
+                  <option value="zelle">Zelle</option>
+                  <option value="stripe">Card / Stripe</option>
+                  <option value="waived">Waived</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label>Payment Status</label>
+                <select id="duesRecordStatus"><option value="paid">Paid</option><option value="pending">Pending</option><option value="failed">Failed</option></select>
+              </div>
+              <div class="field-group" style="display:flex;align-items:center;gap:10px;padding-top:22px;">
+                <input type="checkbox" id="duesRecordLateFee" style="width:16px;height:16px;" />
+                <label for="duesRecordLateFee" style="margin:0;text-transform:none;letter-spacing:0;font-size:0.85rem;">Late fee applied</label>
+              </div>
+              <div class="field-group" style="display:flex;align-items:center;gap:10px;padding-top:22px;">
+                <input type="checkbox" id="duesRecordBuildingFund" style="width:16px;height:16px;" />
+                <label for="duesRecordBuildingFund" style="margin:0;text-transform:none;letter-spacing:0;font-size:0.85rem;">Includes building fund</label>
+              </div>
+              <div class="field-group span2"><label>Notes</label><input type="text" id="duesRecordNotes" placeholder="Optional notes" /></div>
+            </div>
+            <p id="duesRecordErr" style="display:none;color:var(--red);font-size:0.83rem;margin-top:8px;"></p>
+            <div style="margin-top:18px;"><button class="btn-save" id="duesRecordBtn" onclick="submitDuesRecord()"><i class="fas fa-save"></i> Save Payment</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="duesAdminPaneConfig" style="display:none;">
+        <div class="section-card" style="max-width:520px;">
+          <div class="section-card-header"><h3><i class="fas fa-sliders-h icon-brand"></i>Dues Configuration</h3></div>
+          <div class="section-card-body">
+            <p class="hint-text">Set the dues amount <span data-mf-term="member_noun_plural">members</span> see in the portal. Changes take effect on the next portal load.</p>
+            <div class="field-group" style="margin-bottom:14px;"><label>Annual Dues Amount ($)</label><input type="number" id="duesConfigAmount" min="0" step="0.01" placeholder="150.00" /></div>
+            <div class="field-group" style="margin-bottom:14px;"><label>Late Fee Amount ($)</label><input type="number" id="duesConfigLateFee" min="0" step="0.01" placeholder="10.00" /></div>
+            <div class="field-group"><label>Late Fee Notice</label><textarea id="duesConfigLateMsg" rows="3" placeholder="A late fee has been added per organization policy…"></textarea></div>
+            <p id="duesConfigErr" style="display:none;color:var(--red);font-size:0.83rem;margin-top:8px;"></p>
+            <div style="margin-top:18px;"><button class="btn-save" id="duesConfigBtn" onclick="saveDuesConfig()"><i class="fas fa-save"></i> Save Configuration</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══════════ MODALS ═══════════ -->
+
+<!-- Meeting QR -->
+<div class="modal-backdrop centered" id="mtgQrModal">
+  <div class="modal-box" style="max-width:380px;text-align:center;">
+    <button class="modal-close" onclick="closeModal('mtgQrModal')">×</button>
+    <h3 id="mtgQrTitle" style="margin:0 0 6px;"></h3>
+    <p id="mtgQrSub" style="font-size:0.8rem;color:var(--gray-500);margin:0 0 18px;"></p>
+    <img id="mtgQrImg" src="" alt="QR Code" style="width:200px;height:200px;border:1px solid var(--gray-200);border-radius:8px;margin:0 auto;" />
+    <p style="font-size:0.75rem;color:var(--gray-400);margin:12px 0 0;">Scan at the door to check in</p>
+    <button onclick="printQr('mtgQr')" class="btn-save" style="margin-top:16px;width:100%;justify-content:center;"><i class="fas fa-print"></i> Print QR Code</button>
+  </div>
+</div>
+
+<!-- Event QR -->
+<div class="modal-backdrop centered" id="evtQrModal">
+  <div class="modal-box" style="max-width:380px;text-align:center;">
+    <button class="modal-close" onclick="closeModal('evtQrModal')">×</button>
+    <h3 id="evtQrTitle" style="margin:0 0 6px;"></h3>
+    <p id="evtQrSub" style="font-size:0.8rem;color:var(--gray-500);margin:0 0 18px;"></p>
+    <img id="evtQrImg" src="" alt="QR Code" style="width:200px;height:200px;border:1px solid var(--gray-200);border-radius:8px;margin:0 auto;" />
+    <p style="font-size:0.75rem;color:var(--gray-400);margin:12px 0 0;">Attendees scan this at the door to check in</p>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button onclick="printQr('evtQr')" class="btn-save" style="flex:1;justify-content:center;"><i class="fas fa-print"></i> Print</button>
+      <button onclick="showEvtAttendanceFromQr()" class="btn-sm view" style="flex:1;justify-content:center;"><i class="fas fa-clipboard-list"></i> Attendance</button>
+    </div>
+  </div>
+</div>
+
+<!-- Event attendance -->
+<div class="modal-backdrop centered" id="evtAttModal">
+  <div class="modal-box" style="max-width:480px;">
+    <button class="modal-close" onclick="closeModal('evtAttModal')">×</button>
+    <h3 id="evtAttTitle" style="padding-right:20px;"></h3>
+    <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--a-brand);margin-bottom:8px;"><i class="fas fa-check-circle"></i> Checked In</div>
+    <div id="evtAttList"></div>
+    <button onclick="downloadEvtAttCsv()" class="btn-save" style="margin-top:16px;width:100%;justify-content:center;"><i class="fas fa-download"></i> Download Attendee List (CSV)</button>
+  </div>
+</div>
+
+<!-- Meeting attendance -->
+<div class="modal-backdrop centered" id="mtgAttModal">
+  <div class="modal-box" style="max-width:480px;">
+    <button class="modal-close" onclick="closeModal('mtgAttModal')">×</button>
+    <h3 id="mtgAttTitle" style="padding-right:20px;"></h3>
+    <div style="margin-bottom:18px;">
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--a-brand);margin-bottom:8px;"><i class="fas fa-check-circle"></i> Checked In</div>
+      <div id="mtgAttCheckedIn"></div>
+    </div>
+    <div>
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-400);margin-bottom:8px;"><i class="fas fa-clock"></i> RSVP'd — Not Checked In</div>
+      <div id="mtgAttNotChecked"></div>
+    </div>
+    <button onclick="downloadMtgAttCsv()" class="btn-save" style="margin-top:16px;width:100%;justify-content:center;"><i class="fas fa-download"></i> Download Attendee List (CSV)</button>
+  </div>
+</div>
+
+<!-- Guest → full member promotion -->
+<div class="modal-backdrop centered" id="promoteModal">
+  <div class="modal-box" style="max-width:460px;">
+    <button class="modal-close" onclick="closePromoteModal()">×</button>
+    <h3 style="margin-bottom:6px;">Full Access Granted</h3>
+    <p id="promoteSubtitle" style="font-size:0.85rem;color:var(--gray-500);margin:0 0 20px;"></p>
+    <div style="background:#fafafa;border:1px solid var(--gray-200);border-radius:8px;padding:16px;margin-bottom:18px;">
+      <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--a-brand);margin-bottom:12px;"><i class="fas fa-id-card"></i> Membership Details</div>
+      <div class="form-grid" style="margin-bottom:0;">
+        <div class="field-group span2"><label><span data-mf-term="member_noun">Member</span> Number</label><input type="text" id="promoteMemberNumber" placeholder="e.g. 123456" /></div>
+        <div class="field-group span2"><label>Active Date</label><input type="date" id="promoteActiveDate" /></div>
+        <div class="field-group span2"><label>Joined At</label><input type="text" id="promoteJoinedAt" placeholder="e.g. 2019 or 05/12/2019" /></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="savePromoteDetails()" class="btn-save" style="flex:1;justify-content:center;"><i class="fas fa-save"></i> Save Details</button>
+      <button onclick="closePromoteModal()" class="btn-cancel">Skip</button>
+    </div>
+  </div>
+</div>
+
+<!-- News submission review -->
+<div class="modal-backdrop" id="newsSubModal">
+  <div class="modal-box" style="max-width:700px;">
+    <button class="modal-close" onclick="closeModal('newsSubModal')">×</button>
+    <h3><i class="fas fa-newspaper icon-brand"></i>Review News Submission</h3>
+    <input type="hidden" id="nsModalId" />
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="field-group"><label>Headline</label><input type="text" id="nsModalTitle" /></div>
+      <div class="form-grid" style="margin-bottom:0;">
+        <div class="field-group"><label>Tag</label><input type="text" id="nsModalTag" /></div>
+        <div class="field-group"><label>Placement</label><select id="nsModalPlacement"><option value="main">Main</option><option value="sidebar">Sidebar</option></select></div>
+      </div>
+      <div class="field-group"><label>Excerpt / Summary</label><textarea id="nsModalExcerpt" rows="2"></textarea></div>
+      <div class="field-group"><label>Article Body</label><textarea id="nsModalBody" rows="10"></textarea></div>
+      <div id="nsModalImageWrap" class="field-group" style="display:none;">
+        <label>Submitted Image</label>
+        <img id="nsModalImage" src="" alt="" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--gray-200);object-fit:contain;" />
+      </div>
+      <div class="field-group"><label>Admin Note <span style="font-weight:400;color:var(--gray-400);">(shown to submitter — optional)</span></label><input type="text" id="nsModalNote" /></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+      <button onclick="approveNewsSubmission()" class="btn-sm success" style="padding:9px 20px;font-size:0.88rem;"><i class="fas fa-check"></i> Approve &amp; Publish</button>
+      <button onclick="rejectNewsSubmission()" class="btn-sm danger" style="padding:9px 20px;font-size:0.88rem;"><i class="fas fa-times"></i> Reject</button>
+      <button onclick="closeModal('newsSubModal')" class="btn-sm view" style="padding:9px 20px;font-size:0.88rem;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Requisition review -->
+<div class="modal-backdrop" id="reqModal">
+  <div class="modal-box" style="max-width:640px;">
+    <button class="modal-close" onclick="closeModal('reqModal')">×</button>
+    <h3 style="margin-bottom:6px;"><i class="fas fa-file-invoice-dollar icon-brand"></i>Review Requisition</h3>
+    <div id="reqModalMeta" style="font-size:0.8rem;color:var(--gray-500);margin-bottom:20px;"></div>
+    <input type="hidden" id="reqModalId" /><input type="hidden" id="reqModalMethod" />
+    <div style="background:var(--gray-100);border-radius:8px;padding:14px 16px;margin-bottom:18px;">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-500);margin-bottom:8px;">Request Details</div>
+      <div id="reqModalDetails" style="font-size:0.88rem;color:var(--gray-700);line-height:1.6;"></div>
+    </div>
+    <div class="field-group" style="margin-bottom:14px;">
+      <label style="text-transform:none;letter-spacing:0;font-size:0.82rem;">Reviewer Note <span style="font-weight:400;color:var(--gray-400);">(shown to submitter — optional)</span></label>
+      <textarea id="reqModalNote" rows="3"></textarea>
+    </div>
+    <div id="reqModalDocLink" style="display:none;margin-bottom:16px;"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button onclick="approveRequisition()" class="btn-sm success" style="padding:9px 20px;font-size:0.88rem;"><i class="fas fa-check"></i> Approve</button>
+      <button onclick="denyRequisition()" class="btn-sm danger" style="padding:9px 20px;font-size:0.88rem;"><i class="fas fa-times"></i> Deny</button>
+      <button onclick="closeModal('reqModal')" class="btn-sm view" style="padding:9px 20px;font-size:0.88rem;">Cancel</button>
+    </div>
+    <div id="reqModalSpinner" style="display:none;margin-top:12px;font-size:0.84rem;color:var(--gray-500);"><i class="fas fa-spinner fa-spin"></i> Processing…</div>
+  </div>
+</div>
+
+<!-- Reimbursement review -->
+<div class="modal-backdrop" id="reimbModal">
+  <div class="modal-box" style="max-width:660px;">
+    <button class="modal-close" onclick="closeModal('reimbModal')">×</button>
+    <h3 style="margin-bottom:6px;"><i class="fas fa-receipt icon-brand"></i>Review Reimbursement</h3>
+    <div id="reimbModalMeta" style="font-size:0.8rem;color:var(--gray-500);margin-bottom:20px;"></div>
+    <input type="hidden" id="reimbModalId" />
+    <div style="background:var(--gray-100);border-radius:8px;padding:14px 16px;margin-bottom:16px;">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--gray-500);margin-bottom:8px;">Request Details</div>
+      <div id="reimbModalDetails" style="font-size:0.88rem;color:var(--gray-700);line-height:1.7;"></div>
+    </div>
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px 16px;margin-bottom:16px;">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#166534;margin-bottom:8px;"><i class="fas fa-money-bill-transfer"></i> Payment Instructions</div>
+      <div id="reimbModalPaymentDetails" style="font-size:0.88rem;color:#166534;line-height:1.7;"></div>
+    </div>
+    <div id="reimbModalDocWrap" style="display:none;margin-bottom:16px;">
+      <a id="reimbModalDocLink" href="#" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:7px;font-size:0.85rem;font-weight:600;color:var(--blue);"><i class="fas fa-receipt"></i> View Receipt / Invoice</a>
+    </div>
+    <div id="reimbModalOverdue" class="notice" style="display:none;background:#fffbeb;border:1px solid #fde68a;color:#92400e;">
+      <i class="fas fa-clock"></i> This request has been pending for more than 7 days.
+    </div>
+    <div class="field-group" style="margin-bottom:14px;">
+      <label style="text-transform:none;letter-spacing:0;font-size:0.82rem;">Reviewer Note <span style="font-weight:400;color:var(--gray-400);">(shown to submitter — optional)</span></label>
+      <textarea id="reimbModalNote" rows="3"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button onclick="approveReimbursement()" class="btn-sm success" style="padding:9px 20px;font-size:0.88rem;"><i class="fas fa-check"></i> Approve &amp; Mark Paid</button>
+      <button onclick="denyReimbursement()" class="btn-sm danger" style="padding:9px 20px;font-size:0.88rem;"><i class="fas fa-times"></i> Deny</button>
+      <button onclick="closeModal('reimbModal')" class="btn-sm view" style="padding:9px 20px;font-size:0.88rem;">Cancel</button>
+    </div>
+    <div id="reimbModalSpinner" style="display:none;margin-top:12px;font-size:0.84rem;color:var(--gray-500);"><i class="fas fa-spinner fa-spin"></i> Processing…</div>
+  </div>
+</div>
+
+<!-- Store item -->
+<div class="modal-backdrop" id="storeItemModal">
+  <div class="modal-box" style="max-width:600px;">
+    <button class="modal-close" onclick="closeModal('storeItemModal')">×</button>
+    <h3 id="storeItemModalTitle"></h3>
+    <input type="hidden" id="siId" />
+    <div class="form-grid">
+      <div class="field-group span2"><label>Item Name <span class="req">*</span></label><input type="text" id="siName" placeholder="e.g. Logo Polo Shirt" /></div>
+      <div class="field-group">
+        <label>Category</label>
+        <select id="siCategory">
+          <option value="Apparel">Apparel</option><option value="Accessories">Accessories</option>
+          <option value="Drinkware">Drinkware</option><option value="Stationery">Stationery</option>
+          <option value="General">General</option>
+        </select>
+      </div>
+      <div class="field-group"><label>Price ($) <span class="req">*</span></label><input type="number" id="siPrice" min="0" step="0.01" placeholder="0.00" /></div>
+      <div class="field-group span2"><label>Description</label><textarea id="siDescription" rows="3"></textarea></div>
+      <div class="field-group span2">
+        <label>Product Image</label>
+        <input type="file" id="siImageFile" accept="image/*" style="display:none;" onchange="handleStoreImageUpload(event)" />
+        <input type="hidden" id="siImageUrl" />
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div id="siImagePreview" style="width:80px;height:80px;border-radius:6px;border:1px dashed var(--gray-300);background:#f9fafb;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;"><i class="fas fa-image" style="color:var(--gray-300);font-size:1.4rem;"></i></div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button type="button" id="siUploadBtn" onclick="document.getElementById('siImageFile').click()" class="upload-btn"><i class="fas fa-upload"></i> Upload Image</button>
+            <button type="button" id="siRemoveImgBtn" onclick="clearStoreImage()" class="btn-sm danger" style="display:none;"><i class="fas fa-times"></i> Remove</button>
+            <div id="siUploadStatus" style="font-size:0.75rem;color:var(--gray-400);"></div>
+          </div>
+        </div>
+      </div>
+      <div class="field-group" style="display:flex;align-items:center;gap:10px;">
+        <input type="checkbox" id="siActive" checked style="width:16px;height:16px;" />
+        <label for="siActive" style="margin:0;text-transform:none;letter-spacing:0;font-size:0.85rem;cursor:pointer;">Active (visible in store)</label>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--gray-200);padding-top:16px;margin-bottom:18px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:0.78rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-500);">Purchase Options</div>
+        <button type="button" onclick="addStoreOptionGroup()" class="btn-sm edit"><i class="fas fa-plus"></i> Add Option Group</button>
+      </div>
+      <div id="siOptionsBuilder" style="display:flex;flex-direction:column;gap:12px;"></div>
+      <div id="siOptionsEmpty" style="font-size:0.82rem;color:var(--gray-400);padding:10px 0;">No options yet. Add a group for Size, Color, or any custom choice.</div>
+    </div>
+    <div id="siErr" class="notice warn" style="display:none;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="saveStoreItem()" class="btn-save" style="flex:1;justify-content:center;"><i class="fas fa-save"></i> Save Item</button>
+      <button onclick="closeModal('storeItemModal')" class="btn-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Store order -->
+<div class="modal-backdrop centered" id="storeOrderModal">
+  <div class="modal-box" style="max-width:520px;">
+    <button class="modal-close" onclick="closeModal('storeOrderModal')">×</button>
+    <h3 id="storeOrderModalTitle"></h3>
+    <div id="storeOrderModalBody"></div>
+    <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;" id="storeOrderModalActions"></div>
+  </div>
+</div>
+
+<!-- Install new leader -->
+<div class="modal-backdrop" id="installLeaderModal">
+  <div class="modal-box" style="max-width:640px;">
+    <button class="modal-close" onclick="closeModal('installLeaderModal')">×</button>
+    <h3><i class="fas fa-crown icon-brand"></i>Install New <span data-mf-term="leader_noun">Leader</span></h3>
+    <p class="hint-text">The current lead officer is archived into Past Leaders, and the new person becomes the featured lead officer.</p>
+    <div class="notice info">
+      Outgoing: <strong id="ipOutgoingName">—</strong> <span id="ipOutgoingTitle" style="opacity:0.8;"></span>
+    </div>
+    <div class="form-grid">
+      <div class="field-group"><label>Outgoing term ended (year) <span class="req">*</span></label><input type="text" id="ipEndYear" placeholder="2026" /></div>
+      <div class="field-group"><label>New start year <span class="req">*</span></label><input type="text" id="ipStartYear" /></div>
+      <div class="field-group span2"><label>New name <span class="req">*</span></label><input type="text" id="ipNewName" /></div>
+      <div class="field-group span2"><label>New title / ordinal</label><input type="text" id="ipNewOrdinal" placeholder="e.g. 21st President" /></div>
+      <div class="field-group span2"><label>Badge / sub-title</label><input type="text" id="ipNewBadge" /></div>
+      <div class="field-group span2">
+        <label>Photo URL</label>
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <div id="ipNewPhotoPreview" style="width:56px;height:56px;border-radius:6px;border:1.5px solid var(--gray-200);background:var(--gray-100);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fas fa-user"></i></div>
+          <div style="flex:1;">
+            <input type="text" id="ipNewPhoto" oninput="ipUpdatePhotoPreview()" placeholder="Paste an image URL or upload" />
+            <button type="button" class="upload-btn" style="margin-top:6px;font-size:0.75rem;padding:5px 10px;" onclick="document.getElementById('ipPhotoInput').click()"><i class="fas fa-upload"></i> Upload Photo</button>
+          </div>
+        </div>
+      </div>
+      <div class="field-group span2"><label>Bio</label><textarea id="ipNewBio" rows="3"></textarea></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button onclick="confirmInstallLeader()" class="btn-save" style="flex:1;justify-content:center;"><i class="fas fa-crown"></i> Install</button>
+      <button onclick="closeModal('installLeaderModal')" class="btn-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile Sidebar Toggle -->
+<button class="sidebar-toggle" id="sidebarToggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+  <i class="fas fa-bars"></i>
+</button>
+
+<!-- Toast -->
+<div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMsg">Saved!</span></div>
+
+<!-- Hidden file inputs -->
+<input type="file" id="flyerFileInput" accept="image/*" style="display:none;" onchange="handleFlyerFile(event)" />
+<input type="file" id="presPhotoInput" accept="image/*" style="display:none;" onchange="handlePresPhotoUpload(event)" />
+<input type="file" id="officerPhotoInput" accept="image/*" style="display:none;" onchange="handleOfficerPhotoUpload(event)" />
+<input type="file" id="presidentPhotoInput" accept="image/*" style="display:none;" onchange="handlePresidentPhotoUpload(event)" />
+<input type="file" id="eventGalleryPhotoInput" accept="image/*" style="display:none;" onchange="handleEventGalleryPhotoUpload(event)" />
+<input type="file" id="pageEditorImageInput" accept="image/*" style="display:none;" onchange="handlePageEditorImageUpload(event)" />
+<input type="file" id="newsPhotoInput" accept="image/*" style="display:none;" onchange="handleNewsPhotoUpload(event)" />
+<input type="file" id="memberDirectoryCsvInput" accept=".csv,text/csv" style="display:none;" onchange="handleMemberDirectoryUpload(event)" />
+<input type="file" id="complianceCsvInput" accept=".csv,text/csv" style="display:none;" onchange="handleComplianceCsvUpload(event)" />
+<input type="file" id="ipPhotoInput" accept="image/*" style="display:none;" onchange="ipHandlePhotoFile(event)" />
+
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script src="js/memberforge-client.js"></script>
+<script src="js/org-context.js"></script>
+<script src="js/auth.js"></script>
+<script>
+/* ============================================================
+   MemberForge — Admin Dashboard
+   Multi-tenant port of the original single-tenant dashboard.
+
+   Every Supabase read goes through MF.scope(); every write goes
+   through MF.stamp(). Permission checks go through MFAuth and
+   FAIL CLOSED — a failed permission lookup denies access rather
+   than falling back to full admin (a real bug in the original).
+============================================================ */
+
+/* ── Canonical admin section keys (must match schema.sql RLS +
+      org_admins.sections exactly). Used for the sidebar
+      data-section values and the permission editor checklist. ── */
+const ADMIN_SECTIONS = [
+  { key: 'dues-admin',           label: 'Dues & Payments' },
+  { key: 'requisitions',         label: 'Requisitions' },
+  { key: 'reimbursements',       label: 'Reimbursements' },
+  { key: 'members',              label: 'Member Requests & Directory' },
+  { key: 'access',               label: 'Access & Permissions' },
+  { key: 'events',               label: 'Events Manager' },
+  { key: 'fundraiser',           label: 'Fundraiser Settings' },
+  { key: 'registrations',        label: 'Event Registrations' },
+  { key: 'meetings',             label: 'Meetings Manager' },
+  { key: 'announcements',        label: 'Announcement Bar' },
+  { key: 'member-announcements', label: 'Member Announcements' },
+  { key: 'news-submissions',     label: 'News Submissions' },
+  { key: 'chapter-news',         label: 'Organization News Feed' },
+  { key: 'news-manager',         label: 'News Manager' },
+  { key: 'documents',            label: 'Documents' },
+  { key: 'gallery',              label: 'Event Photo Gallery' },
+  { key: 'store',                label: 'Store' },
+  { key: 'officers',             label: 'Officers Manager' },
+  { key: 'presidents',           label: 'Past Leaders' },
+  { key: 'pages',                label: 'Website Pages' },
+  { key: 'settings',             label: 'Organization Settings' }
+];
+
+const PANEL_META = {
+  dashboard:              ['Dashboard', 'Overview'],
+  pages:                  ['Page Content Editor', 'Edit text for each page section'],
+  members:                ['Member Requests', 'Approve access, compliance & directory'],
+  access:                 ['Access & Permissions', 'Portal access and dashboard admins'],
+  events:                 ['Events Manager', 'Add, edit, remove & feature events'],
+  fundraiser:             ['Fundraiser Settings', 'Settings for your fundraiser page'],
+  registrations:          ['Event Registrations', 'Who signed up for what'],
+  meetings:               ['Meetings Manager', 'Schedule meetings, track RSVPs & attendance'],
+  'news-manager':         ['News Manager', 'Add, edit, remove & feature news articles'],
+  officers:               ['Officers Manager', 'Lead officer and executive officers'],
+  presidents:             ['Past Leaders', 'Update past leadership records'],
+  announcements:          ['Announcement Bar', 'Edit the top announcement banner'],
+  'member-announcements': ['Member Announcements', 'Moderate member-submitted announcements'],
+  'news-submissions':     ['News Submissions', 'Moderate member-submitted news'],
+  'chapter-news':         ['Organization News Feed', 'Post private updates for members'],
+  newsletter:             ['Newsletter Generator', 'Build and send email campaigns'],
+  gallery:                ['Event Photo Gallery', 'Photos shown on the public gallery page'],
+  documents:              ['Documents', 'Files members can download'],
+  store:                  ['Store', 'Items and orders'],
+  settings:               ['Settings', 'Organization branding & your account'],
+  'dues-admin':           ['Dues & Payments', 'Payment history, manual entry & configuration'],
+  requisitions:           ['Requisitions', 'Review spending requests'],
+  reimbursements:         ['Reimbursements', 'Review reimbursement requests']
+};
+
+/* Newsletter is gated on its own 'newsletter' key to match the
+   newsletter_templates RLS policy in schema.sql. It is deliberately
+   NOT in ADMIN_SECTIONS (which mirrors the canonical section list),
+   so in practice only full admins see it — fail closed. */
+const NEWSLETTER_SECTION = 'newsletter';
+
+/* ── Storage buckets (see schema.sql). Object paths MUST be
+      prefixed with `${MF.org.id}/` — the storage RLS policies
+      parse the org id out of the first path segment. ── */
+const ORG_MEDIA_BUCKET  = 'org-media';
+const EVENT_FLYER_BUCKET = 'event-flyer-uploads';
+
+/* ── Site content keys ── */
+const KEY_NEWS_ARTICLES    = 'news_articles';
+const KEY_EVENT_GALLERY    = 'event_gallery';
+const KEY_MEMBER_DIRECTORY = 'member_directory';
+const KEY_OFFICERS         = 'officers';
+const KEY_PRESIDENT        = 'president';
+const KEY_PAST_PRESIDENTS  = 'past_presidents';
+const KEY_FUNDRAISER       = 'fundraiser_settings';
+const KEY_DUES_CONFIG      = 'finance_dues_config';
+const KEY_PAYMENTS_LEGACY  = 'payments';
+
+let ORG = null;                       // MF.org, set at boot
+const _panelLoaded = {};              // panel-level fetch cache
+
+/* ══════════════════════════════════════════════
+   Small utilities
+══════════════════════════════════════════════ */
+function escHtml(str) {
+  if (str === 0) return '0';
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function TERM(key, fallback) {
+  const t = (ORG && ORG.terminology) || {};
+  return (t[key] && String(t[key]).trim()) || fallback;
+}
+function memberNoun() { return TERM('member_noun', 'Member'); }
+function memberNounPlural() { return TERM('member_noun_plural', 'Members'); }
+function leaderNoun() { return TERM('leader_noun', 'President'); }
+
+function showToast(msg, type = 'success') {
+  const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.className = 'toast ' + type;
+  t.querySelector('i').className = 'fas ' + (icons[type] || icons.success);
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 4200);
+}
+function errMsg(err) {
+  const raw = String((err && err.message) || err || 'Unknown error');
+  if (/row-level security|42501|permission denied|401|403/i.test(raw)) {
+    return 'Permission denied. Your admin account may not have access to this section.';
+  }
+  if (/duplicate key|23505/i.test(raw)) return 'That record already exists.';
+  return raw.length > 220 ? raw.slice(0, 220) + '…' : raw;
+}
+function openModal(id) { const m = document.getElementById(id); if (m) m.style.display = 'flex'; }
+function closeModal(id) { const m = document.getElementById(id); if (m) m.style.display = 'none'; }
+function fmtDate(v, opts) {
+  if (!v) return '—';
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('en-US', opts || { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function money(cents) {
+  const n = Number(cents);
+  return isNaN(n) ? '—' : '$' + (n / 100).toFixed(2);
+}
+function csvEscape(v) {
+  const s = String(v == null ? '' : v);
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function downloadCsv(filename, rows) {
+  const csv = rows.map(r => r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+function isInvalidImageUrl(url) {
+  const u = String(url || '').trim();
+  if (!u) return true;
+  if (u.startsWith('data:image/')) return false;
+  if (/^https?:\/\//i.test(u)) return false;
+  if (u.startsWith('images/') || u.startsWith('/images/')) return false;
+  return !/\.(jpe?g|png|gif|webp|svg|avif)(\?|#|$)/i.test(u);
+}
+function orgQS() { return ORG ? '?org=' + encodeURIComponent(ORG.slug) : ''; }
+function nowIso() { return new Date().toISOString(); }
+function uuid() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
+/* ══════════════════════════════════════════════
+   Tenant-scoped data helpers
+══════════════════════════════════════════════ */
+async function getContentJson(contentKey, fallbackValue) {
+  try {
+    const rows = await sb.getAll('site_content', MF.scope('content_key=eq.' + encodeURIComponent(contentKey) + '&limit=1'));
+    if (!rows || !rows.length || rows[0].content_json == null) return fallbackValue;
+    return rows[0].content_json;
+  } catch (err) {
+    console.warn('getContentJson(' + contentKey + ') failed', err);
+    throw err;
+  }
+}
+async function saveContentJson(contentKey, contentJson) {
+  await sb.upsert('site_content', MF.stamp({
+    content_key: contentKey,
+    content_json: contentJson,
+    updated_at: nowIso()
+  }), 'org_id,content_key');
+}
+
+/** Upload a file to a storage bucket under this org's `${org_id}/…` prefix. */
+async function uploadToBucket(file, bucket, folder) {
+  if (!MFAuth.isSignedIn()) throw new Error('Your session expired. Please sign in again.');
+  const rawExt = (file.name && file.name.split('.').pop()) || '';
+  const ext = (rawExt.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin').slice(0, 5);
+  const base = (file.name || 'file').replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 40);
+  const stamp = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  const path = ORG.id + '/' + folder.replace(/^\/+|\/+$/g, '') + '/' + stamp + '_' + base + '.' + ext;
+  const encoded = path.split('/').map(encodeURIComponent).join('/');
+  const res = await fetch(sb.url + '/storage/v1/object/' + bucket + '/' + encoded, {
+    method: 'POST',
+    headers: {
+      apikey: sb.key,
+      Authorization: 'Bearer ' + (sb.session && sb.session.access_token),
+      'x-upsert': 'true',
+      'Content-Type': file.type || 'application/octet-stream'
+    },
+    body: file
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    if (/row-level security|unauthorized|403/i.test(detail)) {
+      throw new Error('Upload blocked by storage permissions. Sign out and back in, then retry.');
+    }
+    if (/bucket/i.test(detail) && /not found/i.test(detail)) {
+      throw new Error('Storage bucket "' + bucket + '" was not found. Run supabase/schema.sql on your project.');
+    }
+    throw new Error('Storage upload failed: ' + (detail || res.status));
+  }
+  return { url: sb.url + '/storage/v1/object/public/' + bucket + '/' + encoded, path: path, bucket: bucket };
+}
+const uploadGalleryImage   = f => uploadToBucket(f, ORG_MEDIA_BUCKET, 'gallery');
+const uploadNewsImage      = f => uploadToBucket(f, ORG_MEDIA_BUCKET, 'news');
+const uploadLeadershipPhoto= f => uploadToBucket(f, ORG_MEDIA_BUCKET, 'leadership');
+const uploadStoreImage     = f => uploadToBucket(f, ORG_MEDIA_BUCKET, 'store');
+const uploadDocumentFile   = f => uploadToBucket(f, ORG_MEDIA_BUCKET, 'documents');
+const uploadPageImage      = f => uploadToBucket(f, ORG_MEDIA_BUCKET, 'page-sections');
+const uploadFlyerImage     = f => uploadToBucket(f, EVENT_FLYER_BUCKET, 'flyers');
+
+function dataUrlToFile(dataUrl, fallbackName) {
+  const m = String(dataUrl || '').trim().match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
+  if (!m) throw new Error('Invalid image data');
+  const bin = atob(m[2]);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const mime = m[1].toLowerCase();
+  const ext = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg';
+  return new File([bytes], (fallbackName || 'image') + '.' + ext, { type: mime });
+}
+/** Uploads inline data: URLs to storage; passes hosted URLs through unchanged. */
+async function materializePhoto(url, folder) {
+  const u = String(url || '').trim();
+  if (!u.startsWith('data:image/')) return u;
+  const uploaded = await uploadToBucket(dataUrlToFile(u, folder), ORG_MEDIA_BUCKET, folder);
+  return uploaded.url;
+}
+
+/* ══════════════════════════════════════════════
+   Permissions + navigation
+══════════════════════════════════════════════ */
+function canAccessSection(key) {
+  if (key === 'dashboard') return true;
+  return MFAuth.canManage(key);
+}
+
+function applySidebarPermissions() {
+  document.querySelectorAll('.sidebar-link[data-section]').forEach(link => {
+    link.style.display = canAccessSection(link.getAttribute('data-section')) ? '' : 'none';
+  });
+  document.querySelectorAll('.action-btn[data-section]').forEach(btn => {
+    btn.style.display = canAccessSection(btn.getAttribute('data-section')) ? '' : 'none';
+  });
+  document.querySelectorAll('.sidebar-section, .nav-group').forEach(group => {
+    const links = group.querySelectorAll('.sidebar-link[data-section]');
+    if (!links.length) return;
+    const anyVisible = Array.prototype.some.call(links, l => l.style.display !== 'none');
+    group.style.display = anyVisible ? '' : 'none';
+  });
+  const roleEl = document.getElementById('userRoleDisplay');
+  if (roleEl) {
+    const p = MFAuth.adminPermissions || {};
+    let label = p.isFullAdmin ? 'Full Admin' : 'Limited Admin';
+    if (p.financeRole) label += ' · ' + p.financeRole.replace(/_/g, ' ');
+    roleEl.textContent = label;
+  }
+}
+
+function toggleNavGroup(id) {
+  const toggle = document.querySelector('#navgroup-' + id + ' .nav-group-toggle');
+  const body = document.getElementById('navbody-' + id);
+  if (!toggle || !body) return;
+  const isOpen = body.classList.contains('open');
+  toggle.classList.toggle('open', !isOpen);
+  body.classList.toggle('open', !isOpen);
+}
+
+function openNavGroupForSection(section) {
+  document.querySelectorAll('.nav-group').forEach(group => {
+    if (!group.querySelector('.sidebar-link[data-section="' + section + '"]')) return;
+    const id = group.id.replace('navgroup-', '');
+    const toggle = group.querySelector('.nav-group-toggle');
+    const body = document.getElementById('navbody-' + id);
+    if (toggle && body) { toggle.classList.add('open'); body.classList.add('open'); }
+  });
+}
+
+const PANEL_LOADERS = {
+  events: () => loadEventsList(),
+  registrations: () => loadRegistrationsPanel(),
+  'news-manager': () => { if (!_panelLoaded.newsManager) loadNewsArticlesPanel(); },
+  members: () => loadMemberRequests(),
+  access: () => { if (!_panelLoaded.access) loadAccessPanel(); },
+  officers: () => { if (!_panelLoaded.officers) loadOfficersPanel(); },
+  presidents: () => { if (!_panelLoaded.presidents) loadPresidentsPanel(); },
+  announcements: () => loadAnnouncement(),
+  newsletter: () => nlInitPanel(),
+  gallery: () => { if (!_panelLoaded.gallery) loadEventGalleryPanel(); },
+  meetings: () => loadMeetingsPanel(),
+  'chapter-news': () => loadOrgNewsPanel(),
+  'member-announcements': () => loadMemberAnnouncements(),
+  'news-submissions': () => loadNewsSubmissions(),
+  documents: () => loadAdminDocuments(),
+  store: () => loadStorePanel(),
+  requisitions: () => loadRequisitionsAdmin(),
+  reimbursements: () => loadReimbursementsAdmin(),
+  'dues-admin': () => { if (!_panelLoaded.duesAdmin) loadDuesAdminPanel(); },
+  fundraiser: () => loadFundraiserPanel(),
+  settings: () => { if (!_panelLoaded.settings) loadSettings(); },
+  dashboard: () => updateDashboardStats(),
+  pages: () => { if (!_pageEditorInitialized) loadPageSection('home'); }
+};
+
+function showPanel(id) {
+  if (!canAccessSection(id)) { showToast("You don't have access to that section.", 'error'); return; }
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+
+  const panel = document.getElementById('panel-' + id);
+  if (panel) panel.classList.add('active');
+
+  const meta = PANEL_META[id] || [id, ''];
+  document.getElementById('panelTitle').textContent = meta[0];
+  document.getElementById('panelBreadcrumb').textContent = meta[1];
+
+  openNavGroupForSection(id);
+  document.querySelectorAll('.sidebar-link[data-section="' + id + '"]').forEach(l => {
+    const oc = l.getAttribute('onclick') || '';
+    if (!oc.includes('loadPageSection')) l.classList.add('active');
+  });
+  if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+
+  const loader = PANEL_LOADERS[id];
+  if (loader) { try { loader(); } catch (e) { console.error('panel loader ' + id, e); } }
+}
+
+function logout() {
+  MFAuth.signOut();
+  window.location.href = 'admin-login.html' + orgQS();
+}
+<!--PART5-->
+
 
 

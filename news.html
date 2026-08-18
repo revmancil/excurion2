@@ -11,9 +11,25 @@
   <script src="js/org-context.js"></script>
   <style>
     .nw-page { padding: 90px 0; background: var(--white); min-height: 40vh; }
+    .nw-page-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 48px; }
+    .news-featured-card { background: var(--white); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 20px rgba(0,0,0,0.08); margin-bottom: 32px; }
+    .news-featured-card img { width: 100%; height: auto; max-height: 480px; object-fit: contain; object-position: center; display: block; background: var(--ink); }
+    .news-featured-card .body { padding: 32px; }
+    .news-featured-card .body .news-tag { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); }
+    .news-featured-card .body h2 { font-size: 1.6rem; font-weight: 700; color: var(--gray-800); margin: 10px 0 14px; }
+    .news-featured-card .body p { font-size: 0.95rem; color: var(--gray-600); line-height: 1.72; margin-bottom: 12px; }
+    .nw-sidebar h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--gray-800); margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--accent); }
+    .sidebar-item { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--gray-200); }
+    .sidebar-item img { width: 72px; height: 72px; object-fit: contain; object-position: center; border-radius: 4px; flex-shrink: 0; background: var(--gray-100); }
+    .sidebar-item .info .tag { font-size: 0.68rem; font-weight: 700; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; }
+    .sidebar-item .info h4 { font-size: 0.88rem; font-weight: 700; color: var(--gray-800); margin-top: 4px; line-height: 1.4; }
+    .nw-connect { margin-top: 32px; background: var(--ink); border-radius: 8px; padding: 28px; text-align: center; }
+    .nw-connect .lbl { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.15em; color: var(--accent-light); text-transform: uppercase; margin-bottom: 12px; }
+    .nw-connect p { font-size: 0.87rem; color: rgba(255,255,255,0.55); margin-bottom: 16px; }
     .nw-empty { text-align: center; padding: 64px 24px; background: var(--gray-100); border-radius: 8px; border: 1px dashed var(--gray-200); max-width: 560px; margin: 0 auto; }
     .nw-empty i { font-size: 2.2rem; color: var(--accent); opacity: 0.6; margin-bottom: 14px; }
     .nw-empty p { color: var(--gray-600); font-size: 0.95rem; }
+    @media (max-width: 768px) { .nw-page-grid { grid-template-columns: 1fr; } }
     .nw-timeline { background: var(--ink); padding: 90px 0; }
     .nw-timeline-rows { margin-top: 48px; }
     .nw-tl-row { display: grid; grid-template-columns: 140px 1fr; gap: 32px; }
@@ -88,7 +104,18 @@
 <!-- News Grid -->
 <section class="nw-page">
   <div class="container">
-    <div class="news-grid" id="newsFullGrid"></div>
+    <div class="nw-page-grid" id="newsPageGrid" style="display:none;">
+      <div id="newsMainList"></div>
+      <div class="nw-sidebar fade-up">
+        <h3>More Stories</h3>
+        <div id="newsSidebarList"></div>
+        <div class="nw-connect">
+          <div class="lbl">Stay Connected</div>
+          <p>Get updates about upcoming events and community impact.</p>
+          <a href="contact.html" class="btn btn-primary" style="width:100%; justify-content:center;">Contact Us</a>
+        </div>
+      </div>
+    </div>
     <div class="nw-empty" id="newsEmpty" style="display:none;">
       <i class="fas fa-newspaper"></i>
       <p>No news articles have been published yet. Check back soon.</p>
@@ -169,6 +196,7 @@
     </div>
   </div>
 </footer>
+</div>
 
 <script src="js/main.js"></script>
 <script src="js/news-articles.js"></script>
@@ -198,9 +226,10 @@ function renderNewsTimeline(items) {
 
   try {
     const articles = await fetchNewsArticles();
-    const grid = document.getElementById('newsFullGrid');
-    if (articles && articles.length) {
-      renderHomeNewsGrid(grid, articles);
+    const published = getPublishedNewsArticles(articles);
+    if (published && published.length) {
+      document.getElementById('newsPageGrid').style.display = '';
+      renderNewsPageLists(document.getElementById('newsMainList'), document.getElementById('newsSidebarList'), articles);
     } else {
       document.getElementById('newsEmpty').style.display = '';
     }
