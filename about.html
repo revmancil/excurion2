@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About | {{ORG_NAME}}</title>
+  <meta name="description" content="Learn about our organization's story, mission, and milestones — powered by MemberForge." />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <script src="js/memberforge-client.js"></script>
+  <script src="js/org-context.js"></script>
+  <style>
+    .ab-history-section { padding: 90px 0; background: var(--white); }
+    .ab-history-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: start; }
+    .ab-history-layout.no-facts { grid-template-columns: 1fr; max-width: 800px; margin: 0 auto; }
+    .ab-intro p { color: var(--gray-600); font-size: 1.02rem; line-height: 1.75; }
+    .ab-story p { color: var(--gray-600); font-size: 0.97rem; line-height: 1.75; margin-bottom: 18px; }
+    .ab-facts-card { background: var(--ink); border-radius: 6px; padding: 26px; }
+    .ab-facts-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.15em; color: var(--accent-light); text-transform: uppercase; margin-bottom: 14px; }
+    .ab-fact-row { display: flex; justify-content: space-between; font-size: 0.88rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding: 10px 0; gap: 12px; }
+    .ab-fact-row:last-child { border-bottom: none; }
+    .ab-fact-row .fact-label { color: rgba(255,255,255,0.5); }
+    .ab-fact-row .fact-value { color: var(--accent-light); font-weight: 600; text-align: right; }
+    .ab-timeline-section { padding: 90px 0; background: var(--gray-100); }
+    .ab-timeline { position: relative; max-width: 800px; margin: 0 auto; padding-top: 20px; }
+    .ab-timeline::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: 0.3; transform: translateX(-50%); }
+    .ab-tl-item { display: flex; gap: 32px; margin-bottom: 48px; position: relative; }
+    .ab-tl-item:nth-child(even) { flex-direction: row-reverse; }
+    .ab-tl-item:nth-child(even) .ab-tl-body { text-align: right; }
+    .ab-tl-dot { position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 14px; height: 14px; background: var(--accent); border-radius: 50%; border: 3px solid var(--white); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); z-index: 1; }
+    .ab-tl-body { flex: 1; background: var(--white); border-radius: 6px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); max-width: calc(50% - 30px); }
+    .ab-tl-year { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.15em; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; }
+    .ab-tl-body h4 { font-size: 1.05rem; font-weight: 700; color: var(--gray-800); margin-bottom: 8px; }
+    .ab-tl-body p { font-size: 0.88rem; color: var(--gray-600); line-height: 1.6; }
+    @media (max-width: 768px) {
+      .ab-history-layout { grid-template-columns: 1fr; gap: 32px; }
+      .ab-timeline::before { left: 20px; }
+      .ab-tl-item, .ab-tl-item:nth-child(even) { flex-direction: column; padding-left: 50px; }
+      .ab-tl-item:nth-child(even) .ab-tl-body { text-align: left; }
+      .ab-tl-dot { left: 20px; }
+      .ab-tl-body { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Announcement Bar -->
+<div class="announce-bar" style="display:none;"></div>
+
+<div id="pageShell">
+<!-- Navigation -->
+<nav class="site-nav" id="siteNav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">
+      <img data-mf="org_logo" src="images/default-logo.svg" alt="Organization logo" class="nav-logo" />
+      <div class="nav-brand-text">
+        <span class="org-name" data-mf="org_name">Organization</span>
+        <span class="tagline" data-mf="org_tagline"></span>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="about.html" class="active">About</a>
+      <a href="leadership.html">Leadership</a>
+      <a href="events.html">Events</a>
+      <a href="membership.html">Membership</a>
+      <a href="news.html">News</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="contact.html">Contact</a>
+      <a href="membership-inquiry.html" class="nav-interested" data-mf-term="nav_inquiry_label">Become a Member</a>
+      <a href="member-login.html" class="nav-cta nav-login"><i class="fas fa-user-circle"></i> Member Login</a>
+    </div>
+    <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Menu -->
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-close" id="mobileClose" aria-label="Close menu">&times;</button>
+  <a href="index.html">Home</a>
+  <a href="about.html">About</a>
+  <a href="leadership.html">Leadership</a>
+  <a href="events.html">Events</a>
+  <a href="membership.html">Membership</a>
+  <a href="news.html">News</a>
+  <a href="gallery.html">Gallery</a>
+  <a href="contact.html">Contact</a>
+  <a href="membership-inquiry.html" class="nav-interested" data-mf-term="nav_inquiry_label">Become a Member</a>
+  <a href="member-login.html" class="nav-login-mobile">🔒 Member Login</a>
+</div>
+
+<div id="pageContent">
+<section class="page-header">
+  <div class="container">
+    <span class="section-label" id="aboutEyebrow">Our Story</span>
+    <h1 id="aboutTitle">Our Story</h1>
+  </div>
+</section>
+
+<section class="ab-history-section">
+  <div class="container">
+    <div class="ab-intro fade-up" id="aboutIntro" style="max-width:800px; margin-bottom: 56px;"></div>
+    <div class="ab-history-layout" id="aboutHistoryLayout">
+      <div class="ab-story fade-up" id="aboutStory"></div>
+      <div class="fade-up" id="aboutFactsWrap" style="display:none;">
+        <div class="ab-facts-card">
+          <div class="ab-facts-label">Quick Facts</div>
+          <div id="aboutFactsList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="ab-timeline-section" id="aboutTimelineSection" style="display:none;">
+  <div class="container">
+    <div class="text-center fade-up" style="margin-bottom: 60px;">
+      <span class="section-label">Milestones</span>
+      <h2 class="section-title">Key Moments in Our History</h2>
+      <div class="accent-bar"></div>
+    </div>
+    <div class="ab-timeline" id="aboutTimeline"></div>
+  </div>
+</section>
+
+<!-- Membership CTA -->
+<section class="membership-cta">
+  <div class="membership-cta-inner">
+    <span class="section-label">Join Our Ranks</span>
+    <h2>Be Part of What Comes Next</h2>
+    <p>Our story is still being written. Learn more about becoming a member and adding your chapter to it.</p>
+    <div class="cta-actions">
+      <a href="membership.html" class="btn btn-primary"><i class="fas fa-user-plus"></i> Learn About Membership</a>
+      <a href="contact.html" class="btn btn-outline">Contact Us</a>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- ========================
+     FOOTER
+======================== -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo-row">
+          <img data-mf="org_logo" src="images/default-logo.svg" alt="Organization logo" class="footer-logo" />
+          <div>
+            <div class="footer-brand-name" data-mf="org_name">Organization</div>
+            <div class="footer-brand-sub" data-mf="org_tagline"></div>
+          </div>
+        </div>
+        <p data-mf="org_creed"></p>
+        <div class="footer-social">
+          <a href="#" target="_blank" rel="noopener" data-mf-social="facebook" aria-label="Facebook" style="display:none;"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="instagram" aria-label="Instagram" style="display:none;"><i class="fab fa-instagram"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="youtube" aria-label="YouTube" style="display:none;"><i class="fab fa-youtube"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="linkedin" aria-label="LinkedIn" style="display:none;"><i class="fab fa-linkedin-in"></i></a>
+          <a href="#" target="_blank" rel="noopener" data-mf-social="x" aria-label="X" style="display:none;"><i class="fab fa-x-twitter"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Navigate</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="events.html">Events</a></li>
+          <li><a href="membership.html">Membership</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="gallery.html">Gallery</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Get Involved</h4>
+        <ul>
+          <li><a href="membership-inquiry.html" data-mf-term="nav_inquiry_label">Become a Member</a></li>
+          <li><a href="fundraiser.html" id="footerFundraiserLink" style="display:none;">Support Us</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <div class="footer-contact-item">
+          <i class="fas fa-map-marker-alt"></i>
+          <span data-mf="org_address"></span>
+        </div>
+        <div class="footer-contact-item">
+          <i class="fas fa-envelope"></i>
+          <a href="#" data-mf="org_email" style="color: rgba(255,255,255,0.55);"></a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; <span data-mf="year"></span> <span data-mf="org_name">Organization</span>. All rights reserved. &nbsp;|&nbsp; <a href="admin-login.html" style="color:rgba(255,255,255,0.25); font-size:0.75rem; text-decoration:none;"><i class="fas fa-lock" style="margin-right:4px;"></i>Admin Login</a> &nbsp;|&nbsp; <a href="https://memberforge.app" style="color:rgba(255,255,255,0.35); font-size:0.75rem; text-decoration:none;">Powered by MemberForge</a></p>
+      <p class="footer-creed" data-mf="org_creed" style="display:none;"></p>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script>
+function abEsc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+const ABOUT_DEFAULTS = {
+  eyebrow: 'Our Story',
+  title: 'Our Story',
+  intro_html: '<p>Every organization has a story. Ours is just getting started — check back soon as we add our history, milestones, and the moments that have shaped our community.</p>',
+  story_html: '<p>We haven’t added our full story yet, but we’re proud of the community we’re building together. Our history, milestones, and the people who shaped this organization will appear here as they’re added from the admin dashboard.</p>',
+  quick_facts: [],
+  timeline: []
+};
+
+function renderAbout(content, org) {
+  const c = Object.assign({}, ABOUT_DEFAULTS, content || {});
+  const orgName = org.name || 'Organization';
+  const fill = s => (s || '').replaceAll('{{ORG_NAME}}', orgName);
+
+  document.getElementById('aboutEyebrow').textContent = c.eyebrow || '';
+  document.getElementById('aboutTitle').textContent = fill(c.title);
+  document.getElementById('aboutIntro').innerHTML = c.intro_html || '';
+  document.getElementById('aboutStory').innerHTML = c.story_html || '';
+
+  const facts = Array.isArray(c.quick_facts) ? c.quick_facts.filter(f => f && (f.label || f.value)) : [];
+  if (facts.length) {
+    document.getElementById('aboutFactsWrap').style.display = '';
+    document.getElementById('aboutFactsList').innerHTML = facts.map(f =>
+      `<div class="ab-fact-row"><span class="fact-label">${abEsc(f.label)}</span><span class="fact-value">${abEsc(f.value)}</span></div>`
+    ).join('');
+  } else {
+    document.getElementById('aboutHistoryLayout').classList.add('no-facts');
+  }
+
+  const timeline = Array.isArray(c.timeline) ? c.timeline.filter(t => t && (t.title || t.description)) : [];
+  if (timeline.length) {
+    document.getElementById('aboutTimelineSection').style.display = '';
+    document.getElementById('aboutTimeline').innerHTML = timeline.map(t => `
+      <div class="ab-tl-item fade-up visible">
+        <div class="ab-tl-dot"></div>
+        <div class="ab-tl-body">
+          <div class="ab-tl-year">${abEsc(t.year)}</div>
+          <h4>${abEsc(t.title)}</h4>
+          <p>${abEsc(t.description)}</p>
+        </div>
+      </div>`).join('');
+  }
+}
+
+(async function() {
+  const org = await MF.ready;
+  if (!org) return;
+  try {
+    const rows = await sb.getAll('site_content', `${MF.scope("content_key=eq.about&select=content_json")}`);
+    renderAbout(rows && rows[0] ? rows[0].content_json : null, org);
+  } catch (err) {
+    renderAbout(null, org);
+  }
+  try {
+    const homeRows = await sb.getAll('site_content', `${MF.scope("content_key=eq.home&select=content_json")}`);
+    const homeContent = homeRows && homeRows[0] ? homeRows[0].content_json : null;
+    if (homeContent && homeContent.fundraiser_enabled) {
+      const link = document.getElementById('footerFundraiserLink');
+      if (link) link.style.display = '';
+    }
+  } catch (err) { /* footer fundraiser link stays hidden */ }
+  try {
+    const rows = await sb.getAll('announcements', `${MF.scope('active=eq.true&order=id.desc&limit=1')}`);
+    const row = rows && rows.length ? rows[0] : null;
+    const bar = document.querySelector('.announce-bar');
+    if (bar && row && row.text) {
+      bar.innerHTML = `${row.text} &nbsp; <a href="${row.link_url || 'events.html'}">${row.link_text || 'Learn More →'}</a>`;
+      bar.style.display = '';
+    }
+  } catch (err) { /* no announcement */ }
+})();
+</script>
+</body>
+</html>

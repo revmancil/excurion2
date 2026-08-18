@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login | {{ORG_NAME}}</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <script src="js/memberforge-client.js"></script>
+  <script src="js/org-context.js"></script>
+  <style>
+    body.mf-branded { background: var(--ink); }
+    .auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .auth-wrap { position: relative; z-index: 2; width: 100%; max-width: 420px; }
+    .auth-brand { text-align: center; margin-bottom: 32px; }
+    .auth-brand img { height: 72px; width: 72px; object-fit: contain; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--accent) 50%, transparent); margin-bottom: 14px; background: rgba(255,255,255,0.04); }
+    .auth-brand h1 { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 800; color: var(--accent); line-height: 1.2; }
+    .auth-brand p { font-size: 0.75rem; color: rgba(255,255,255,0.4); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 4px; }
+    .auth-card { background: #111; border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent); border-radius: 10px; padding: 36px 32px; }
+    .auth-card h2 { font-family: 'Playfair Display', serif; font-size: 1.35rem; color: #fff; margin-bottom: 6px; }
+    .auth-sub { font-size: 0.83rem; color: rgba(255,255,255,0.4); margin-bottom: 28px; }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
+    .input-wrap { position: relative; }
+    .input-wrap i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.25); font-size: 0.9rem; }
+    .input-wrap input { width: 100%; padding: 13px 42px 13px 40px; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; font-family: 'Inter', sans-serif; font-size: 0.95rem; transition: all 0.25s ease; }
+    .input-wrap input:focus { outline: none; border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
+    .input-wrap input::placeholder { color: rgba(255,255,255,0.2); }
+    .toggle-pw { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: rgba(255,255,255,0.3); cursor: pointer; font-size: 0.9rem; padding: 4px; }
+    .toggle-pw:hover { color: var(--accent); }
+    .msg { display: none; align-items: center; gap: 8px; border-radius: 6px; padding: 12px 16px; font-size: 0.85rem; margin-bottom: 18px; }
+    .msg.show { display: flex; }
+    .msg.error { background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); color: #e74c3c; }
+    .auth-submit { width: 100%; padding: 14px; background: var(--accent); color: var(--on-accent); border: none; border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: all 0.25s ease; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; }
+    .auth-submit:hover { background: var(--accent-light); transform: translateY(-1px); box-shadow: var(--shadow-accent); }
+    .auth-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.3); border-top-color: currentColor; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    .auth-links { margin-top: 20px; text-align: center; display: flex; flex-direction: column; gap: 10px; }
+    .auth-links a { font-size: 0.82rem; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.2s; }
+    .auth-links a:hover { color: var(--accent); }
+    .auth-links a i { margin-right: 6px; }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(6px); } }
+    .shake { animation: shake 0.4s ease; }
+    @media (max-width: 480px) { .auth-card { padding: 28px 20px; } }
+  </style>
+</head>
+<body>
+
+<div class="auth-page">
+  <div class="auth-wrap">
+    <div class="auth-brand">
+      <img data-mf="org_logo" src="images/default-logo.svg" alt="Organization logo" />
+      <h1 data-mf="org_name">Organization</h1>
+      <p>Admin Portal</p>
+    </div>
+
+    <div class="auth-card" id="loginCard">
+      <h2>Administrator Login</h2>
+      <p class="auth-sub">Enter your credentials to access the site dashboard.</p>
+
+      <div class="msg error" id="errorMsg"><i class="fas fa-exclamation-circle"></i><span id="errorText">Incorrect email or password. Please try again.</span></div>
+
+      <form id="loginForm" novalidate>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <div class="input-wrap">
+            <i class="fas fa-envelope"></i>
+            <input type="email" id="email" name="email" placeholder="Enter admin email" autocomplete="email" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="password" name="password" placeholder="Enter password" autocomplete="current-password" required />
+            <button type="button" class="toggle-pw" id="togglePw" aria-label="Toggle password visibility"><i class="fas fa-eye" id="toggleIcon"></i></button>
+          </div>
+        </div>
+        <button type="submit" class="auth-submit" id="loginBtn"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+      </form>
+    </div>
+
+    <div class="auth-links">
+      <a href="member-login.html" id="memberLoginLink">Looking for the member portal instead?</a>
+      <a href="index.html" id="backToSiteLink"><i class="fas fa-arrow-left"></i> Back to Website</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  function withOrgParam(path) {
+    const search = window.location.search;
+    return search ? `${path}${search}` : path;
+  }
+
+  document.getElementById('togglePw').addEventListener('click', () => {
+    const pw = document.getElementById('password');
+    const icon = document.getElementById('toggleIcon');
+    if (pw.type === 'password') { pw.type = 'text'; icon.className = 'fas fa-eye-slash'; }
+    else { pw.type = 'password'; icon.className = 'fas fa-eye'; }
+  });
+
+  function showError(msg) {
+    const errorMsg = document.getElementById('errorMsg');
+    document.getElementById('errorText').textContent = msg;
+    errorMsg.classList.add('show');
+    const card = document.getElementById('loginCard');
+    card.classList.add('shake');
+    setTimeout(() => card.classList.remove('shake'), 400);
+  }
+
+  (async function () {
+    const org = await MF.ready;
+    if (!org) return; // org-context.js already rendered the "not found" page
+
+    // Preserve ?org= (local/dev resolution) across navigation to sibling pages.
+    document.getElementById('memberLoginLink').href = withOrgParam('member-login.html');
+    document.getElementById('backToSiteLink').href = withOrgParam('index.html');
+
+    // Already signed in with a valid session for this org? Skip straight to the dashboard.
+    if (MFAuth.loadSession() && MFAuth.isSignedIn()) {
+      window.location.href = withOrgParam('admin-dashboard.html');
+      return;
+    }
+
+    const form = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      document.getElementById('errorMsg').classList.remove('show');
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      if (!email || !password) { showError('Please enter your email and password.'); return; }
+
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '<div class="spinner"></div> Signing In...';
+      try {
+        await MFAuth.signIn(email, password);
+        loginBtn.innerHTML = '<i class="fas fa-check"></i> Success! Redirecting...';
+        window.location.href = withOrgParam('admin-dashboard.html');
+      } catch (err) {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+        showError(err.message || 'Invalid email or password.');
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>
