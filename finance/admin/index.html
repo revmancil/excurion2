@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finance Admin | {{ORG_NAME}}</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="stylesheet" href="../../css/theme.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <script src="../../js/memberforge-client.js"></script>
+  <script src="../../js/org-context.js"></script>
+  <script src="../../js/auth.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --fin-bg: var(--ink, #111);
+      --fin-panel: color-mix(in srgb, var(--ink) 85%, #fff 8%);
+      --fin-line: rgba(255,255,255,0.07);
+      --fin-accent: var(--accent, #C9A84C);
+      --fin-accent-pale: color-mix(in srgb, var(--accent) 10%, transparent);
+      --fin-accent-pale2: color-mix(in srgb, var(--accent) 18%, transparent);
+      --white:#ffffff; --gray-400:#9ca3af;
+      --green:#22c55e; --green-pale:rgba(34,197,94,0.1);
+      --red:#ef4444;   --red-pale:rgba(239,68,68,0.1);
+      --blue:#3b82f6;  --blue-pale:rgba(59,130,246,0.1);
+      --amber:#f59e0b; --amber-pale:rgba(245,158,11,0.1);
+      --purple:#8b5cf6; --purple-pale:rgba(139,92,246,0.1);
+      --sidebar-w:260px;
+    }
+    html,body{height:100%;}
+    body{font-family:'Inter',sans-serif;background:var(--fin-bg);color:var(--white);display:flex;min-height:100vh;}
+
+    .sidebar{width:var(--sidebar-w);background:var(--fin-panel);border-right:1px solid color-mix(in srgb, var(--fin-accent) 20%, transparent);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform 0.3s;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+    .sidebar-brand{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;flex-shrink:0;}
+    .sidebar-brand img{width:42px;height:42px;border-radius:50%;border:1.5px solid color-mix(in srgb, var(--fin-accent) 40%, transparent);object-fit:contain;}
+    .sidebar-brand-text .name{font-family:'Playfair Display',serif;font-size:0.88rem;font-weight:700;color:var(--fin-accent);line-height:1.2;}
+    .sidebar-brand-text .sub{font-size:0.62rem;color:rgba(255,255,255,0.3);letter-spacing:0.08em;text-transform:uppercase;}
+    .sidebar-user{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;}
+    .user-avatar{width:34px;height:34px;background:var(--fin-accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.82rem;color:#0a0a0a;flex-shrink:0;overflow:hidden;}
+    .user-avatar img{width:100%;height:100%;object-fit:cover;}
+    .user-info .uname{font-size:0.82rem;font-weight:600;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .user-info .urole{font-size:0.7rem;color:rgba(255,255,255,0.35);margin-top:2px;text-transform:capitalize;}
+    .sidebar-nav{padding:10px 0;flex:1;}
+    .nav-label{font-size:0.62rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.22);padding:10px 20px 5px;}
+    .nav-item{display:flex;align-items:center;gap:11px;padding:10px 20px;color:rgba(255,255,255,0.5);font-size:0.85rem;font-weight:500;border:none;background:none;width:100%;text-align:left;transition:color 0.2s,background 0.2s;border-left:3px solid transparent;text-decoration:none;cursor:pointer;}
+    .nav-item i{width:18px;text-align:center;font-size:0.88rem;}
+    .nav-item:hover{color:var(--white);background:rgba(255,255,255,0.04);}
+    .nav-item.active{color:var(--fin-accent);background:var(--fin-accent-pale);border-left-color:var(--fin-accent);}
+    .nav-divider{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:6px 0;}
+    .sidebar-footer{padding:14px 20px;border-top:1px solid rgba(255,255,255,0.06);}
+    .logout-btn{display:flex;align-items:center;gap:9px;color:rgba(255,255,255,0.4);font-size:0.82rem;background:none;border:none;cursor:pointer;padding:7px 0;transition:color 0.2s;width:100%;}
+    .logout-btn:hover{color:var(--red);}
+
+    .main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;}
+    .topbar{background:var(--fin-panel);border-bottom:1px solid rgba(255,255,255,0.06);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+    .topbar-left{display:flex;align-items:center;gap:12px;}
+    .hamburger{display:none;background:none;border:none;color:var(--white);font-size:1.1rem;cursor:pointer;padding:6px;}
+    .page-title{font-size:1rem;font-weight:600;color:var(--white);}
+    .breadcrumb{font-size:0.78rem;color:var(--gray-400);margin-left:6px;}
+    .topbar-right a{display:flex;align-items:center;gap:6px;color:var(--gray-400);text-decoration:none;font-size:0.8rem;transition:color 0.2s;}
+    .topbar-right a:hover{color:var(--fin-accent);}
+
+    .content{padding:28px;flex:1;}
+
+    .tool-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px;border-bottom:1px solid rgba(255,255,255,0.07);padding-bottom:0;}
+    .tool-tab{padding:10px 18px;border-radius:8px 8px 0 0;font-size:0.84rem;font-weight:600;background:none;color:rgba(255,255,255,0.4);cursor:pointer;transition:color 0.2s,background 0.2s;display:flex;align-items:center;gap:7px;margin-bottom:-1px;border:1px solid transparent;border-bottom:none;}
+    .tool-tab:hover{color:var(--white);background:rgba(255,255,255,0.04);}
+    .tool-tab.active{color:var(--fin-accent);background:var(--fin-panel);border-color:color-mix(in srgb, var(--fin-accent) 20%, transparent);border-bottom-color:var(--fin-panel);}
+    .tool-tab i{font-size:0.8rem;}
+    .tab-count{font-size:0.68rem;font-weight:700;background:var(--amber-pale);color:var(--amber);padding:1px 7px;border-radius:20px;}
+
+    .tool-panel{display:none;}
+    .tool-panel.active{display:block;}
+
+    .card{background:var(--fin-panel);border:1px solid var(--fin-line);border-radius:14px;padding:24px;margin-bottom:20px;}
+    .card-title{font-size:0.95rem;font-weight:700;color:var(--white);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+    .card-title i{color:var(--fin-accent);}
+    .card-sub{font-size:0.78rem;color:var(--gray-400);margin-bottom:20px;}
+
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+    .form-row.three{grid-template-columns:1fr 1fr 1fr;}
+    .form-row.single{grid-template-columns:1fr;}
+    .field{display:flex;flex-direction:column;gap:6px;}
+    .field label{font-size:0.78rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.06em;}
+    .field input,.field select,.field textarea{background:#0f0f0f;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 12px;color:var(--white);font-size:0.88rem;font-family:'Inter',sans-serif;outline:none;transition:border-color 0.2s;}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--fin-accent);}
+    .field textarea{resize:vertical;min-height:80px;}
+    .field select option{background:#1a1a1a;color:var(--white);}
+    .field-note{font-size:0.73rem;color:var(--gray-400);margin-top:2px;}
+
+    .dues-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .dues-item{background:#0f0f0f;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;}
+    .dues-item-label{font-size:0.78rem;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
+    .dues-item-desc-input{width:100%;background:#141414;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 9px;color:rgba(255,255,255,0.7);font-size:0.74rem;margin-bottom:10px;font-family:inherit;}
+    .dues-input-wrap{position:relative;display:flex;align-items:center;}
+    .dues-input-wrap span{position:absolute;left:12px;color:var(--gray-400);font-size:0.88rem;pointer-events:none;}
+    .dues-input-wrap input{padding-left:26px;width:100%;background:#141414;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 12px 9px 26px;color:var(--white);font-size:0.92rem;font-weight:600;outline:none;transition:border-color 0.2s;}
+    .dues-input-wrap input:focus{border-color:var(--fin-accent);}
+
+    .btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:8px;font-size:0.85rem;font-weight:600;border:none;cursor:pointer;transition:all 0.2s;}
+    .btn-gold{background:var(--fin-accent);color:#0a0a0a;}
+    .btn-gold:hover{opacity:0.88;transform:translateY(-1px);}
+    .btn-outline{background:transparent;border:1px solid rgba(255,255,255,0.15);color:var(--white);}
+    .btn-outline:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.3);}
+    .btn-green{background:var(--green);color:#04150a;}
+    .btn-green:hover{background:#16a34a;}
+    .btn-red{background:var(--red);color:var(--white);}
+    .btn-red:hover{background:#dc2626;}
+    .btn-sm{padding:6px 14px;font-size:0.76rem;}
+    .btn:disabled{opacity:0.5;pointer-events:none;}
+    .btn-row{display:flex;align-items:center;gap:10px;margin-top:20px;flex-wrap:wrap;}
+
+    .toast{position:fixed;bottom:28px;right:28px;background:#1f1f1f;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:10px;font-size:0.85rem;z-index:9999;transform:translateY(80px);opacity:0;transition:all 0.35s;pointer-events:none;max-width:340px;}
+    .toast.show{transform:translateY(0);opacity:1;}
+    .toast.success i{color:var(--green);}
+    .toast.error i{color:var(--red);}
+    .toast.info i{color:var(--blue);}
+
+    .policy-notice{background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:12px 16px;font-size:0.78rem;color:rgba(255,255,255,0.6);display:flex;align-items:flex-start;gap:10px;margin-bottom:20px;}
+    .policy-notice i{color:var(--amber);margin-top:2px;flex-shrink:0;}
+
+    .data-table{width:100%;border-collapse:collapse;}
+    .data-table th{text-align:left;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-400);padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.07);}
+    .data-table td{padding:12px 12px;font-size:0.84rem;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;}
+    .data-table tr:last-child td{border-bottom:none;}
+    .table-wrap{overflow-x:auto;}
+
+    .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:0.72rem;font-weight:600;}
+    .badge-gold{background:var(--fin-accent-pale2);color:var(--fin-accent);}
+    .badge-green{background:var(--green-pale);color:var(--green);}
+    .badge-red{background:var(--red-pale);color:var(--red);}
+    .badge-blue{background:var(--blue-pale);color:var(--blue);}
+    .badge-amber{background:var(--amber-pale);color:var(--amber);}
+    .badge-gray{background:rgba(255,255,255,0.07);color:var(--gray-400);}
+    .badge-purple{background:var(--purple-pale);color:var(--purple);}
+
+    .snapshot-section{margin-bottom:24px;}
+    .snapshot-section-title{font-size:0.8rem;font-weight:700;color:var(--fin-accent);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid color-mix(in srgb, var(--fin-accent) 15%, transparent);}
+    .line-items{display:flex;flex-direction:column;gap:8px;}
+    .line-item-row{display:grid;grid-template-columns:1fr 140px 36px;gap:8px;align-items:center;}
+    .line-item-row input{background:#0f0f0f;border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:8px 10px;color:var(--white);font-size:0.84rem;font-family:'Inter',sans-serif;outline:none;transition:border-color 0.2s;}
+    .line-item-row input:focus{border-color:var(--fin-accent);}
+    .remove-row-btn{background:none;border:none;color:var(--red);cursor:pointer;font-size:0.88rem;opacity:0.6;padding:6px;border-radius:6px;transition:opacity 0.2s;}
+    .remove-row-btn:hover{opacity:1;}
+    .add-row-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:7px;font-size:0.78rem;font-weight:600;color:var(--fin-accent);background:var(--fin-accent-pale);border:none;cursor:pointer;margin-top:8px;transition:background 0.2s;}
+    .add-row-btn:hover{background:var(--fin-accent-pale2);}
+
+    .method-tiles{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+    .method-tile{flex:1;min-width:120px;background:#0f0f0f;border:1.5px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px 12px;cursor:pointer;transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;}
+    .method-tile i{font-size:1.2rem;color:var(--gray-400);}
+    .method-tile span{font-size:0.78rem;font-weight:600;color:var(--gray-400);}
+    .method-tile.active{border-color:var(--fin-accent);background:var(--fin-accent-pale);}
+    .method-tile.active i,.method-tile.active span{color:var(--fin-accent);}
+
+    .member-search-wrap{position:relative;}
+    .member-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#1a1a1a;border:1px solid rgba(255,255,255,0.12);border-radius:10px;z-index:200;max-height:200px;overflow-y:auto;display:none;}
+    .member-dropdown.open{display:block;}
+    .member-option{padding:10px 14px;cursor:pointer;font-size:0.84rem;display:flex;flex-direction:column;gap:2px;transition:background 0.15s;}
+    .member-option:hover{background:rgba(255,255,255,0.05);}
+    .member-option .mo-name{color:var(--white);font-weight:600;}
+    .member-option .mo-email{color:var(--gray-400);font-size:0.75rem;}
+
+    .section-divider{border:none;border-top:1px solid rgba(255,255,255,0.07);margin:24px 0;}
+
+    .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99;}
+    @media(max-width:768px){
+      .sidebar{transform:translateX(-100%);}
+      .sidebar.open{transform:translateX(0);}
+      .sidebar-overlay.show{display:block;}
+      .main{margin-left:0;}
+      .hamburger{display:flex;}
+      .form-row,.form-row.three{grid-template-columns:1fr;}
+      .dues-grid{grid-template-columns:1fr;}
+      .method-tiles{flex-direction:column;}
+      .content{padding:16px;}
+    }
+
+    .roster-search{display:flex;gap:8px;margin-bottom:16px;}
+    .roster-search input{flex:1;background:#0f0f0f;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 12px;color:var(--white);font-size:0.85rem;outline:none;}
+    .roster-search input:focus{border-color:var(--fin-accent);}
+    .member-row{display:flex;align-items:center;gap:12px;padding:12px;background:#0f0f0f;border:1px solid rgba(255,255,255,0.06);border-radius:10px;margin-bottom:8px;flex-wrap:wrap;}
+    .member-row-avatar{width:36px;height:36px;background:var(--fin-accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.82rem;color:#0a0a0a;flex-shrink:0;overflow:hidden;}
+    .member-row-avatar img{width:100%;height:100%;object-fit:cover;}
+    .member-row-info{flex:1;min-width:180px;}
+    .member-row-name{font-weight:600;font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .member-row-meta{font-size:0.73rem;color:var(--gray-400);margin-top:2px;}
+    .member-row-actions{display:flex;gap:6px;flex-shrink:0;align-items:center;}
+    .member-row-actions select{background:#141414;border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--white);font-size:0.76rem;padding:5px 6px;}
+
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:var(--fin-panel);border:1px solid rgba(255,255,255,0.1);border-radius:16px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:28px;}
+    .modal-title{font-size:1rem;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:8px;}
+    .modal-title i{color:var(--fin-accent);}
+    .modal-close{background:none;border:none;color:var(--gray-400);font-size:1rem;cursor:pointer;margin-left:auto;padding:4px;}
+    .modal-close:hover{color:var(--white);}
+
+    .review-row{border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px 18px;margin-bottom:12px;background:rgba(255,255,255,0.015);}
+    .review-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:8px;}
+    .review-title{font-size:0.92rem;font-weight:700;color:var(--white);}
+    .review-meta{font-size:0.76rem;color:rgba(255,255,255,0.38);margin-top:3px;}
+    .review-desc{font-size:0.84rem;color:rgba(255,255,255,0.55);line-height:1.55;margin:8px 0;}
+    .review-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center;}
+    .review-note-input{width:100%;margin-top:10px;background:#0f0f0f;border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:8px 10px;color:var(--white);font-size:0.82rem;font-family:inherit;}
+
+    .gate-notice{max-width:520px;margin:80px auto;text-align:center;padding:32px;background:var(--fin-panel);border:1px solid var(--fin-line);border-radius:16px;}
+    .gate-notice i{font-size:2rem;color:var(--amber);margin-bottom:14px;display:block;}
+  </style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <img data-mf="org_logo" src="../../images/default-logo.svg" alt="" />
+    <div class="sidebar-brand-text">
+      <div class="name" data-mf="org_name">Organization</div>
+      <div class="sub">Finance Portal</div>
+    </div>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-avatar" id="sidebarAvatar"></div>
+    <div class="user-info">
+      <div class="uname" id="sidebarName">Loading…</div>
+      <div class="urole" id="sidebarRole"></div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Finance</div>
+    <a class="nav-item" href="../dashboard.html"><i class="fas fa-chart-line"></i> Dashboard</a>
+    <a class="nav-item" href="../pay-dues.html"><i class="fas fa-credit-card"></i> Pay Dues</a>
+    <a class="nav-item" href="../requisition.html"><i class="fas fa-file-invoice-dollar"></i> Requisitions</a>
+    <a class="nav-item" href="../reimbursement.html"><i class="fas fa-receipt"></i> Reimbursements</a>
+    <hr class="nav-divider" />
+    <div class="nav-label">Admin</div>
+    <a class="nav-item active" href="index.html"><i class="fas fa-tools"></i> Finance Admin</a>
+    <hr class="nav-divider" />
+    <a class="nav-item" href="../../member-portal.html"><i class="fas fa-arrow-left"></i> Member Portal</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" onclick="openSidebar()"><i class="fas fa-bars"></i></button>
+      <span class="page-title">Finance Admin</span>
+      <span class="breadcrumb">/ Treasurer Tools</span>
+    </div>
+    <div class="topbar-right">
+      <a href="../dashboard.html"><i class="fas fa-chart-line"></i> Dashboard</a>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div id="gate" style="display:none;">
+      <div class="gate-notice">
+        <i class="fas fa-lock"></i>
+        <h2 style="font-family:'Playfair Display',serif;margin-bottom:8px;">Finance Admin access required</h2>
+        <p style="color:var(--gray-400);font-size:0.9rem;">This page is restricted to the Treasurer, Financial Secretary, and President. Sign in with an account that holds one of these finance roles.</p>
+      </div>
+    </div>
+
+    <div id="adminUI" style="display:none;">
+
+      <div class="tool-tabs">
+        <button class="tool-tab active" data-tab="dues-config" onclick="switchTab('dues-config')">
+          <i class="fas fa-sliders-h"></i> Dues Configuration
+        </button>
+        <button class="tool-tab" data-tab="requisitions" onclick="switchTab('requisitions')">
+          <i class="fas fa-file-invoice-dollar"></i> Requisitions <span class="tab-count" id="reqCount" style="display:none;"></span>
+        </button>
+        <button class="tool-tab" data-tab="reimbursements" onclick="switchTab('reimbursements')">
+          <i class="fas fa-receipt"></i> Reimbursements <span class="tab-count" id="reimbCount" style="display:none;"></span>
+        </button>
+        <button class="tool-tab" data-tab="manual-payment" onclick="switchTab('manual-payment')">
+          <i class="fas fa-hand-holding-usd"></i> Log Payment
+        </button>
+        <button class="tool-tab" data-tab="snapshot" onclick="switchTab('snapshot')">
+          <i class="fas fa-camera"></i> Dashboard Snapshot
+        </button>
+        <button class="tool-tab" data-tab="roster" onclick="switchTab('roster')">
+          <i class="fas fa-users"></i> Roster
+        </button>
+      </div>
+
+      <!-- ══════ TAB: Dues Configuration ══════ -->
+      <div class="tool-panel active" id="tab-dues-config">
+        <div class="card">
+          <div class="card-title"><i class="fas fa-sliders-h"></i> Dues Amounts</div>
+          <div class="card-sub">Set the dollar amount and description members see for each dues category. Changes take effect immediately for new payments.</div>
+
+          <div class="policy-notice">
+            <i class="fas fa-info-circle"></i>
+            <span>Amounts shown in dollars, stored in cents internally. Late Fee and Building Fund are add-ons applied on top of the base category amount.</span>
+          </div>
+
+          <div class="dues-grid" id="duesGrid"><!-- populated by JS --></div>
+
+          <hr class="section-divider" />
+
+          <div class="card-title" style="margin-bottom:4px;"><i class="fas fa-calendar-alt"></i> Fiscal Year Settings</div>
+          <div class="card-sub">Controls the active fiscal year shown on the Pay Dues page.</div>
+          <div class="form-row">
+            <div class="field">
+              <label>Current Fiscal Year</label>
+              <input type="text" id="fyInput" placeholder="e.g. 2025-2026" />
+            </div>
+            <div class="field">
+              <label>Late Fee Deadline (MM/DD)</label>
+              <input type="text" id="lateFeeDeadlineInput" placeholder="07/31" />
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-gold" onclick="saveDuesConfig()"><i class="fas fa-save"></i> Save Dues Configuration</button>
+            <button class="btn btn-outline" onclick="loadDuesConfig()"><i class="fas fa-undo"></i> Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════ TAB: Requisitions review ══════ -->
+      <div class="tool-panel" id="tab-requisitions">
+        <div class="card">
+          <div class="card-title"><i class="fas fa-file-invoice-dollar"></i> Requisitions</div>
+          <div class="card-sub">Approve or deny fund requests. Approving a Personal Reimbursement requisition automatically creates a linked reimbursement for the member.</div>
+          <div id="requisitionsList"><div style="text-align:center;color:var(--gray-400);padding:32px;">Loading…</div></div>
+        </div>
+      </div>
+
+      <!-- ══════ TAB: Reimbursements review ══════ -->
+      <div class="tool-panel" id="tab-reimbursements">
+        <div class="card">
+          <div class="card-title"><i class="fas fa-receipt"></i> Reimbursements</div>
+          <div class="card-sub">Approve once payment has been issued via Zelle or Check, or deny with a note.</div>
+          <div id="reimbursementsList"><div style="text-align:center;color:var(--gray-400);padding:32px;">Loading…</div></div>
+        </div>
+      </div>
+
+      <!-- ══════ TAB: Manual Payment Log ══════ -->
+      <div class="tool-panel" id="tab-manual-payment">
+        <div class="card">
+          <div class="card-title"><i class="fas fa-hand-holding-usd"></i> Log Manual Payment</div>
+          <div class="card-sub">Record a dues payment made by check, Zelle, or cash — or mark a member's dues as waived. These payments are not processed through Stripe.</div>
+
+          <div class="field" style="margin-bottom:16px;">
+            <label>Member</label>
+            <div class="member-search-wrap">
+              <input type="text" id="mpMemberSearch" placeholder="Search by name or email…" oninput="searchMembers(this.value)" autocomplete="off" />
+              <div class="member-dropdown" id="memberDropdown"></div>
+            </div>
+            <input type="hidden" id="mpMemberId" />
+            <input type="hidden" id="mpMemberEmail" />
+            <input type="hidden" id="mpMemberName" />
+          </div>
+
+          <div class="form-row">
+            <div class="field">
+              <label>Dues Category</label>
+              <select id="mpCategory">
+                <option value="renewing">Renewing Member</option>
+                <option value="new_initiate">New Member</option>
+                <option value="legacy">Legacy / Life Member</option>
+                <option value="undergrad_1">Reduced Rate — Year 1</option>
+                <option value="undergrad_2plus">Reduced Rate — Year 2+</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Fiscal Year</label>
+              <input type="text" id="mpFiscalYear" placeholder="e.g. 2025-2026" />
+            </div>
+          </div>
+
+          <div class="field" style="margin-bottom:16px;">
+            <label>Payment Method</label>
+            <div class="method-tiles">
+              <div class="method-tile active" data-method="check" onclick="selectPayMethod(this,'check')"><i class="fas fa-money-check-alt"></i><span>Check</span></div>
+              <div class="method-tile" data-method="zelle" onclick="selectPayMethod(this,'zelle')"><i class="fas fa-mobile-alt"></i><span>Zelle</span></div>
+              <div class="method-tile" data-method="cash" onclick="selectPayMethod(this,'cash')"><i class="fas fa-money-bill-wave"></i><span>Cash</span></div>
+              <div class="method-tile" data-method="waived" onclick="selectPayMethod(this,'waived')"><i class="fas fa-star"></i><span>Waived</span></div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field">
+              <label>Amount ($)</label>
+              <input type="number" id="mpAmount" placeholder="0.00" step="0.01" min="0" />
+              <div class="field-note">Leave blank or 0 for waived</div>
+            </div>
+            <div class="field">
+              <label>Check / Reference #</label>
+              <input type="text" id="mpReference" placeholder="Check number or Zelle confirmation" />
+            </div>
+          </div>
+
+          <div class="form-row single">
+            <div class="field">
+              <label>Add-ons</label>
+              <div style="display:flex;gap:12px;margin-top:4px;">
+                <label style="display:flex;align-items:center;gap:7px;font-size:0.85rem;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:500;color:var(--white);">
+                  <input type="checkbox" id="mpLateFee" style="accent-color:var(--fin-accent);" /> Late Fee
+                </label>
+                <label style="display:flex;align-items:center;gap:7px;font-size:0.85rem;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:500;color:var(--white);">
+                  <input type="checkbox" id="mpBuildingFund" style="accent-color:var(--fin-accent);" /> Building Fund
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row single">
+            <div class="field">
+              <label>Notes (optional)</label>
+              <textarea id="mpNotes" placeholder="Any notes about this payment…"></textarea>
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-gold" onclick="logManualPayment()"><i class="fas fa-plus-circle"></i> Log Payment</button>
+            <button class="btn btn-outline" onclick="clearPaymentForm()"><i class="fas fa-times"></i> Clear</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><i class="fas fa-history"></i> Recent Manual Payments</div>
+          <div class="card-sub">Last 20 payments logged via this tool (excludes Stripe payments).</div>
+          <div class="table-wrap">
+            <table class="data-table" id="manualPayTable">
+              <thead><tr><th>Member</th><th>Category</th><th>FY</th><th>Method</th><th>Amount</th><th>Date</th><th>Ref #</th></tr></thead>
+              <tbody id="manualPayTbody"><tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:24px;">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════ TAB: Dashboard Snapshot ══════ -->
+      <div class="tool-panel" id="tab-snapshot">
+        <div class="card">
+          <div class="card-title"><i class="fas fa-camera"></i> Publish Financial Snapshot</div>
+          <div class="card-sub">Update the month-end financial data displayed on the Finance Dashboard. Members see summary figures only.</div>
+
+          <div class="policy-notice">
+            <i class="fas fa-info-circle"></i>
+            <span>This snapshot represents the organization's financial position as of the "As of" date you set below. Publish after reconciling your books each month.</span>
+          </div>
+
+          <div class="form-row">
+            <div class="field"><label>As of Date</label><input type="text" id="snapAsOf" placeholder="e.g. July 31, 2026" /></div>
+            <div class="field"><label>Updated By</label><input type="text" id="snapUpdatedBy" placeholder="Your name" /></div>
+          </div>
+
+          <hr class="section-divider" />
+
+          <div class="snapshot-section">
+            <div class="snapshot-section-title"><i class="fas fa-university"></i> Cash Position</div>
+            <div class="form-row three">
+              <div class="field"><label>Total Balance ($)</label><input type="number" id="snapCashTotal" placeholder="0.00" step="0.01" min="0" /></div>
+              <div class="field"><label>Reserved ($)</label><input type="number" id="snapCashReserved" placeholder="0.00" step="0.01" min="0" /><div class="field-note">Restricted funds, grants, earmarks</div></div>
+              <div class="field"><label>Available ($)</label><input type="number" id="snapCashAvailable" placeholder="Auto-calculated" step="0.01" min="0" readonly style="opacity:0.6;" /><div class="field-note">Total minus Reserved</div></div>
+            </div>
+          </div>
+
+          <hr class="section-divider" />
+
+          <div class="snapshot-section">
+            <div class="snapshot-section-title"><i class="fas fa-balance-scale"></i> Balance Sheet</div>
+            <div style="margin-bottom:12px;">
+              <div style="font-size:0.78rem;font-weight:600;color:var(--gray-400);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;">Assets</div>
+              <div class="line-items" id="assetsContainer"></div>
+              <button class="add-row-btn" onclick="addLineItem('assets')"><i class="fas fa-plus"></i> Add Asset Line</button>
+            </div>
+            <div style="margin-top:16px;">
+              <div style="font-size:0.78rem;font-weight:600;color:var(--gray-400);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;">Liabilities</div>
+              <div class="line-items" id="liabilitiesContainer"></div>
+              <button class="add-row-btn" onclick="addLineItem('liabilities')"><i class="fas fa-plus"></i> Add Liability Line</button>
+            </div>
+            <div class="form-row" style="margin-top:16px;">
+              <div class="field"><label>Total Assets ($)</label><input type="number" id="snapTotalAssets" placeholder="0.00" step="0.01" /></div>
+              <div class="field"><label>Total Liabilities ($)</label><input type="number" id="snapTotalLiabilities" placeholder="0.00" step="0.01" /></div>
+            </div>
+            <div class="form-row single">
+              <div class="field"><label>Net Position / Equity ($)</label><input type="number" id="snapNetPosition" placeholder="Auto-calculated (Assets − Liabilities)" step="0.01" readonly style="opacity:0.6;" /></div>
+            </div>
+          </div>
+
+          <hr class="section-divider" />
+
+          <div class="snapshot-section">
+            <div class="snapshot-section-title"><i class="fas fa-chart-bar"></i> Budget vs. Actuals</div>
+            <div class="line-items" id="budgetContainer"></div>
+            <button class="add-row-btn" onclick="addBudgetRow()"><i class="fas fa-plus"></i> Add Category</button>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-gold" onclick="publishSnapshot()"><i class="fas fa-cloud-upload-alt"></i> Publish Snapshot</button>
+            <button class="btn btn-outline" onclick="loadSnapshot()"><i class="fas fa-undo"></i> Reload Current</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════ TAB: Roster ══════ -->
+      <div class="tool-panel" id="tab-roster">
+        <div class="card">
+          <div class="card-title"><i class="fas fa-users"></i> Member Roster</div>
+          <div class="card-sub">Roster and dues status for the current fiscal year. Member type can be edited if your account manages the Members section; finance roles are granted from the main Admin Dashboard.</div>
+
+          <div class="roster-search">
+            <input type="text" id="rosterSearch" placeholder="Search by name or email…" oninput="filterRoster(this.value)" />
+          </div>
+
+          <div id="rosterList"><div style="text-align:center;color:var(--gray-400);padding:32px;">Loading…</div></div>
+        </div>
+      </div>
+
+    </div><!-- /adminUI -->
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMsg"></span></div>
+
+<script>
+  const DUES_CONFIG_KEY = 'finance_dues_config';
+  const SNAPSHOT_KEY    = 'finance_dashboard_snapshot';
+
+  const DEFAULT_DUES = {
+    renewing:        { label:'Renewing Member',        description:'Active member renewing annual dues',        amount:12500 },
+    new_initiate:    { label:'New Member',              description:'New member this fiscal year',               amount:12500 },
+    legacy:          { label:'Legacy / Life Member',    description:'Life membership or waived per board decision', amount:0    },
+    undergrad_1:     { label:'Reduced Rate — Year 1',   description:'First year at the reduced rate',            amount:5000 },
+    undergrad_2plus: { label:'Reduced Rate — Year 2+',  description:'Second year or beyond at the reduced rate', amount:7500 },
+    late_fee:        { label:'Late Fee',                description:'Applied after deadline each year',          amount:2500 },
+    building_fund:   { label:'Building Fund',           description:'Optional contribution to building fund',    amount:5000 },
+  };
+
+  let allMembers = [];
+  let editingMemberId = null;
+  let selectedPayMethod = 'check';
+  let pendingRequisitions = [];
+  let pendingReimbursements = [];
+
+  function esc(s){ var d=document.createElement('div'); d.textContent=String(s==null?'':s); return d.innerHTML; }
+  function doLogout(){ MFAuth.signOut(); window.location.href = '../../member-login.html' + (MF.org?('?org='+MF.org.slug):''); }
+  function toast(msg, type = 'success') {
+    const el = document.getElementById('toast');
+    el.className = `toast ${type}`;
+    el.querySelector('i').className = type === 'success' ? 'fas fa-check-circle' : type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-info-circle';
+    document.getElementById('toastMsg').textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 3500);
+  }
+  function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('show'); }
+  function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('show'); }
+
+  function switchTab(id) {
+    document.querySelectorAll('.tool-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === id));
+    document.querySelectorAll('.tool-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${id}`));
+    if (id === 'manual-payment') loadManualPayments();
+    if (id === 'snapshot') loadSnapshot();
+    if (id === 'roster') loadRoster();
+    if (id === 'requisitions') loadRequisitions();
+    if (id === 'reimbursements') loadReimbursements();
+  }
+
+  function fmt$(cents) { return '$' + (cents / 100).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+  function fmtDate(iso) { if (!iso) return '—'; return new Date(iso).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}); }
+  function dollars(c) { return (c / 100).toFixed(2); }
+  function cents(d)  { return Math.round(parseFloat(d || 0) * 100); }
+
+  async function getContentJson(key) {
+    try {
+      const rows = await sb.getAll('site_content', MF.scope(`content_key=eq.${key}&select=content_json`));
+      return rows.length ? rows[0].content_json : null;
+    } catch { return null; }
+  }
+  async function saveContentJson(key, value) {
+    await sb.upsert('site_content', MF.stamp({ content_key: key, content_json: value, updated_at: new Date().toISOString() }), 'org_id,content_key');
+  }
+
+  /* ══════════════════════════════════════════ DUES CONFIG ══════════════════════════════════════════ */
+  function buildDuesGrid(cfg) {
+    const keys = ['renewing','new_initiate','legacy','undergrad_1','undergrad_2plus','late_fee','building_fund'];
+    const grid = document.getElementById('duesGrid');
+    grid.innerHTML = keys.map(k => {
+      const def = DEFAULT_DUES[k];
+      const entry = (cfg && cfg[k]) || def;
+      const val = dollars(entry.amount != null ? entry.amount : def.amount);
+      const desc = entry.description != null ? entry.description : def.description;
+      return `
+        <div class="dues-item">
+          <div class="dues-item-label">${esc(def.label)}</div>
+          <input type="text" class="dues-item-desc-input" id="dcd_${k}" value="${esc(desc)}" placeholder="Description shown to members" />
+          <div class="dues-input-wrap"><span>$</span><input type="number" id="dc_${k}" value="${val}" step="0.01" min="0" /></div>
+        </div>`;
+    }).join('');
+  }
+
+  async function loadDuesConfig() {
+    const cfg = await getContentJson(DUES_CONFIG_KEY);
+    buildDuesGrid(cfg);
+    document.getElementById('fyInput').value = (cfg && cfg.fiscal_year) || '';
+    document.getElementById('lateFeeDeadlineInput').value = (cfg && cfg.late_fee_deadline) || '07/31';
+  }
+
+  async function saveDuesConfig() {
+    const keys = ['renewing','new_initiate','legacy','undergrad_1','undergrad_2plus','late_fee','building_fund'];
+    const cfg = {};
+    keys.forEach(k => {
+      const def = DEFAULT_DUES[k];
+      cfg[k] = {
+        label: def.label,
+        description: (document.getElementById(`dcd_${k}`).value || '').trim(),
+        amount: cents(document.getElementById(`dc_${k}`).value)
+      };
+    });
+    cfg.fiscal_year = document.getElementById('fyInput').value.trim();
+    cfg.late_fee_deadline = document.getElementById('lateFeeDeadlineInput').value.trim();
+
+    try { await saveContentJson(DUES_CONFIG_KEY, cfg); toast('Dues configuration saved.'); }
+    catch(e) { toast('Error saving: ' + e.message, 'error'); }
+  }
+
+  /* ══════════════════════════════════════════ REQUISITIONS REVIEW ══════════════════════════════════════════ */
+  async function loadRequisitions() {
+    const el = document.getElementById('requisitionsList');
+    el.innerHTML = '<div style="text-align:center;color:var(--gray-400);padding:32px;">Loading…</div>';
+    try {
+      pendingRequisitions = await sb.getAll('finance_requisitions', MF.scope('order=submitted_at.desc&limit=100'));
+      renderRequisitions();
+      updatePendingCounts();
+    } catch(e) {
+      el.innerHTML = `<div style="color:var(--red);padding:16px;">${esc(e.message)}</div>`;
+    }
+  }
+
+  function renderRequisitions() {
+    const el = document.getElementById('requisitionsList');
+    if (!pendingRequisitions.length) { el.innerHTML = '<div style="text-align:center;color:var(--gray-400);padding:32px;">No requisitions yet.</div>'; return; }
+    const methodLabel = {org_card:'Org Card',check:'Check',personal_reimbursement:'Personal Reimbursement'};
+    el.innerHTML = pendingRequisitions.map(r => `
+      <div class="review-row">
+        <div class="review-top">
+          <div>
+            <div class="review-title">${esc(r.committee||'Requisition')} — ${fmt$(r.amount_cents||0)}</div>
+            <div class="review-meta">${esc(r.member_name||'Unknown')} · ${esc(methodLabel[r.method]||r.method||'—')} · Submitted ${fmtDate(r.submitted_at)}</div>
+          </div>
+          <span class="badge ${r.status==='approved'?'badge-green':r.status==='denied'?'badge-red':'badge-amber'}">${esc(r.status||'pending')}</span>
+        </div>
+        <div class="review-desc">${esc(r.description||'')}</div>
+        ${r.payee_name ? `<div class="review-meta">Payee: ${esc(r.payee_name)}</div>` : ''}
+        ${r.doc_url ? `<a href="${esc(r.doc_url)}" target="_blank" rel="noopener" class="btn btn-outline btn-sm" style="margin-top:8px;"><i class="fas fa-paperclip"></i> Document</a>` : ''}
+        ${r.admin_note ? `<div class="review-meta" style="font-style:italic;margin-top:6px;"><i class="fas fa-comment"></i> ${esc(r.admin_note)}</div>` : ''}
+        ${r.status === 'pending' ? `
+          <input type="text" class="review-note-input" id="reqNote_${r.id}" placeholder="Optional note (visible to member)…" />
+          <div class="review-actions">
+            <button class="btn btn-green btn-sm" onclick="approveRequisition(${r.id})"><i class="fas fa-check"></i> Approve</button>
+            <button class="btn btn-red btn-sm" onclick="denyRequisition(${r.id})"><i class="fas fa-times"></i> Deny</button>
+          </div>` : ''}
+      </div>`).join('');
+  }
+
+  async function approveRequisition(id) {
+    const r = pendingRequisitions.find(x => x.id === id);
+    if (!r) return;
+    const note = (document.getElementById(`reqNote_${id}`) || {}).value || null;
+    try {
+      let reimbursementId = null;
+      if (r.method === 'personal_reimbursement') {
+        const [reimb] = await sb.insert('finance_reimbursements', MF.stamp({
+          member_id:      r.member_id,
+          member_name:    r.member_name,
+          member_email:   r.member_email,
+          item_service:   r.description,
+          amount_cents:   r.amount_cents,
+          payee_name:     r.payee_name,
+          method:         'zelle',
+          payment_details: null,
+          doc_url:        r.doc_url,
+          status:         'pending',
+          auto_generated: true,
+          requisition_id: r.id,
+          submitted_at:   new Date().toISOString()
+        }));
+        reimbursementId = reimb.id;
+      }
+      await sb.patchWhere('finance_requisitions', MF.scope(`id=eq.${id}`), {
+        status: 'approved',
+        admin_note: note,
+        reviewed_at: new Date().toISOString(),
+        reimbursement_id: reimbursementId
+      });
+      toast(reimbursementId ? 'Requisition approved — reimbursement auto-created.' : 'Requisition approved.');
+      loadRequisitions();
+      if (reimbursementId) loadReimbursements();
+    } catch(e) { toast('Error: ' + e.message, 'error'); }
+  }
+
+  async function denyRequisition(id) {
+    const note = (document.getElementById(`reqNote_${id}`) || {}).value || null;
+    try {
+      await sb.patchWhere('finance_requisitions', MF.scope(`id=eq.${id}`), { status: 'denied', admin_note: note, reviewed_at: new Date().toISOString() });
+      toast('Requisition denied.');
+      loadRequisitions();
+    } catch(e) { toast('Error: ' + e.message, 'error'); }
+  }
+
+  /* ══════════════════════════════════════════ REIMBURSEMENTS REVIEW ══════════════════════════════════════════ */
+  async function loadReimbursements() {
+    const el = document.getElementById('reimbursementsList');
+    el.innerHTML = '<div style="text-align:center;color:var(--gray-400);padding:32px;">Loading…</div>';
+    try {
+      pendingReimbursements = await sb.getAll('finance_reimbursements', MF.scope('order=submitted_at.desc&limit=100'));
+      renderReimbursements();
+      updatePendingCounts();
+    } catch(e) {
+      el.innerHTML = `<div style="color:var(--red);padding:16px;">${esc(e.message)}</div>`;
+    }
+  }
+
+  function renderReimbursements() {
+    const el = document.getElementById('reimbursementsList');
+    if (!pendingReimbursements.length) { el.innerHTML = '<div style="text-align:center;color:var(--gray-400);padding:32px;">No reimbursements yet.</div>'; return; }
+    el.innerHTML = pendingReimbursements.map(r => `
+      <div class="review-row">
+        <div class="review-top">
+          <div>
+            <div class="review-title">${fmt$(r.amount_cents||0)} — ${esc((r.item_service||'').substring(0,80))}</div>
+            <div class="review-meta">${esc(r.member_name||'Unknown')} · ${esc(r.method==='zelle'?'Zelle':r.method==='check'?'Check':r.method||'—')} · Submitted ${fmtDate(r.submitted_at)} ${r.auto_generated?'<span class="badge badge-purple" style="margin-left:6px;">Auto-generated</span>':''}</div>
+          </div>
+          <span class="badge ${r.status==='approved'?'badge-green':r.status==='denied'?'badge-red':'badge-amber'}">${esc(r.status||'pending')}</span>
+        </div>
+        ${r.payee_name ? `<div class="review-meta">Payee: ${esc(r.payee_name)}</div>` : ''}
+        ${r.payment_details ? `<div class="review-meta">${esc(JSON.stringify(r.payment_details))}</div>` : ''}
+        ${r.doc_url ? `<a href="${esc(r.doc_url)}" target="_blank" rel="noopener" class="btn btn-outline btn-sm" style="margin-top:8px;"><i class="fas fa-receipt"></i> Receipt</a>` : ''}
+        ${r.admin_note ? `<div class="review-meta" style="font-style:italic;margin-top:6px;"><i class="fas fa-comment"></i> ${esc(r.admin_note)}</div>` : ''}
+        ${r.status === 'pending' ? `
+          <input type="text" class="review-note-input" id="reimbNote_${r.id}" placeholder="Optional note (visible to member)…" />
+          <div class="review-actions">
+            <button class="btn btn-green btn-sm" onclick="approveReimbursement(${r.id})"><i class="fas fa-check"></i> Approve (Payment Issued)</button>
+            <button class="btn btn-red btn-sm" onclick="denyReimbursement(${r.id})"><i class="fas fa-times"></i> Deny</button>
+          </div>` : ''}
+      </div>`).join('');
+  }
+
+  async function approveReimbursement(id) {
+    const note = (document.getElementById(`reimbNote_${id}`) || {}).value || null;
+    try {
+      await sb.patchWhere('finance_reimbursements', MF.scope(`id=eq.${id}`), { status: 'approved', admin_note: note, reviewed_at: new Date().toISOString() });
+      toast('Reimbursement approved.');
+      loadReimbursements();
+    } catch(e) { toast('Error: ' + e.message, 'error'); }
+  }
+
+  async function denyReimbursement(id) {
+    const note = (document.getElementById(`reimbNote_${id}`) || {}).value || null;
+    try {
+      await sb.patchWhere('finance_reimbursements', MF.scope(`id=eq.${id}`), { status: 'denied', admin_note: note, reviewed_at: new Date().toISOString() });
+      toast('Reimbursement denied.');
+      loadReimbursements();
+    } catch(e) { toast('Error: ' + e.message, 'error'); }
+  }
+
+  function updatePendingCounts() {
+    const reqPending = pendingRequisitions.filter(r => r.status === 'pending').length;
+    const reimbPending = pendingReimbursements.filter(r => r.status === 'pending').length;
+    const reqBadge = document.getElementById('reqCount');
+    const reimbBadge = document.getElementById('reimbCount');
+    if (reqPending) { reqBadge.textContent = reqPending; reqBadge.style.display = ''; } else { reqBadge.style.display = 'none'; }
+    if (reimbPending) { reimbBadge.textContent = reimbPending; reimbBadge.style.display = ''; } else { reimbBadge.style.display = 'none'; }
+  }
+
+  /* ══════════════════════════════════════════ MANUAL PAYMENT ══════════════════════════════════════════ */
+  function selectPayMethod(el, method) {
+    document.querySelectorAll('.method-tile').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    selectedPayMethod = method;
+    document.getElementById('mpAmount').disabled = (method === 'waived');
+    if (method === 'waived') document.getElementById('mpAmount').value = '0';
+  }
+
+  function searchMembers(q) {
+    const dd = document.getElementById('memberDropdown');
+    if (q.length < 2) { dd.classList.remove('open'); return; }
+    const filtered = allMembers.filter(m =>
+      (`${m.first_name} ${m.last_name}`).toLowerCase().includes(q.toLowerCase()) ||
+      (m.email || '').toLowerCase().includes(q.toLowerCase())
+    ).slice(0, 8);
+    if (!filtered.length) { dd.classList.remove('open'); return; }
+    dd.innerHTML = filtered.map(m => `
+      <div class="member-option" onclick='selectMember(${m.id},${JSON.stringify(`${m.first_name} ${m.last_name}`)},${JSON.stringify(m.email||'')})'>
+        <span class="mo-name">${esc(m.first_name)} ${esc(m.last_name)}</span>
+        <span class="mo-email">${esc(m.email||'')}</span>
+      </div>`).join('');
+    dd.classList.add('open');
+  }
+
+  function selectMember(id, name, email) {
+    document.getElementById('mpMemberSearch').value = name;
+    document.getElementById('mpMemberId').value = id;
+    document.getElementById('mpMemberEmail').value = email;
+    document.getElementById('mpMemberName').value = name;
+    document.getElementById('memberDropdown').classList.remove('open');
+  }
+
+  async function logManualPayment() {
+    const memberId = document.getElementById('mpMemberId').value;
+    if (!memberId) { toast('Please select a member.', 'error'); return; }
+    const category = document.getElementById('mpCategory').value;
+    const fiscalYear = document.getElementById('mpFiscalYear').value.trim();
+    if (!fiscalYear) { toast('Please enter a fiscal year.', 'error'); return; }
+    const amountCents = cents(document.getElementById('mpAmount').value);
+    const lateFee = document.getElementById('mpLateFee').checked;
+    const buildingFund = document.getElementById('mpBuildingFund').checked;
+    const refNum = document.getElementById('mpReference').value.trim();
+    const notes = document.getElementById('mpNotes').value.trim();
+    const catLabel = document.getElementById('mpCategory').selectedOptions[0].text;
+    const member = allMembers.find(m => m.id === parseInt(memberId));
+
+    try {
+      await sb.insert('dues_payments', MF.stamp({
+        member_id:            parseInt(memberId),
+        full_name:            member ? `${member.first_name} ${member.last_name}` : (document.getElementById('mpMemberName').value || ''),
+        email:                 member ? (member.email || '') : (document.getElementById('mpMemberEmail').value || ''),
+        dues_category:         category,
+        dues_category_label:   catLabel,
+        fiscal_year:            fiscalYear,
+        payment_method:         selectedPayMethod,
+        amount_cents:           amountCents,
+        late_fee:               lateFee,
+        building_fund:          buildingFund,
+        reference_number:       refNum || null,
+        notes:                  notes || null,
+        payment_status:         'paid',
+        paid_at:                new Date().toISOString(),
+        logged_by:              MFAuth.session && MFAuth.session.user ? MFAuth.session.user.id : null
+      }));
+      toast('Payment logged successfully.');
+      clearPaymentForm();
+      loadManualPayments();
+    } catch(e) {
+      toast('Error logging payment: ' + e.message, 'error');
+    }
+  }
+
+  function clearPaymentForm() {
+    document.getElementById('mpMemberSearch').value = '';
+    document.getElementById('mpMemberId').value = '';
+    document.getElementById('mpMemberEmail').value = '';
+    document.getElementById('mpMemberName').value = '';
+    document.getElementById('mpFiscalYear').value = '';
+    document.getElementById('mpAmount').value = '';
+    document.getElementById('mpReference').value = '';
+    document.getElementById('mpNotes').value = '';
+    document.getElementById('mpLateFee').checked = false;
+    document.getElementById('mpBuildingFund').checked = false;
+    document.getElementById('mpAmount').disabled = false;
+    document.querySelectorAll('.method-tile').forEach((t,i) => t.classList.toggle('active', i === 0));
+    selectedPayMethod = 'check';
+  }
+
+  async function loadManualPayments() {
+    const tbody = document.getElementById('manualPayTbody');
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:16px;">Loading…</td></tr>';
+    try {
+      const rows = await sb.getAll('dues_payments', MF.scope('select=id,member_id,full_name,dues_category_label,fiscal_year,payment_method,amount_cents,paid_at,reference_number&payment_method=neq.stripe&order=paid_at.desc&limit=20'));
+      if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:16px;">No manual payments yet.</td></tr>'; return; }
+      tbody.innerHTML = rows.map(r => {
+        const methodBadge = {check:'badge-blue',zelle:'badge-gold',cash:'badge-green',waived:'badge-purple'}[r.payment_method] || 'badge-gray';
+        return `<tr>
+          <td>${esc(r.full_name || ('Member #'+r.member_id))}</td>
+          <td style="font-size:0.78rem;">${esc(r.dues_category_label || '—')}</td>
+          <td>${esc(r.fiscal_year || '—')}</td>
+          <td><span class="badge ${methodBadge}">${esc(r.payment_method)}</span></td>
+          <td>${r.amount_cents > 0 ? fmt$(r.amount_cents) : '<span class="badge badge-purple">Waived</span>'}</td>
+          <td style="white-space:nowrap;">${fmtDate(r.paid_at)}</td>
+          <td style="color:var(--gray-400);font-size:0.78rem;">${esc(r.reference_number || '—')}</td>
+        </tr>`;
+      }).join('');
+    } catch(e) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--red);padding:16px;">${esc(e.message)}</td></tr>`;
+    }
+  }
+
+  /* ══════════════════════════════════════════ SNAPSHOT ══════════════════════════════════════════ */
+  function addLineItem(section) {
+    const container = document.getElementById(section + 'Container');
+    const row = document.createElement('div');
+    row.className = 'line-item-row';
+    row.innerHTML = `
+      <input type="text" placeholder="Label (e.g. Checking Account)" />
+      <input type="number" class="amt" placeholder="0.00" step="0.01" min="0" oninput="recalcBalance()" />
+      <button class="remove-row-btn" onclick="this.parentElement.remove();recalcBalance();"><i class="fas fa-times"></i></button>`;
+    container.appendChild(row);
+  }
+
+  function addBudgetRow(label = '', budget = '', actual = '') {
+    const container = document.getElementById('budgetContainer');
+    const row = document.createElement('div');
+    row.className = 'line-item-row';
+    row.style.gridTemplateColumns = '1fr 120px 120px 36px';
+    row.innerHTML = `
+      <input type="text" placeholder="Category (e.g. Scholarship Fund)" value="${esc(label)}" />
+      <input type="number" class="amt" placeholder="Budget $" step="0.01" min="0" value="${esc(budget)}" />
+      <input type="number" class="amt" placeholder="Actual $" step="0.01" min="0" value="${esc(actual)}" />
+      <button class="remove-row-btn" onclick="this.parentElement.remove();"><i class="fas fa-times"></i></button>`;
+    container.appendChild(row);
+  }
+
+  function getLineItems(section) {
+    const rows = document.getElementById(section + 'Container').querySelectorAll('.line-item-row');
+    return Array.from(rows).map(r => {
+      const inputs = r.querySelectorAll('input[type=text],input[type=number]');
+      return { label: inputs[0].value.trim(), amount: cents(inputs[1].value) };
+    }).filter(i => i.label);
+  }
+
+  function getBudgetRows() {
+    const rows = document.getElementById('budgetContainer').querySelectorAll('.line-item-row');
+    return Array.from(rows).map(r => {
+      const inputs = r.querySelectorAll('input');
+      return { category: inputs[0].value.trim(), budget: cents(inputs[1].value), actual: cents(inputs[2].value) };
+    }).filter(r => r.category);
+  }
+
+  function recalcBalance() {
+    const total = parseFloat(document.getElementById('snapTotalAssets').value || 0);
+    const liab  = parseFloat(document.getElementById('snapTotalLiabilities').value || 0);
+    document.getElementById('snapNetPosition').value = (total - liab).toFixed(2);
+    const cashTotal    = parseFloat(document.getElementById('snapCashTotal').value || 0);
+    const cashReserved = parseFloat(document.getElementById('snapCashReserved').value || 0);
+    document.getElementById('snapCashAvailable').value = Math.max(0, cashTotal - cashReserved).toFixed(2);
+  }
+
+  document.addEventListener('input', e => {
+    if (['snapTotalAssets','snapTotalLiabilities','snapCashTotal','snapCashReserved'].includes(e.target.id)) recalcBalance();
+  });
+
+  async function loadSnapshot() {
+    const snap = await getContentJson(SNAPSHOT_KEY);
+    document.getElementById('snapAsOf').value = (snap && snap.as_of) || '';
+    document.getElementById('snapUpdatedBy').value = (snap && snap.updated_by) || '';
+    document.getElementById('assetsContainer').innerHTML = '';
+    document.getElementById('liabilitiesContainer').innerHTML = '';
+    document.getElementById('budgetContainer').innerHTML = '';
+    if (!snap) return;
+
+    if (snap.cash_position) {
+      const cp = snap.cash_position;
+      document.getElementById('snapCashTotal').value    = dollars(cp.total_balance || 0);
+      document.getElementById('snapCashReserved').value = dollars(cp.reserved || 0);
+      document.getElementById('snapCashAvailable').value = dollars(cp.available || 0);
+    }
+    if (snap.balance_sheet) {
+      const bs = snap.balance_sheet;
+      (bs.assets || []).forEach(a => {
+        addLineItem('assets');
+        const rows = document.getElementById('assetsContainer').querySelectorAll('.line-item-row');
+        const last = rows[rows.length - 1];
+        last.querySelectorAll('input')[0].value = a.label;
+        last.querySelectorAll('input')[1].value = dollars(a.amount);
+      });
+      (bs.liabilities || []).forEach(l => {
+        addLineItem('liabilities');
+        const rows = document.getElementById('liabilitiesContainer').querySelectorAll('.line-item-row');
+        const last = rows[rows.length - 1];
+        last.querySelectorAll('input')[0].value = l.label;
+        last.querySelectorAll('input')[1].value = dollars(l.amount);
+      });
+      document.getElementById('snapTotalAssets').value      = dollars(bs.total_assets || 0);
+      document.getElementById('snapTotalLiabilities').value = dollars(bs.total_liabilities || 0);
+      document.getElementById('snapNetPosition').value      = dollars(bs.net_position || 0);
+    }
+    (snap.budget_actuals || []).forEach(b => addBudgetRow(b.category, dollars(b.budget), dollars(b.actual)));
+  }
+
+  async function publishSnapshot() {
+    const asOf = document.getElementById('snapAsOf').value.trim();
+    if (!asOf) { toast('Please enter an "As of" date.', 'error'); return; }
+    const cashTotal    = cents(document.getElementById('snapCashTotal').value);
+    const cashReserved = cents(document.getElementById('snapCashReserved').value);
+    const snap = {
+      as_of: asOf,
+      updated_by: document.getElementById('snapUpdatedBy').value.trim() || 'Treasurer',
+      published_at: new Date().toISOString(),
+      cash_position: { total_balance: cashTotal, reserved: cashReserved, available: cashTotal - cashReserved },
+      balance_sheet: {
+        assets: getLineItems('assets'),
+        liabilities: getLineItems('liabilities'),
+        total_assets:      cents(document.getElementById('snapTotalAssets').value),
+        total_liabilities: cents(document.getElementById('snapTotalLiabilities').value),
+        net_position:      cents(document.getElementById('snapNetPosition').value),
+      },
+      budget_actuals: getBudgetRows(),
+    };
+
+    try { await saveContentJson(SNAPSHOT_KEY, snap); toast('Snapshot published. Dashboard updated.'); }
+    catch(e) { toast('Error publishing: ' + e.message, 'error'); }
+  }
+
+  /* ══════════════════════════════════════════ ROSTER ══════════════════════════════════════════ */
+  let rosterDuesFY = String(new Date().getFullYear());
+  let paidMemberIds = new Set();
+
+  async function loadRoster() {
+    const list = document.getElementById('rosterList');
+    list.innerHTML = '<div style="text-align:center;color:var(--gray-400);padding:32px;">Loading…</div>';
+    try {
+      allMembers = await sb.getAll('members', MF.scope('select=*&order=last_name.asc'));
+      try {
+        const paidRows = await sb.getAll('dues_payments', MF.scope(`fiscal_year=eq.${rosterDuesFY}&payment_status=eq.paid&select=member_id`));
+        paidMemberIds = new Set(paidRows.map(r => r.member_id));
+      } catch { paidMemberIds = new Set(); }
+      renderRoster(allMembers);
+    } catch(e) {
+      list.innerHTML = `<div style="color:var(--red);padding:16px;">${esc(e.message)}</div>`;
+    }
+  }
+
+  function filterRoster(q) {
+    if (!q) { renderRoster(allMembers); return; }
+    const filtered = allMembers.filter(m =>
+      (`${m.first_name} ${m.last_name}`).toLowerCase().includes(q.toLowerCase()) ||
+      (m.email || '').toLowerCase().includes(q.toLowerCase())
+    );
+    renderRoster(filtered);
+  }
+
+  function renderRoster(members) {
+    const list = document.getElementById('rosterList');
+    if (!members.length) { list.innerHTML = '<div style="text-align:center;color:var(--gray-400);padding:24px;">No members found.</div>'; return; }
+    const typeOptions = ['active','financial','non-financial','life','honorary'];
+    list.innerHTML = members.map(m => {
+      const initials = `${(m.first_name||'?')[0]}${(m.last_name||'?')[0]}`.toUpperCase();
+      const duesBadge = paidMemberIds.has(m.id)
+        ? `<span class="badge badge-green">Paid FY ${esc(rosterDuesFY)}</span>`
+        : `<span class="badge badge-amber">Unpaid FY ${esc(rosterDuesFY)}</span>`;
+      return `
+        <div class="member-row">
+          <div class="member-row-avatar">${m.photo_url ? `<img src="${esc(m.photo_url)}" alt="">` : initials}</div>
+          <div class="member-row-info">
+            <div class="member-row-name">${esc(m.first_name)} ${esc(m.last_name)}</div>
+            <div class="member-row-meta">${esc(m.email || '')} &nbsp; ${duesBadge}</div>
+          </div>
+          <div class="member-row-actions">
+            <select onchange="updateMemberType(${m.id}, this.value)">
+              ${typeOptions.map(t => `<option value="${t}" ${m.member_type===t?'selected':''}>${t}</option>`).join('')}
+            </select>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  async function updateMemberType(id, newType) {
+    try {
+      await sb.patchWhere('members', MF.scope(`id=eq.${id}`), { member_type: newType });
+      const m = allMembers.find(x => x.id === id);
+      if (m) m.member_type = newType;
+      toast('Member type updated.');
+    } catch(e) {
+      toast('Could not update member type — this account may not manage the Members section.', 'error');
+    }
+  }
+
+  /* ══════════════════════════════════════════ INIT ══════════════════════════════════════════ */
+  async function init() {
+    await MF.ready;
+    if (!MF.org) return;
+    MFAuth.loadSession();
+    if (!MFAuth.isSignedIn()) { showGate(); return; }
+    await MFAuth.loadMember();
+    await MFAuth.loadAdminPermissions();
+
+    if (!MFAuth.hasFinanceRole('treasurer','financial_secretary','president')) { showGate(); return; }
+
+    document.getElementById('adminUI').style.display = '';
+
+    const m = MFAuth.member;
+    const name = m ? [m.first_name, m.last_name].filter(Boolean).join(' ') : (MFAuth.session.user && MFAuth.session.user.email) || 'Admin';
+    const initials = name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
+    document.getElementById('sidebarName').textContent = name;
+    document.getElementById('sidebarRole').textContent = (MFAuth.adminPermissions.financeRole || '').replace(/_/g,' ') || 'Finance Admin';
+    const av = document.getElementById('sidebarAvatar');
+    if (m && m.photo_url) { av.innerHTML = `<img src="${esc(m.photo_url)}" alt="" />`; } else { av.textContent = initials; }
+
+    try { allMembers = await sb.getAll('members', MF.scope('select=id,first_name,last_name,email,member_type,photo_url&order=last_name.asc')); }
+    catch { allMembers = []; }
+
+    const cfg = await getContentJson(DUES_CONFIG_KEY);
+    if (cfg && cfg.fiscal_year) document.getElementById('mpFiscalYear').value = cfg.fiscal_year;
+
+    await loadDuesConfig();
+    await Promise.all([loadRequisitions(), loadReimbursements()]);
+  }
+
+  function showGate() {
+    document.getElementById('gate').style.display = '';
+    document.getElementById('adminUI').style.display = 'none';
+  }
+
+  init();
+</script>
+</body>
+</html>

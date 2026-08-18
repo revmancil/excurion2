@@ -2404,7 +2404,1158 @@ function logout() {
   MFAuth.signOut();
   window.location.href = 'admin-login.html' + orgQS();
 }
-<!--PART5-->
+
+/* ══════════════════════════════════════════════
+   BOOT — org resolution, session, permissions
+   Fails CLOSED at every step.
+══════════════════════════════════════════════ */
+function bootFail(title, msg, linkHtml) {
+  const t = document.getElementById('bootTitle');
+  const m = document.getElementById('bootMsg');
+  if (t) t.innerHTML = '<i class="fas fa-lock"></i> ' + escHtml(title);
+  if (m) m.innerHTML = escHtml(msg) + (linkHtml ? '<br /><br />' + linkHtml : '');
+  document.body.classList.remove('admin-ready');
+}
+
+(async function boot() {
+  const org = await MF.ready;
+  if (!org) return;                       // org-context.js already painted "not found"
+  ORG = org;
+
+  const home = 'home.html' + orgQS();
+  const vsLink = document.getElementById('viewSiteLink');
+  const vsBtn = document.getElementById('viewSiteBtn');
+  if (vsLink) vsLink.href = home;
+  if (vsBtn) vsBtn.href = home;
+
+  if (!MFAuth.loadSession()) {
+    window.location.href = 'admin-login.html' + orgQS();
+    return;
+  }
+
+  await MFAuth.loadAdminPermissions();
+  if (!MFAuth.isAdmin()) {
+    // FAIL CLOSED: no org_admins row (or the lookup errored) = no access.
+    bootFail(
+      'Access denied',
+      'Your account is not an administrator of ' + org.name + ', or your permissions could not be verified.',
+      '<a href="admin-login.html' + orgQS() + '">Sign in with a different account</a>'
+    );
+    MFAuth.signOut();
+    return;
+  }
+
+  const email = (MFAuth.session.user && MFAuth.session.user.email) || 'Admin';
+  document.getElementById('userNameDisplay').textContent = email;
+  document.getElementById('userAvatar').textContent = email.charAt(0).toUpperCase();
+
+  applySidebarPermissions();
+  buildDashboardPagesList();
+  document.body.classList.add('admin-ready');
+
+  // Land on the first section this admin can actually see.
+  showPanel('dashboard');
+  updateDashboardStats();
+  loadAllPendingCounts();
+})();
+
+/* ══════════════════════════════════════════════
+   Dashboard
+══════════════════════════════════════════════ */
+function buildDashboardPagesList() {
+  const wrap = document.getElementById('dashboardPagesList');
+  if (!wrap) return;
+  wrap.innerHTML = SITE_PAGES.map(p => {
+    const editBtn = p.editSection && canAccessSection(p.editSection)
+      ? '<button class="btn-sm edit" onclick="showPanel(\'' + p.editSection + '\')"><i class="fas fa-edit"></i> ' + escHtml(p.editLabel || 'Edit') + '</button>'
+      : '';
+    const pageBtn = canAccessSection('pages')
+      ? '<button class="btn-sm view" onclick="showPanel(\'pages\'); loadPageSection(\'' + p.id + '\')"><i class="fas fa-file-alt"></i> Page</button>'
+      : '';
+    return '<div class="page-item">' +
+      '<div class="page-item-left">' +
+        '<div class="page-icon"><i class="fas ' + p.icon + '"></i></div>' +
+        '<div class="page-item-info"><div class="title">' + escHtml(p.label) + '</div><div class="url">' + escHtml(p.file) + '</div></div>' +
+      '</div>' +
+      '<div class="page-actions">' +
+        '<a href="' + escHtml(p.file + orgQS()) + '" target="_blank" rel="noopener" class="btn-sm view"><i class="fas fa-eye"></i> View</a>' +
+        pageBtn + editBtn +
+      '</div></div>';
+  }).join('');
+}
+
+async function updateDashboardStats() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const results = await Promise.allSettled([
+    canAccessSection('events') ? sb.getAll('events', MF.scope('select=id')) : Promise.resolve([]),
+    canAccessSection('members') ? sb.getAll('members', MF.scope('select=id')) : Promise.resolve([]),
+    getContentJson(KEY_OFFICERS, []).catch(() => []),
+    getContentJson(KEY_PAST_PRESIDENTS, []).catch(() => [])
+  ]);
+  const val = i => (results[i].status === 'fulfilled' ? results[i].value : []) || [];
+  set('statEventCount', val(0).length);
+  set('statMemberCount', val(1).length);
+  set('statOfficerCount', Array.isArray(val(2)) ? val(2).length : 0);
+  set('statPresidentCount', Array.isArray(val(3)) ? val(3).length : 0);
+}
+
+/* ── Sidebar pending-count badges ── */
+function setNavBadge(id, count) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = count;
+  el.style.display = count > 0 ? 'inline' : 'none';
+  rollupGroupBadges();
+}
+function rollupGroupBadges() {
+  const groups = {
+    finance: ['navBadge-dues-admin', 'reqPendingBadge', 'reimbPendingBadge'],
+    membership: ['navBadge-members'],
+    comms: ['annPendingBadge', 'newsPendingBadge'],
+    content: ['navBadge-documents', 'navBadge-store']
+  };
+  Object.keys(groups).forEach(grp => {
+    const total = groups[grp].reduce((sum, bid) => {
+      const el = document.getElementById(bid);
+      return sum + (el && el.style.display !== 'none' ? (parseInt(el.textContent, 10) || 0) : 0);
+    }, 0);
+    const grpEl = document.getElementById('grpBadge-' + grp);
+    if (grpEl) { grpEl.textContent = total; grpEl.style.display = total > 0 ? 'inline' : 'none'; }
+  });
+}
+async function loadAllPendingCounts() {
+  const want = (section, table, query) =>
+    canAccessSection(section) ? sb.getAll(table, MF.scope(query)) : Promise.resolve([]);
+  const results = await Promise.allSettled([
+    want('members', 'members', 'portal_access=eq.pending&select=id'),
+    want('members', 'membership_inquiries', 'status=eq.pending&select=id'),
+    want('documents', 'documents', 'status=eq.pending&select=id'),
+    want('store', 'store_orders', 'status=eq.pending&select=id'),
+    want('member-announcements', 'member_announcements', 'status=eq.pending&select=id'),
+    want('news-submissions', 'member_news_submissions', 'status=eq.pending&select=id'),
+    want('requisitions', 'finance_requisitions', 'status=eq.pending&select=id'),
+    want('reimbursements', 'finance_reimbursements', 'status=eq.pending&select=id'),
+    want('dues-admin', 'dues_payments', 'payment_status=eq.pending&select=id')
+  ]);
+  const n = i => (results[i].status === 'fulfilled' ? (results[i].value || []).length : 0);
+  setNavBadge('navBadge-members', n(0) + n(1));
+  setNavBadge('navBadge-documents', n(2));
+  setNavBadge('navBadge-store', n(3));
+  setNavBadge('annPendingBadge', n(4));
+  setNavBadge('newsPendingBadge', n(5));
+  setNavBadge('reqPendingBadge', n(6));
+  setNavBadge('reimbPendingBadge', n(7));
+  setNavBadge('navBadge-dues-admin', n(8));
+}
+
+/* ══════════════════════════════════════════════
+   ACCESS & PERMISSIONS
+══════════════════════════════════════════════ */
+let allAccessMembers = [];
+let accessTabFilter = 'all';
+let accessSortAsc = true;
+let accessAdminEmails = new Set();
+let accessAdminEditingEmail = null;
+let _promoteMemberId = null;
+
+function toggleAccessSort() {
+  accessSortAsc = !accessSortAsc;
+  const icon = document.getElementById('accessSortIcon');
+  if (icon) icon.textContent = accessSortAsc ? '▲' : '▼';
+  renderAccessTable();
+}
+
+async function loadAccessPanel() {
+  const tbody = document.getElementById('accessTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--gray-400);">Loading…</td></tr>';
+  try {
+    const [members, admins] = await Promise.all([
+      sb.getAll('members', MF.scope('order=created_at.desc')),
+      sb.getAll('org_admins', MF.scope('select=email'))
+    ]);
+    allAccessMembers = members || [];
+    accessAdminEmails = new Set((admins || []).map(a => (a.email || '').toLowerCase()));
+    _panelLoaded.access = true;
+    renderAccessTable();
+    loadAccessAdminsList();
+  } catch (err) {
+    _panelLoaded.access = false;
+    tbody.innerHTML = '<tr><td colspan="6" class="error-state" style="padding:20px;">Could not load ' +
+      escHtml(memberNounPlural().toLowerCase()) + ': ' + escHtml(errMsg(err)) +
+      ' <button class="btn-sm danger" onclick="loadAccessPanel()">Retry</button></td></tr>';
+  }
+}
+
+function setAccessTab(tab) {
+  accessTabFilter = tab;
+  ['all', 'granted', 'visiting', 'pending', 'revoked'].forEach(t => {
+    const btn = document.getElementById('accessTab-' + t);
+    if (btn) btn.classList.toggle('active', t === tab);
+  });
+  renderAccessTable();
+}
+
+function renderAccessTable() {
+  const tbody = document.getElementById('accessTableBody');
+  const countEl = document.getElementById('accessGrantedCount');
+  if (!tbody) return;
+  const grantedCount = allAccessMembers.filter(m => (m.portal_access || '') === 'granted').length;
+  if (countEl) countEl.textContent = grantedCount + ' granted';
+  const searchVal = ((document.getElementById('accessSearch') || {}).value || '').trim().toLowerCase();
+
+  let rows = accessTabFilter === 'all'
+    ? allAccessMembers.slice()
+    : allAccessMembers.filter(m => (m.portal_access || 'pending').toLowerCase() === accessTabFilter);
+  if (searchVal) {
+    rows = rows.filter(m => {
+      const name = ((m.first_name || '') + ' ' + (m.last_name || '')).toLowerCase();
+      return name.includes(searchVal) || (m.email || '').toLowerCase().includes(searchVal);
+    });
+  }
+  rows.sort((a, b) => {
+    const na = ((a.last_name || '') + ' ' + (a.first_name || '')).toLowerCase();
+    const nb = ((b.last_name || '') + ' ' + (b.first_name || '')).toLowerCase();
+    return accessSortAsc ? na.localeCompare(nb) : nb.localeCompare(na);
+  });
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--gray-400);">No records found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(m => {
+    const name = [m.first_name, m.last_name].filter(Boolean).join(' ') || '—';
+    const access = (m.portal_access || 'pending').toLowerCase();
+    const status = (m.status || '').toLowerCase();
+    const isAdmin = accessAdminEmails.has((m.email || '').toLowerCase());
+    const color = access === 'granted' ? 'var(--green)' : access === 'visiting' ? '#4ade80' : access === 'pending' ? 'var(--blue)' : 'var(--red)';
+    const label = access === 'visiting' ? 'Guest' : access.charAt(0).toUpperCase() + access.slice(1);
+    const mid = escHtml(String(m.id));
+    const memail = escHtml(m.email || '');
+    let actions;
+    if (access === 'pending') {
+      actions = '<button class="btn-sm success" onclick="accessUpdateStatus(\'' + mid + '\',\'granted\')"><i class="fas fa-check"></i> Approve</button> ' +
+        '<button class="btn-sm edit" onclick="accessUpdateStatus(\'' + mid + '\',\'visiting\')" title="Limited guest access"><i class="fas fa-user-clock"></i> Guest</button> ' +
+        '<button class="btn-sm danger" onclick="accessUpdateStatus(\'' + mid + '\',\'revoked\')"><i class="fas fa-times"></i> Reject</button>';
+    } else if (access === 'visiting') {
+      actions = '<button class="btn-sm success" onclick="accessUpdateStatus(\'' + mid + '\',\'granted\')"><i class="fas fa-arrow-up"></i> Full Access</button> ' +
+        '<button class="btn-sm danger" onclick="accessUpdateStatus(\'' + mid + '\',\'revoked\')"><i class="fas fa-ban"></i> Revoke</button>';
+    } else if (access === 'granted') {
+      actions = '<button class="btn-sm danger" onclick="accessUpdateStatus(\'' + mid + '\',\'revoked\')"><i class="fas fa-ban"></i> Revoke</button>';
+      if (!isAdmin && MFAuth.canManage('access')) {
+        actions += ' <button class="btn-sm edit" onclick="prefillAdminGrant(\'' + memail + '\')"><i class="fas fa-user-shield"></i> Make Admin</button>';
+      }
+    } else {
+      actions = '<button class="btn-sm success" onclick="accessUpdateStatus(\'' + mid + '\',\'granted\')"><i class="fas fa-redo"></i> Restore</button> ' +
+        '<button class="btn-sm edit" onclick="accessUpdateStatus(\'' + mid + '\',\'visiting\')"><i class="fas fa-user-clock"></i> Restore (Guest)</button>';
+    }
+    const adminBadge = isAdmin
+      ? '<span style="display:inline-flex;align-items:center;gap:3px;background:var(--a-brand);color:var(--a-on-brand);font-size:0.65rem;font-weight:800;padding:2px 6px;border-radius:4px;margin-left:6px;"><i class="fas fa-user-shield"></i> ADMIN</span>' : '';
+    const statusBadge = status ? '<span style="font-size:0.72rem;color:var(--gray-400);margin-left:4px;text-transform:capitalize;">(' + escHtml(status) + ')</span>' : '';
+    const grantedDate = (['granted', 'visiting'].includes(access) && m.updated_at) ? fmtDate(m.updated_at) : '—';
+    return '<tr>' +
+      '<td style="font-weight:600;">' + escHtml(name) + statusBadge + adminBadge + '</td>' +
+      '<td style="color:var(--gray-600);">' + escHtml(m.email || '—') + '</td>' +
+      '<td><span style="color:' + color + ';font-weight:600;">' + escHtml(label) + '</span></td>' +
+      '<td style="color:var(--gray-500);font-size:0.82rem;">' + fmtDate(m.created_at) + '</td>' +
+      '<td style="color:var(--gray-500);font-size:0.82rem;">' + grantedDate + '</td>' +
+      '<td style="white-space:nowrap;">' + actions + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+async function accessUpdateStatus(memberId, portalAccess) {
+  const m = allAccessMembers.find(x => String(x.id) === String(memberId));
+  const wasGuest = m && (m.portal_access || '').toLowerCase() === 'visiting';
+  const verb = portalAccess === 'granted' ? 'grant full portal access to'
+    : portalAccess === 'visiting' ? 'grant limited guest access to'
+    : 'revoke portal access for';
+  if (!confirm('Are you sure you want to ' + verb + ' this ' + memberNoun().toLowerCase() + '?')) return;
+  try {
+    await sb.patchWhere('members', MF.scope('id=eq.' + encodeURIComponent(memberId)), {
+      portal_access: portalAccess, updated_at: nowIso()
+    });
+    if (m) { m.portal_access = portalAccess; m.updated_at = nowIso(); }
+    renderAccessTable();
+    showToast(portalAccess === 'granted' ? 'Full portal access granted.'
+      : portalAccess === 'visiting' ? 'Guest access granted.' : 'Portal access revoked.', 'success');
+    if (portalAccess === 'granted' && wasGuest && m) {
+      openPromoteModal(memberId, [m.first_name, m.last_name].filter(Boolean).join(' '));
+    }
+    loadAllPendingCounts();
+  } catch (err) {
+    showToast('Could not update status: ' + errMsg(err), 'error');
+  }
+}
+
+function openPromoteModal(memberId, name) {
+  _promoteMemberId = memberId;
+  const subtitle = document.getElementById('promoteSubtitle');
+  if (subtitle) subtitle.textContent = (name || 'This ' + memberNoun().toLowerCase()) + ' now has full access. Fill in their membership details to complete the transition.';
+  ['promoteMemberNumber', 'promoteActiveDate', 'promoteJoinedAt'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  openModal('promoteModal');
+}
+function closePromoteModal() { closeModal('promoteModal'); _promoteMemberId = null; }
+
+async function savePromoteDetails() {
+  if (!_promoteMemberId) return;
+  const num = (document.getElementById('promoteMemberNumber').value || '').trim();
+  const active = (document.getElementById('promoteActiveDate').value || '').trim();
+  const joined = (document.getElementById('promoteJoinedAt').value || '').trim();
+  const payload = { updated_at: nowIso() };
+  if (num) payload.member_number = num;
+  if (active) payload.org_active_date = active;
+  if (joined) payload.joined_at = joined;
+  try {
+    await sb.patchWhere('members', MF.scope('id=eq.' + encodeURIComponent(_promoteMemberId)), payload);
+    showToast('Membership details saved.');
+    closePromoteModal();
+  } catch (err) {
+    showToast('Could not save details: ' + errMsg(err), 'error');
+  }
+}
+
+/* ── Admin roster ── */
+function ensureSectionsGridBuilt() {
+  const grid = document.getElementById('accessAdminSectionsGrid');
+  if (!grid || grid.childElementCount) return;
+  grid.innerHTML = ADMIN_SECTIONS.map(s =>
+    '<label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--gray-700);cursor:pointer;">' +
+    '<input type="checkbox" class="access-section-cb" value="' + escHtml(s.key) + '" style="width:14px;height:14px;" />' +
+    escHtml(s.label) + '</label>').join('');
+}
+function onAccessFullAdminToggle() {
+  const full = document.getElementById('accessAdminIsFull').checked;
+  const grid = document.getElementById('accessAdminSectionsGrid');
+  if (grid) grid.style.display = full ? 'none' : 'grid';
+}
+function collectSelectedSections() {
+  return Array.prototype.slice.call(document.querySelectorAll('.access-section-cb:checked')).map(cb => cb.value);
+}
+function setSelectedSections(sections) {
+  const set = new Set(sections || []);
+  document.querySelectorAll('.access-section-cb').forEach(cb => { cb.checked = set.has(cb.value); });
+}
+function resetAdminGrantForm() {
+  accessAdminEditingEmail = null;
+  const emailEl = document.getElementById('accessAdminEmail');
+  const passEl = document.getElementById('accessAdminPassword');
+  const fullEl = document.getElementById('accessAdminIsFull');
+  const roleEl = document.getElementById('accessAdminFinanceRole');
+  if (emailEl) { emailEl.value = ''; emailEl.disabled = false; }
+  if (passEl) passEl.value = '';
+  if (fullEl) fullEl.checked = true;
+  if (roleEl) roleEl.value = '';
+  setSelectedSections([]);
+  onAccessFullAdminToggle();
+  const passGroup = document.getElementById('accessAdminPasswordGroup');
+  if (passGroup) passGroup.style.display = '';
+  document.getElementById('accessGrantFormTitle').textContent = 'Grant admin dashboard access';
+  document.getElementById('accessGrantSubmitBtn').innerHTML = '<i class="fas fa-user-plus"></i> Grant Admin Access';
+  document.getElementById('accessGrantCancelBtn').style.display = 'none';
+}
+function prefillAdminGrant(email) {
+  ensureSectionsGridBuilt();
+  resetAdminGrantForm();
+  const emailEl = document.getElementById('accessAdminEmail');
+  const passEl = document.getElementById('accessAdminPassword');
+  if (emailEl) emailEl.value = email;
+  if (passEl) { passEl.value = ''; passEl.focus(); }
+  document.getElementById('accessAdminsList').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  showToast('Email pre-filled. Choose access, set a temporary password, then Grant Admin Access.', 'info');
+}
+function editAdminPermissions(email, isFullAdmin, sections, financeRole) {
+  ensureSectionsGridBuilt();
+  accessAdminEditingEmail = email;
+  const emailEl = document.getElementById('accessAdminEmail');
+  const fullEl = document.getElementById('accessAdminIsFull');
+  const roleEl = document.getElementById('accessAdminFinanceRole');
+  if (emailEl) { emailEl.value = email; emailEl.disabled = true; }
+  if (fullEl) fullEl.checked = !!isFullAdmin;
+  if (roleEl) roleEl.value = financeRole || '';
+  setSelectedSections(sections);
+  onAccessFullAdminToggle();
+  document.getElementById('accessAdminPasswordGroup').style.display = 'none';
+  document.getElementById('accessGrantFormTitle').textContent = 'Edit access for ' + email;
+  document.getElementById('accessGrantSubmitBtn').innerHTML = '<i class="fas fa-save"></i> Update Permissions';
+  document.getElementById('accessGrantCancelBtn').style.display = '';
+  document.getElementById('accessGrantFormTitle').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function editAdminPermissionsFromBtn(btn) {
+  editAdminPermissions(
+    decodeURIComponent(btn.getAttribute('data-admin-email') || ''),
+    btn.getAttribute('data-full') === '1',
+    (btn.getAttribute('data-sections') || '').split(',').filter(Boolean),
+    btn.getAttribute('data-finance') || ''
+  );
+}
+
+async function loadAccessAdminsList() {
+  const el = document.getElementById('accessAdminsList');
+  if (!el) return;
+  ensureSectionsGridBuilt();
+  try {
+    const rows = await sb.getAll('org_admins', MF.scope('select=email,granted_at,granted_by,is_full_admin,sections,finance_role&order=email.asc'));
+    if (!rows || !rows.length) {
+      el.innerHTML = '<p class="hint-text" style="margin:0;">No admins on record for this organization.</p>';
+      return;
+    }
+    const me = ((MFAuth.session.user && MFAuth.session.user.email) || '').trim().toLowerCase();
+    el.innerHTML = rows.map(a => {
+      const em = (a.email || '').trim();
+      const isSelf = em.toLowerCase() === me;
+      const isFull = !!a.is_full_admin;
+      const sections = Array.isArray(a.sections) ? a.sections : [];
+      const roleBadge = isFull
+        ? '<span style="background:var(--a-brand);color:var(--a-on-brand);font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:10px;">Full Admin</span>'
+        : '<span style="background:var(--gray-200);color:var(--gray-700);font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:10px;">Limited: ' +
+          escHtml(sections.length ? sections.join(', ') : 'none') + '</span>';
+      const finBadge = a.finance_role
+        ? ' <span style="background:rgba(39,174,96,0.12);color:var(--green);font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:10px;">' +
+          escHtml(String(a.finance_role).replace(/_/g, ' ')) + '</span>' : '';
+      const editBtn = '<button class="btn-sm view" data-admin-email="' + encodeURIComponent(em) +
+        '" data-full="' + (isFull ? '1' : '0') + '" data-sections="' + escHtml(sections.join(',')) +
+        '" data-finance="' + escHtml(a.finance_role || '') + '" onclick="editAdminPermissionsFromBtn(this)">Edit Access</button>';
+      const removeBtn = isSelf
+        ? '<span class="hint-text" style="margin:0;">(you)</span>'
+        : '<button class="btn-sm danger" data-admin-email="' + encodeURIComponent(em) + '" onclick="removeAccessAdmin(this)">Remove</button>';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray-200);flex-wrap:wrap;">' +
+        '<div><div style="font-weight:600;">' + escHtml(em) + ' ' + roleBadge + finBadge + '</div>' +
+        '<div style="font-size:0.75rem;color:var(--gray-500);margin-top:2px;">Added: ' + fmtDate(a.granted_at) +
+        (a.granted_by ? ' · by ' + escHtml(a.granted_by) : '') + '</div></div>' +
+        '<div style="display:flex;gap:6px;">' + editBtn + removeBtn + '</div></div>';
+    }).join('');
+  } catch (err) {
+    el.innerHTML = '<span class="error-state">Could not load admins: ' + escHtml(errMsg(err)) + '</span>';
+  }
+}
+
+async function removeAccessAdmin(btn) {
+  const email = decodeURIComponent(btn.getAttribute('data-admin-email') || '');
+  if (!email) return;
+  if (!confirm('Remove dashboard admin access for ' + email + '?')) return;
+  try {
+    await sb.deleteWhere('org_admins', MF.scope('email=eq.' + encodeURIComponent(email)));
+    accessAdminEmails.delete(email.toLowerCase());
+    showToast('Admin removed.');
+    renderAccessTable();
+    loadAccessAdminsList();
+  } catch (err) {
+    showToast('Could not remove admin (you cannot remove yourself or the last admin): ' + errMsg(err), 'error');
+  }
+}
+
+/** Calls the grant-org-admin Edge Function (service role) — the only
+    write path into org_admins, matching schema.sql's RLS. */
+async function callGrantOrgAdmin(body) {
+  if (!MFAuth.isSignedIn()) { showToast('Session expired.', 'error'); return false; }
+  try {
+    const res = await fetch(sb.url + '/functions/v1/grant-org-admin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: sb.key,
+        Authorization: 'Bearer ' + sb.session.access_token
+      },
+      body: JSON.stringify(Object.assign({ org_id: ORG.id }, body))
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error) {
+      if (res.status === 404) {
+        showToast('The grant-org-admin Edge Function is not deployed to this Supabase project yet.', 'error');
+      } else {
+        showToast(typeof data.error === 'string' ? data.error : ('Request failed (' + res.status + ')'), 'error');
+      }
+      return false;
+    }
+    showToast(data.message || 'Saved.');
+    return true;
+  } catch (err) {
+    showToast('Network error: ' + errMsg(err), 'error');
+    return false;
+  }
+}
+
+async function grantAdminFromAccessPanel() {
+  const emailEl = document.getElementById('accessAdminEmail');
+  const passEl = document.getElementById('accessAdminPassword');
+  const fullEl = document.getElementById('accessAdminIsFull');
+  const roleEl = document.getElementById('accessAdminFinanceRole');
+  const email = ((emailEl && emailEl.value) || '').trim().toLowerCase();
+  const isFullAdmin = !!(fullEl && fullEl.checked);
+  const sections = isFullAdmin ? [] : collectSelectedSections();
+  const financeRole = (roleEl && roleEl.value) || null;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email.', 'error'); return; }
+
+  if (accessAdminEditingEmail) {
+    const ok = await callGrantOrgAdmin({
+      email, isFullAdmin, sections, financeRole, updatePermissionsOnly: true
+    });
+    if (ok) { resetAdminGrantForm(); loadAccessAdminsList(); }
+    return;
+  }
+  const password = (passEl && passEl.value) || '';
+  if (password.length < 8) { showToast('Password must be at least 8 characters.', 'error'); return; }
+  if (!isFullAdmin && !sections.length) {
+    showToast('Choose at least one section for a limited admin, or check Full Admin.', 'error');
+    return;
+  }
+  const ok = await callGrantOrgAdmin({ email, password, isFullAdmin, sections, financeRole });
+  if (ok) {
+    resetAdminGrantForm();
+    accessAdminEmails.add(email);
+    renderAccessTable();
+    loadAccessAdminsList();
+  }
+}
+
+/* ══════════════════════════════════════════════
+   MEMBER REQUESTS / COMPLIANCE / INQUIRIES
+══════════════════════════════════════════════ */
+let allComplianceMembers = [];
+
+function toggleComplianceAccordion() {
+  const body = document.getElementById('complianceAccordionBody');
+  const chevron = document.getElementById('complianceChevron');
+  if (!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if (chevron) chevron.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+async function loadMemberRequests() {
+  const container = document.getElementById('memberRequestsList');
+  const complianceContainer = document.getElementById('memberComplianceList');
+  const countEl = document.getElementById('memberPendingCount');
+  const complianceCountEl = document.getElementById('memberComplianceCount');
+  if (!container) return;
+  container.innerHTML = '<div class="hint-text" style="margin:0;">Loading…</div>';
+  complianceContainer.innerHTML = '<div class="hint-text" style="margin:0;">Loading…</div>';
+  loadMemberDirectory();
+  loadMembershipInquiries();
+  try {
+    const [pendingRows, activeRows] = await Promise.all([
+      sb.getAll('members', MF.scope('portal_access=eq.pending&order=created_at.desc')),
+      sb.getAll('members', MF.scope('status=eq.active&order=last_name.asc'))
+    ]);
+    const pending = pendingRows || [];
+    countEl.textContent = String(pending.length);
+    complianceCountEl.textContent = String((activeRows || []).length);
+    if (!pending.length) {
+      container.innerHTML = '<div class="hint-text" style="margin:0;">No pending requests right now.</div>';
+    } else {
+      container.innerHTML = pending.map(m => {
+        const name = [m.first_name, m.last_name].filter(Boolean).join(' ').trim() || ('Unknown ' + memberNoun().toLowerCase());
+        const id = escHtml(String(m.id || ''));
+        return '<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--gray-200);flex-wrap:wrap;">' +
+          '<div><div style="font-size:0.9rem;font-weight:700;color:var(--gray-800);">' + escHtml(name) + '</div>' +
+          '<div style="font-size:0.8rem;color:var(--gray-500);margin-top:2px;">' + escHtml(m.email || 'No email provided') + '</div>' +
+          '<div style="font-size:0.75rem;color:var(--gray-400);margin-top:2px;">Requested: ' + fmtDate(m.created_at) + '</div></div>' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<button class="btn-sm success" onclick="updateMemberStatus(\'' + id + '\',\'granted\')"><i class="fas fa-check"></i> Approve</button>' +
+          '<button class="btn-sm danger" onclick="updateMemberStatus(\'' + id + '\',\'revoked\')"><i class="fas fa-times"></i> Reject</button>' +
+          '</div></div>';
+      }).join('');
+    }
+    renderMemberComplianceList(activeRows || []);
+  } catch (err) {
+    const msg = '<div class="error-state">Could not load: ' + escHtml(errMsg(err)) + '</div>';
+    container.innerHTML = msg;
+    complianceContainer.innerHTML = msg;
+    countEl.textContent = '0';
+    complianceCountEl.textContent = '0';
+  }
+}
+
+async function updateMemberStatus(memberId, portalAccess) {
+  if (!memberId) return;
+  const approved = portalAccess === 'granted';
+  if (!confirm((approved ? 'Approve' : 'Reject') + ' this request?')) return;
+  try {
+    await sb.patchWhere('members', MF.scope('id=eq.' + encodeURIComponent(memberId)),
+      { portal_access: portalAccess, updated_at: nowIso() });
+    showToast(approved ? 'Portal access granted.' : 'Request rejected.', approved ? 'success' : 'info');
+    await loadMemberRequests();
+    loadAllPendingCounts();
+  } catch (err) {
+    showToast('Could not update status: ' + errMsg(err), 'error');
+  }
+}
+
+function filterComplianceList() {
+  const q = ((document.getElementById('complianceSearch') || {}).value || '').trim().toLowerCase();
+  renderComplianceRows(q
+    ? allComplianceMembers.filter(m => ((m.first_name || '') + ' ' + (m.last_name || '')).toLowerCase().includes(q))
+    : allComplianceMembers);
+}
+function renderMemberComplianceList(members) {
+  allComplianceMembers = members || [];
+  filterComplianceList();
+}
+function complianceEntries(m) {
+  const c = (m && m.compliance && typeof m.compliance === 'object') ? m.compliance : {};
+  return Object.keys(c).map(k => ({ key: k, value: c[k] == null ? '' : String(c[k]) }));
+}
+function renderComplianceRows(members) {
+  const container = document.getElementById('memberComplianceList');
+  if (!container) return;
+  if (!members || !members.length) {
+    container.innerHTML = '<div class="hint-text" style="margin:0;">No active ' + escHtml(memberNounPlural().toLowerCase()) + ' found.</div>';
+    return;
+  }
+  container.innerHTML = members.map(m => {
+    const id = escHtml(String(m.id || ''));
+    const name = [m.first_name, m.last_name].filter(Boolean).join(' ').trim() || 'Unknown';
+    const entries = complianceEntries(m);
+    const rows = entries.length
+      ? entries.map((e, i) => complianceFieldRow(id, i, e.key, e.value)).join('')
+      : '';
+    return '<div style="border:1px solid var(--gray-200);border-radius:8px;padding:12px;margin-bottom:10px;background:#fff;">' +
+      '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;">' +
+        '<div><div style="font-size:0.9rem;font-weight:700;color:var(--gray-800);">' + escHtml(name) + '</div>' +
+        '<div style="font-size:0.78rem;color:var(--gray-500);margin-top:2px;">' + escHtml(m.email || '') +
+        (m.member_number ? ' · #' + escHtml(m.member_number) : '') + '</div></div>' +
+        '<button class="btn-sm success" onclick="saveMemberCompliance(\'' + id + '\')"><i class="fas fa-save"></i> Save</button>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:10px;">' +
+        '<div class="field-group"><label>Active Date</label><input type="date" id="member-active-date-' + id + '" value="' + escHtml(m.org_active_date || '') + '" /></div>' +
+      '</div>' +
+      '<div style="margin-top:10px;">' +
+        '<div style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gray-500);margin-bottom:6px;">Compliance fields</div>' +
+        '<div id="compliance-fields-' + id + '">' + rows + '</div>' +
+        '<button class="btn-sm view" style="margin-top:6px;" onclick="addComplianceField(\'' + id + '\')"><i class="fas fa-plus"></i> Add Field</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+function complianceFieldRow(memberId, idx, key, value) {
+  return '<div class="compliance-row" style="display:grid;grid-template-columns:1fr 1.4fr auto;gap:8px;margin-bottom:6px;align-items:center;">' +
+    '<input type="text" class="compliance-key" placeholder="Field name" value="' + escHtml(key) + '" style="padding:7px 9px;border:1px solid var(--gray-200);border-radius:5px;font-size:0.83rem;font-family:inherit;" />' +
+    '<input type="text" class="compliance-value" placeholder="Value" value="' + escHtml(value) + '" style="padding:7px 9px;border:1px solid var(--gray-200);border-radius:5px;font-size:0.83rem;font-family:inherit;" />' +
+    '<button class="btn-sm danger" onclick="this.parentElement.remove()" title="Remove"><i class="fas fa-times"></i></button>' +
+    '</div>';
+}
+function addComplianceField(memberId) {
+  const wrap = document.getElementById('compliance-fields-' + memberId);
+  if (!wrap) return;
+  wrap.insertAdjacentHTML('beforeend', complianceFieldRow(memberId, wrap.children.length, '', ''));
+}
+async function saveMemberCompliance(memberId) {
+  if (!memberId) return;
+  const activeEl = document.getElementById('member-active-date-' + memberId);
+  const wrap = document.getElementById('compliance-fields-' + memberId);
+  const compliance = {};
+  if (wrap) {
+    wrap.querySelectorAll('.compliance-row').forEach(row => {
+      const k = (row.querySelector('.compliance-key').value || '').trim();
+      const v = (row.querySelector('.compliance-value').value || '').trim();
+      if (k) compliance[k] = v;
+    });
+  }
+  try {
+    await sb.patchWhere('members', MF.scope('id=eq.' + encodeURIComponent(memberId)), {
+      org_active_date: (activeEl && activeEl.value.trim()) || null,
+      compliance: compliance,
+      updated_at: nowIso()
+    });
+    showToast('Compliance fields saved.');
+  } catch (err) {
+    showToast('Could not save compliance fields: ' + errMsg(err), 'error');
+  }
+}
+
+/* ── Membership inquiries (was "visiting brothers requests") ── */
+async function loadMembershipInquiries() {
+  const container = document.getElementById('inquiryRequestsList');
+  const countEl = document.getElementById('inquiryPendingCount');
+  if (!container) return;
+  try {
+    const rows = await sb.getAll('membership_inquiries', MF.scope('order=submitted_at.desc'));
+    const pending = (rows || []).filter(r => (r.status || '').toLowerCase() === 'pending');
+    countEl.textContent = String(pending.length);
+    if (!pending.length) {
+      container.innerHTML = '<div class="hint-text" style="margin:0;">No pending inquiries.</div>';
+      return;
+    }
+    container.innerHTML = pending.map(r => {
+      const id = escHtml(String(r.id || ''));
+      const name = [r.first_name, r.last_name].filter(Boolean).join(' ').trim() || 'Unknown';
+      const details = [];
+      if (r.phone) details.push('Phone: ' + r.phone);
+      if (r.city || r.state) details.push('Location: ' + [r.city, r.state].filter(Boolean).join(', '));
+      if (r.referred_by) details.push('Referred by: ' + r.referred_by);
+      const extra = (r.details && typeof r.details === 'object') ? r.details : {};
+      Object.keys(extra).forEach(k => { if (extra[k]) details.push(k + ': ' + extra[k]); });
+      return '<div style="padding:12px 0;border-bottom:1px solid var(--gray-200);">' +
+        '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">' +
+        '<div><div style="font-size:0.9rem;font-weight:700;color:var(--gray-800);">' + escHtml(name) + '</div>' +
+        '<div style="font-size:0.8rem;color:var(--gray-500);margin-top:2px;">' + escHtml(r.email || 'No email provided') + '</div>' +
+        '<div style="font-size:0.75rem;color:var(--gray-400);margin-top:2px;">Submitted: ' + fmtDate(r.submitted_at) + '</div>' +
+        (details.length ? '<div style="font-size:0.76rem;color:var(--gray-500);margin-top:6px;line-height:1.45;">' + escHtml(details.join(' | ')) + '</div>' : '') +
+        (r.message ? '<div style="font-size:0.82rem;color:var(--gray-600);margin-top:8px;white-space:pre-wrap;">' + escHtml(r.message) + '</div>' : '') +
+        '</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+        '<button class="btn-sm success" onclick="updateInquiryStatus(\'' + id + '\',\'approved\')"><i class="fas fa-check"></i> Approve</button>' +
+        '<button class="btn-sm danger" onclick="updateInquiryStatus(\'' + id + '\',\'declined\')"><i class="fas fa-times"></i> Decline</button>' +
+        '</div></div></div>';
+    }).join('');
+  } catch (err) {
+    container.innerHTML = '<div class="error-state">Could not load inquiries: ' + escHtml(errMsg(err)) + '</div>';
+    countEl.textContent = '0';
+  }
+}
+
+async function updateInquiryStatus(requestId, status) {
+  if (!requestId) return;
+  const approve = status === 'approved';
+  if (!confirm((approve ? 'Approve' : 'Decline') + ' this membership inquiry?')) return;
+  try {
+    const rows = await sb.getAll('membership_inquiries', MF.scope('id=eq.' + encodeURIComponent(requestId) + '&limit=1'));
+    const req = rows && rows[0];
+    if (!req) throw new Error('Inquiry not found.');
+    await sb.patchWhere('membership_inquiries', MF.scope('id=eq.' + encodeURIComponent(requestId)),
+      { status: status, reviewed_at: nowIso(), updated_at: nowIso() });
+    if (approve) {
+      const email = (req.email || '').trim();
+      const payload = {
+        first_name: req.first_name || '',
+        last_name: req.last_name || '',
+        email: email,
+        phone: req.phone || '',
+        city: req.city || '',
+        state: req.state || '',
+        status: 'active',
+        org_active_date: new Date().toISOString().slice(0, 10),
+        updated_at: nowIso()
+      };
+      const existing = email
+        ? await sb.getAll('members', MF.scope('email=eq.' + encodeURIComponent(email) + '&limit=1'))
+        : [];
+      if (existing && existing.length) {
+        await sb.update('members', existing[0].id, payload);
+      } else {
+        await sb.insert('members', MF.stamp(payload));
+      }
+    }
+    showToast(approve ? 'Inquiry approved and record created.' : 'Inquiry declined.', approve ? 'success' : 'info');
+    await loadMembershipInquiries();
+    loadAllPendingCounts();
+  } catch (err) {
+    showToast('Could not update inquiry: ' + errMsg(err), 'error');
+  }
+}
+
+/* ══════════════════════════════════════════════
+   MEMBER DIRECTORY (site_content.member_directory)
+   Bulk CSV editor that syncs into `members`, matched
+   by email first, then member_number.
+══════════════════════════════════════════════ */
+const DIRECTORY_FIELDS = [
+  { key: 'member_number', label: 'Member #', width: '120px' },
+  { key: 'first_name', label: 'First Name', width: '120px' },
+  { key: 'middle_name', label: 'Middle Name', width: '110px' },
+  { key: 'last_name', label: 'Last Name', width: '120px' },
+  { key: 'suffix', label: 'Suffix', width: '70px' },
+  { key: 'email', label: 'Email', width: '180px' },
+  { key: 'phone', label: 'Phone', width: '120px' },
+  { key: 'status', label: 'Status', width: '90px' },
+  { key: 'joined_via', label: 'Joined Via', width: '150px' },
+  { key: 'joined_at', label: 'Joined At', width: '120px' },
+  { key: 'birthday', label: 'Birthday', width: '120px' },
+  { key: 'lifetime_member_date', label: 'Lifetime Date', width: '130px' },
+  { key: 'lifetime_member_number', label: 'Lifetime #', width: '120px' }
+];
+let memberDirectoryData = [];
+let memberDirectorySearch = '';
+let memberDirectorySortKey = 'last_name';
+let memberDirectorySortDir = 'asc';
+
+function normalizeMemberNumber(v) { return String(v || '').trim().toUpperCase(); }
+function normalizeOptionalDate(value) {
+  const v = String(value || '').trim();
+  if (!v) return '';
+  if (['yes', 'no', 'y', 'n', 'true', 'false', 'not set', 'n/a'].includes(v.toLowerCase())) return '';
+  return v;
+}
+function emptyDirectoryRecord() {
+  const rec = {};
+  DIRECTORY_FIELDS.forEach(f => { rec[f.key] = ''; });
+  return rec;
+}
+function sanitizeDirectoryRecord(row) {
+  const r = row || {};
+  return {
+    member_number: normalizeMemberNumber(r.member_number),
+    first_name: String(r.first_name || '').trim(),
+    middle_name: String(r.middle_name || '').trim(),
+    last_name: String(r.last_name || '').trim(),
+    suffix: String(r.suffix || '').trim(),
+    email: String(r.email || '').trim(),
+    phone: String(r.phone || '').trim(),
+    status: String(r.status || '').trim().toLowerCase(),
+    joined_via: String(r.joined_via || '').trim(),
+    joined_at: normalizeOptionalDate(r.joined_at),
+    birthday: normalizeOptionalDate(r.birthday),
+    lifetime_member_date: normalizeOptionalDate(r.lifetime_member_date),
+    lifetime_member_number: String(r.lifetime_member_number || '').trim()
+  };
+}
+function mergeDirectoryRecords(existing, incoming) {
+  const base = sanitizeDirectoryRecord(existing);
+  const inc = sanitizeDirectoryRecord(incoming);
+  const merged = Object.assign({}, base, { member_number: inc.member_number || base.member_number });
+  DIRECTORY_FIELDS.forEach(col => {
+    if (col.key === 'member_number') return;
+    if (inc[col.key]) merged[col.key] = inc[col.key];
+  });
+  return sanitizeDirectoryRecord(merged);
+}
+function directoryRowSearchText(rec) { return DIRECTORY_FIELDS.map(c => rec[c.key]).join(' ').toLowerCase(); }
+function compareDirectoryRows(a, b, key, dir) {
+  const av = String(a[key] || '').toLowerCase();
+  const bv = String(b[key] || '').toLowerCase();
+  let cmp = av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' });
+  if (cmp === 0) cmp = String(a.last_name || '').localeCompare(String(b.last_name || ''));
+  if (cmp === 0) cmp = String(a.first_name || '').localeCompare(String(b.first_name || ''));
+  return dir === 'desc' ? -cmp : cmp;
+}
+function getDirectoryViewRows() {
+  const q = (memberDirectorySearch || '').trim().toLowerCase();
+  let rows = memberDirectoryData.map(sanitizeDirectoryRecord);
+  if (q) rows = rows.filter(r => directoryRowSearchText(r).includes(q));
+  rows.sort((a, b) => compareDirectoryRows(a, b, memberDirectorySortKey || 'last_name', memberDirectorySortDir));
+  return rows;
+}
+function findDirectoryIndex(memberNumber) {
+  const id = normalizeMemberNumber(memberNumber);
+  if (!id) return -1;
+  for (let i = 0; i < memberDirectoryData.length; i++) {
+    if (normalizeMemberNumber(memberDirectoryData[i].member_number) === id) return i;
+  }
+  return -1;
+}
+function setDirectoryField(memberNumber, field, value) {
+  const idx = findDirectoryIndex(memberNumber);
+  if (idx < 0) return;
+  memberDirectoryData[idx][field] = value;
+  if (field === 'member_number') memberDirectoryData[idx] = sanitizeDirectoryRecord(memberDirectoryData[idx]);
+}
+function directoryInput(value, field, rowId) {
+  return '<input type="text" value="' + escHtml(value || '') + '" onchange="setDirectoryField(\'' +
+    escHtml(rowId || '') + '\',\'' + field + '\',this.value)" />';
+}
+function renderDirectoryHead() {
+  const head = document.getElementById('memberDirectoryHeadRow');
+  if (!head) return;
+  head.innerHTML = DIRECTORY_FIELDS.map(col => {
+    const active = memberDirectorySortKey === col.key;
+    const icon = !active ? '<i class="fas fa-sort sort-icon"></i>'
+      : (memberDirectorySortDir === 'desc' ? '<i class="fas fa-sort-down sort-icon"></i>' : '<i class="fas fa-sort-up sort-icon"></i>');
+    return '<th class="sortable-th' + (active ? ' active' : '') + '" style="width:' + col.width +
+      ';" onclick="sortMemberDirectory(\'' + col.key + '\')">' + escHtml(col.label) + icon + '</th>';
+  }).join('') + '<th style="width:40px;"></th>';
+}
+function sortMemberDirectory(field) {
+  if (memberDirectorySortKey === field) memberDirectorySortDir = memberDirectorySortDir === 'asc' ? 'desc' : 'asc';
+  else { memberDirectorySortKey = field; memberDirectorySortDir = 'asc'; }
+  renderMemberDirectoryTable();
+}
+function filterMemberDirectoryTable() {
+  const input = document.getElementById('memberDirectorySearch');
+  memberDirectorySearch = input ? input.value : '';
+  renderMemberDirectoryTable();
+}
+function updateDirectoryCount() {
+  const countEl = document.getElementById('memberDirectoryCount');
+  const hintEl = document.getElementById('memberDirectoryFilterHint');
+  const total = memberDirectoryData.length;
+  const visible = getDirectoryViewRows().length;
+  if (countEl) countEl.textContent = String(total);
+  if (hintEl) {
+    if (memberDirectorySearch.trim() && visible !== total) {
+      hintEl.style.display = 'block';
+      hintEl.textContent = 'Showing ' + visible + ' of ' + total + ' records matching your search.';
+    } else { hintEl.style.display = 'none'; }
+  }
+}
+function renderMemberDirectoryTable() {
+  const body = document.getElementById('memberDirectoryBody');
+  if (!body) return;
+  renderDirectoryHead();
+  const colCount = DIRECTORY_FIELDS.length + 1;
+  if (!memberDirectoryData.length) {
+    body.innerHTML = '<tr><td colspan="' + colCount + '" style="padding:10px;color:var(--gray-500);">No records yet. Upload a CSV or add rows manually.</td></tr>';
+    updateDirectoryCount(); return;
+  }
+  const viewRows = getDirectoryViewRows();
+  if (!viewRows.length) {
+    body.innerHTML = '<tr><td colspan="' + colCount + '" style="padding:10px;color:var(--gray-500);">No records match your search.</td></tr>';
+    updateDirectoryCount(); return;
+  }
+  body.innerHTML = viewRows.map(rec => {
+    const rowId = rec.member_number || '';
+    const lifetime = !!(rec.lifetime_member_date || rec.lifetime_member_number);
+    return '<tr>' +
+      '<td' + (lifetime ? ' style="background:color-mix(in srgb, var(--a-brand) 12%, transparent);" title="Lifetime member"' : '') + '>' +
+        directoryInput(rec.member_number, 'member_number', rowId) + '</td>' +
+      DIRECTORY_FIELDS.slice(1).map(f => '<td>' + directoryInput(rec[f.key], f.key, rowId) + '</td>').join('') +
+      '<td style="text-align:center;"><button class="btn-sm danger" onclick="removeMemberDirectoryRow(\'' + escHtml(rowId) + '\')" title="Remove"><i class="fas fa-trash"></i></button></td>' +
+      '</tr>';
+  }).join('');
+  updateDirectoryCount();
+}
+async function loadMemberDirectory() {
+  const body = document.getElementById('memberDirectoryBody');
+  if (!body) return;
+  try {
+    const rows = await getContentJson(KEY_MEMBER_DIRECTORY, []);
+    memberDirectoryData = Array.isArray(rows)
+      ? rows.map(sanitizeDirectoryRecord).filter(r => !!r.member_number) : [];
+    renderMemberDirectoryTable();
+  } catch (err) {
+    body.innerHTML = '<tr><td colspan="' + (DIRECTORY_FIELDS.length + 1) + '" class="error-state">Could not load directory: ' + escHtml(errMsg(err)) + '</td></tr>';
+    updateDirectoryCount();
+  }
+}
+function addMemberDirectoryRow() { memberDirectoryData.push(emptyDirectoryRecord()); renderMemberDirectoryTable(); }
+function removeMemberDirectoryRow(memberNumber) {
+  const idx = findDirectoryIndex(memberNumber);
+  if (idx < 0) return;
+  memberDirectoryData.splice(idx, 1);
+  renderMemberDirectoryTable();
+}
+function openMemberDirectoryUpload() { document.getElementById('memberDirectoryCsvInput').click(); }
+
+/* ── CSV parsing ── */
+function parseCsvLine(line) {
+  const out = []; let cur = ''; let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) { out.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+function normalizeHeaderName(name) { return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+function csvCell(values, idx) {
+  if (idx == null || idx < 0 || idx >= values.length) return '';
+  return String(values[idx] || '').trim();
+}
+function mapDirectoryHeaders(headers) {
+  const idx = {};
+  headers.forEach((h, i) => { const k = normalizeHeaderName(h); if (k) idx[k] = i; });
+  const pick = (...names) => { for (const n of names) if (idx[n] != null) return idx[n]; return null; };
+  return {
+    member_number: pick('membernumber', 'memberno', 'memberid', 'alphaid', 'number', 'id'),
+    first_name: pick('firstname', 'first'),
+    middle_name: pick('middlename', 'middle'),
+    last_name: pick('lastname', 'last'),
+    suffix: pick('suffix'),
+    email: pick('email', 'emailaddress'),
+    phone: pick('phone', 'phonenumber', 'mobile'),
+    status: pick('status'),
+    joined_via: pick('joinedvia', 'initiationchapter', 'joinedthrough'),
+    joined_at: pick('joinedat', 'joindate', 'initiationdate'),
+    birthday: pick('birthday', 'dateofbirth', 'dob'),
+    lifetime_member_date: pick('lifetimememberdate', 'lifememberdate', 'lifetimedate'),
+    lifetime_member_number: pick('lifetimemembernumber', 'lifemembernumber', 'lifetimenumber')
+  };
+}
+function parseDirectoryCsv(text) {
+  const lines = String(text || '').replace(/\r/g, '').split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length < 2) return { records: [], errors: ['CSV must include a header row and at least one data row.'] };
+  const mapped = mapDirectoryHeaders(parseCsvLine(lines[0]));
+  if (mapped.member_number == null) return { records: [], errors: ['CSV is missing a required "member_number" column.'] };
+  const records = []; const errors = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cells = parseCsvLine(lines[i]);
+    const num = normalizeMemberNumber(csvCell(cells, mapped.member_number));
+    if (!num) { errors.push('Row ' + (i + 1) + ' is missing a member number.'); continue; }
+    const rec = { member_number: num };
+    DIRECTORY_FIELDS.forEach(f => { if (f.key !== 'member_number') rec[f.key] = csvCell(cells, mapped[f.key]); });
+    records.push(sanitizeDirectoryRecord(rec));
+  }
+  return { records, errors };
+}
+async function handleMemberDirectoryUpload(event) {
+  const file = event && event.target && event.target.files ? event.target.files[0] : null;
+  if (!file) return;
+  try {
+    const parsed = parseDirectoryCsv(await file.text());
+    if (!parsed.records.length) { showToast(parsed.errors[0] || 'No valid records found in CSV.', 'error'); return; }
+    const byId = {};
+    memberDirectoryData.forEach(row => {
+      const rec = sanitizeDirectoryRecord(row);
+      if (rec.member_number) byId[rec.member_number] = rec;
+    });
+    parsed.records.forEach(rec => {
+      byId[rec.member_number] = byId[rec.member_number] ? mergeDirectoryRecords(byId[rec.member_number], rec) : rec;
+    });
+    memberDirectoryData = Object.keys(byId).sort().map(k => byId[k]);
+    renderMemberDirectoryTable();
+    const warn = parsed.errors.length ? ' (' + parsed.errors.length + ' row(s) skipped)' : '';
+    showToast('Merged ' + parsed.records.length + ' row(s) by member number.' + warn, parsed.errors.length ? 'info' : 'success');
+  } catch (err) {
+    showToast('Could not read CSV file: ' + errMsg(err), 'error');
+  } finally {
+    if (event && event.target) event.target.value = '';
+  }
+}
+
+function directoryToMemberPayload(rec) {
+  const payload = {
+    member_number: rec.member_number,
+    first_name: rec.first_name,
+    middle_name: rec.middle_name,
+    last_name: rec.last_name,
+    suffix: rec.suffix,
+    phone: rec.phone,
+    joined_via: rec.joined_via,
+    joined_at: rec.joined_at,
+    birthday: rec.birthday,
+    lifetime_member_number: rec.lifetime_member_number,
+    lifetime_member_date: rec.lifetime_member_date || null,
+    is_lifetime_member: !!(rec.lifetime_member_date || rec.lifetime_member_number),
+    status: rec.status || 'active',
+    updated_at: nowIso()
+  };
+  if (rec.email) payload.email = rec.email;
+  return payload;
+}
+async function findMemberForDirectorySync(rec) {
+  if (rec.email) {
+    const byEmail = await sb.getAll('members', MF.scope('email=ilike.' + encodeURIComponent(rec.email) + '&limit=1'));
+    if (byEmail && byEmail.length) return byEmail[0];
+  }
+  if (rec.member_number) {
+    const byNum = await sb.getAll('members', MF.scope('member_number=eq.' + encodeURIComponent(rec.member_number) + '&limit=1'));
+    if (byNum && byNum.length) return byNum[0];
+  }
+  return null;
+}
+async function syncDirectoryToMembers(records) {
+  let updated = 0, created = 0, skipped = 0;
+  const errors = [];
+  for (let i = 0; i < records.length; i++) {
+    const rec = sanitizeDirectoryRecord(records[i]);
+    const label = rec.member_number || rec.email || ('row ' + (i + 1));
+    try {
+      const existing = await findMemberForDirectorySync(rec);
+      if (existing && existing.id) {
+        await sb.update('members', existing.id, directoryToMemberPayload(rec));
+        updated++;
+      } else if (rec.email) {
+        await sb.insert('members', MF.stamp(directoryToMemberPayload(rec)));
+        created++;
+      } else {
+        skipped++;
+      }
+    } catch (err) {
+      errors.push(label + ': ' + errMsg(err));
+    }
+  }
+  return { updated, created, skipped, errors };
+}
+async function saveMemberDirectory() {
+  const cleaned = []; const seen = {}; let missing = 0;
+  memberDirectoryData.forEach(row => {
+    const rec = sanitizeDirectoryRecord(row);
+    if (!rec.member_number) { missing++; return; }
+    if (seen[rec.member_number]) return;
+    seen[rec.member_number] = true;
+    cleaned.push(rec);
+  });
+  if (!cleaned.length) { showToast('Directory is empty. Add at least one record with a member number.', 'error'); return; }
+  try {
+    await saveContentJson(KEY_MEMBER_DIRECTORY, cleaned);
+  } catch (err) {
+    showToast('Could not save directory: ' + errMsg(err), 'error');
+    return;
+  }
+  memberDirectoryData = cleaned;
+  renderMemberDirectoryTable();
+  let sync = { updated: 0, created: 0, skipped: 0, errors: [] };
+  try { sync = await syncDirectoryToMembers(cleaned); }
+  catch (err) { sync.errors = [errMsg(err)]; }
+  let msg = 'Directory saved.';
+  if (sync.updated || sync.created || sync.skipped) {
+    msg += ' Portal: ' + sync.updated + ' updated';
+    if (sync.created) msg += ', ' + sync.created + ' created';
+    if (sync.skipped) msg += ', ' + sync.skipped + ' not synced (no email)';
+  }
+  if (missing) msg += ' ' + missing + ' row(s) without a member number were skipped.';
+  if (sync.errors.length) {
+    msg += ' Issues: ' + sync.errors.slice(0, 2).join('; ');
+    if (sync.errors.length > 2) msg += ' (+' + (sync.errors.length - 2) + ' more)';
+  }
+  showToast(msg, (sync.errors.length || sync.skipped || missing) ? 'info' : 'success');
+}
+
+/* ── Generic compliance CSV import ── */
+async function handleComplianceCsvUpload(event) {
+  const file = event && event.target && event.target.files ? event.target.files[0] : null;
+  if (!file) return;
+  try {
+    const lines = (await file.text()).replace(/\r/g, '').split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) { showToast('CSV must have a header row and at least one data row.', 'error'); return; }
+    const headers = parseCsvLine(lines[0]);
+    const norm = headers.map(normalizeHeaderName);
+    const numIdx = norm.findIndex(h => ['membernumber', 'memberno', 'memberid', 'alphaid'].includes(h));
+    const emailIdx = norm.indexOf('email');
+    const activeIdx = norm.findIndex(h => ['orgactivedate', 'activedate', 'chapteractivedate'].includes(h));
+    if (numIdx < 0 && emailIdx < 0) {
+      showToast('CSV must include a member number or email column to match records.', 'error'); return;
+    }
+    const skipCols = new Set([numIdx, emailIdx, activeIdx].filter(i => i >= 0));
+    ['firstname', 'lastname', 'first', 'last', 'name'].forEach(h => {
+      const i = norm.indexOf(h); if (i >= 0) skipCols.add(i);
+    });
+    const members = await sb.getAll('members', MF.scope(''));
+    if (!members || !members.length) { showToast('No records found to update.', 'info'); return; }
+    const byNum = {}, byEmail = {};
+    members.forEach(m => {
+      if (m.member_number) byNum[String(m.member_number).toUpperCase()] = m;
+      if (m.email) byEmail[String(m.email).toLowerCase()] = m;
+    });
+    let matched = 0, skippedRows = 0;
+    showToast('Importing compliance data…', 'info');
+    for (let i = 1; i < lines.length; i++) {
+      const cells = parseCsvLine(lines[i]);
+      const num = numIdx >= 0 ? csvCell(cells, numIdx).toUpperCase() : '';
+      const email = emailIdx >= 0 ? csvCell(cells, emailIdx).toLowerCase() : '';
+      const member = byNum[num] || byEmail[email];
+      if (!member) { skippedRows++; continue; }
+      const payload = { updated_at: nowIso() };
+      if (activeIdx >= 0 && csvCell(cells, activeIdx)) payload.org_active_date = csvCell(cells, activeIdx);
+      const compliance = Object.assign({}, (member.compliance && typeof member.compliance === 'object') ? member.compliance : {});
+      let touched = false;
+      headers.forEach((h, ci) => {
+        if (skipCols.has(ci)) return;
+        const v = csvCell(cells, ci);
+        if (!v) return;
+        compliance[String(h).trim()] = v;
+        touched = true;
+      });
+      if (touched) payload.compliance = compliance;
+      if (Object.keys(payload).length === 1) { skippedRows++; continue; }
+      await sb.update('members', member.id, payload);
+      matched++;
+    }
+    showToast('Updated ' + matched + ' record(s).' + (skippedRows ? ' ' + skippedRows + ' row(s) not matched.' : ''), matched ? 'success' : 'info');
+    await loadMemberRequests();
+  } catch (err) {
+    showToast('Could not process CSV: ' + errMsg(err), 'error');
+  } finally {
+    if (event && event.target) event.target.value = '';
+  }
+}
+<!--PART6-->
+
 
 
 

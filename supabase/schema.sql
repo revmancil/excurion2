@@ -919,9 +919,22 @@ $$;
 
 drop policy if exists "org_media_select_anon" on storage.objects;
 create policy "org_media_select_anon" on storage.objects for select to anon, authenticated using (bucket_id = 'org-media');
+-- INSERT is intentionally broader than admin-only: members upload their own
+-- attachments here too (reimbursement/requisition receipts, profile photos,
+-- committee-report documents, submitted-announcement flyers), not just
+-- admins uploading gallery/document content. Any signed-in, granted member
+-- of the org (or an org admin) may add a NEW object under that org's path
+-- prefix; UPDATE/DELETE stay admin-only below so a member can't overwrite
+-- or remove someone else's upload once it exists.
 drop policy if exists "org_media_insert_auth" on storage.objects;
 create policy "org_media_insert_auth" on storage.objects for insert to authenticated
-with check (bucket_id = 'org-media' and public.current_user_is_org_admin(public.storage_path_org_id(name)));
+with check (
+  bucket_id = 'org-media'
+  and (
+    public.current_user_is_org_admin(public.storage_path_org_id(name))
+    or public.current_user_is_org_member(public.storage_path_org_id(name))
+  )
+);
 drop policy if exists "org_media_update_auth" on storage.objects;
 create policy "org_media_update_auth" on storage.objects for update to authenticated
 using (bucket_id = 'org-media' and public.current_user_is_org_admin(public.storage_path_org_id(name)));
