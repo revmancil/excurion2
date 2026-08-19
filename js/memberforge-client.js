@@ -11,8 +11,8 @@
  * Settings → API). The anon key is safe to ship client-side — it only
  * grants what your Row Level Security policies allow.
  */
-const MF_SUPABASE_URL = window.MEMBERFORGE_SUPABASE_URL || 'https://YOUR-PROJECT-REF.supabase.co';
-const MF_SUPABASE_ANON_KEY = window.MEMBERFORGE_SUPABASE_ANON_KEY || 'YOUR-SUPABASE-ANON-KEY';
+const MF_SUPABASE_URL = window.MEMBERFORGE_SUPABASE_URL || 'https://vrmvvrpkqhthsgyqjqby.supabase.co';
+const MF_SUPABASE_ANON_KEY = window.MEMBERFORGE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZybXZ2cnBrcWh0aHNneXFqcWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMTAzNDIsImV4cCI6MjEwMjY4NjM0Mn0.4USPfNPG2eHS5gWsJsywEHGSelkUv2gp_2tNZBXyAsY';
 
 const sb = {
   url: MF_SUPABASE_URL,
