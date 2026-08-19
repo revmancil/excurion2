@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How One Chapter Built the Platform Every Chapter Needed | MemberForge Stories</title>
+  <meta name="description" content="The story of Xi Tau Lambda Chapter of Alpha Phi Alpha Fraternity — 40 years of North Dallas service, a stack of tools that stopped fitting, and the decision to build the thing right." />
+  <link rel="stylesheet" href="../css/theme.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <style>
+    body { background: var(--mf-paper); color: var(--mf-ink-3); }
+
+    /* ---------- Marketing nav (light) ---------- */
+    .mf-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 40px;
+      border-bottom: 1px solid var(--mf-line-2);
+    }
+    .mf-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .mf-logo .mark {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--mf-accent); color: #fff;
+      display: grid; place-items: center;
+      font-family: var(--mf-serif); font-weight: 700; font-size: 17px; letter-spacing: -0.03em;
+      box-shadow: 0 2px 6px rgba(26,22,19,0.12), inset 0 -2px 0 rgba(0,0,0,0.15);
+      flex-shrink: 0;
+    }
+    .mf-logo .word { font-family: var(--mf-serif); font-weight: 500; font-size: 19px; letter-spacing: -0.02em; color: var(--mf-ink); }
+    .mf-nav-links { display: flex; align-items: center; gap: 4px; }
+    .mf-nav-links a { padding: 8px 14px; font-size: 14px; border-radius: 6px; color: var(--mf-ink-3); font-weight: 400; }
+    .mf-nav-links a:hover { color: var(--mf-ink); }
+    .mf-nav-links a.active { color: var(--mf-ink); font-weight: 500; }
+    .mf-nav-right { display: flex; align-items: center; gap: 8px; }
+    .mf-nav-right .signin { font-size: 14px; color: var(--mf-ink-3); padding: 8px 12px; }
+    @media (max-width: 900px) {
+      .mf-nav-links { display: none; }
+      .mf-nav { padding: 16px 20px; }
+    }
+
+    /* ---------- Magazine cover ---------- */
+    .cover {
+      position: relative; color: #fff; overflow: hidden;
+      background:
+        repeating-linear-gradient(135deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 12px),
+        radial-gradient(900px 500px at 30% 40%, rgba(181,135,43,0.35), transparent 65%),
+        linear-gradient(160deg, #1a1613, #2a231d);
+    }
+    .cover-inner { position: relative; max-width: 1000px; margin: 0 auto; padding: 48px 40px 100px; }
+    .cover-masthead {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 60px;
+      font-family: var(--mf-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: rgba(255,255,255,0.5); flex-wrap: wrap; gap: 8px 24px;
+    }
+    .cover-eyebrow { color: #ecdcb0; margin-bottom: 24px; display: inline-block; font-family: var(--mf-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; }
+    .cover h1 {
+      font-family: var(--mf-serif); font-size: clamp(40px, 8vw, 96px); font-weight: 400;
+      letter-spacing: -0.035em; line-height: 0.92; margin-bottom: 40px;
+    }
+    .cover h1 em { color: #b5872b; font-style: italic; }
+    .cover .dek {
+      font-size: clamp(17px, 2vw, 22px); color: rgba(255,255,255,0.75); line-height: 1.45;
+      max-width: 700px; font-family: var(--mf-serif); font-style: italic;
+    }
+
+    /* ---------- Lead image ---------- */
+    .lead-image-section { padding: 0 40px; margin-top: -40px; position: relative; z-index: 1; }
+    .lead-image-section .mf-photo { max-width: 1000px; margin: 0 auto; height: 480px; border-radius: 8px; box-shadow: 0 30px 80px rgba(26,22,19,0.3); }
+    .lead-caption {
+      max-width: 1000px; margin: 16px auto 0; font-family: var(--mf-mono); font-size: 11px;
+      letter-spacing: 0.06em; color: var(--mf-muted); text-align: right;
+    }
+
+    /* ---------- Article ---------- */
+    article.case-body {
+      padding: 80px 40px; max-width: 720px; margin: 0 auto; font-size: 18px; color: var(--mf-ink); line-height: 1.75;
+    }
+    .dek-para {
+      font-family: var(--mf-serif); font-size: 24px; font-style: italic; color: var(--mf-muted);
+      line-height: 1.5; margin-bottom: 48px; border-bottom: 1px solid var(--mf-line); padding-bottom: 32px;
+    }
+    .case-body p { margin-bottom: 32px; }
+    .case-body p.tight { margin-bottom: 40px; }
+    .dropcap {
+      float: left; font-family: var(--mf-serif); font-size: 96px; line-height: 0.85;
+      color: var(--mf-accent); margin-right: 12px; margin-top: 6px; font-weight: 500;
+    }
+    .case-body h2 {
+      font-family: var(--mf-serif); font-size: 44px; font-weight: 500; letter-spacing: -0.02em;
+      line-height: 1.1; margin: 64px 0 24px; color: var(--mf-ink);
+    }
+    .case-body em.accent { font-style: italic; color: var(--mf-accent); }
+
+    .pullquote-block {
+      margin: 48px -40px; padding: 48px 40px;
+      border-top: 3px solid var(--mf-accent); border-bottom: 3px solid var(--mf-accent);
+      background: var(--mf-paper-2);
+    }
+    .pullquote-block p {
+      font-family: var(--mf-serif); font-size: 36px; line-height: 1.25; font-weight: 500;
+      letter-spacing: -0.015em; margin-bottom: 20px !important;
+    }
+    .pullquote-block cite {
+      font-family: var(--mf-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--mf-muted); font-style: normal;
+    }
+
+    .image-break { margin: 48px -40px; }
+    .image-break .mf-photo { height: 400px; border-radius: 0; }
+    .image-break .caption {
+      padding: 12px 40px 0; font-family: var(--mf-mono); font-size: 11px; color: var(--mf-muted); letter-spacing: 0.06em;
+    }
+
+    .results-block { margin: 48px 0; padding: 40px; background: var(--mf-ink); color: #fff; border-radius: var(--mf-radius-xl); }
+    .results-block .mf-eyebrow { color: var(--mf-accent-soft); margin-bottom: 20px; }
+    .results-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px; }
+    .results-grid > div { display: flex; gap: 20px; align-items: baseline; }
+    .stat-n { font-family: var(--mf-serif); font-size: 44px; letter-spacing: -0.02em; color: #b5872b; line-height: 1; min-width: 110px; }
+    .stat-l { font-size: 14px; color: rgba(255,255,255,0.8); }
+    @media (max-width: 640px) { .results-grid { grid-template-columns: 1fr; } }
+
+    .pullquote-close {
+      margin: 48px -40px; padding: 48px 40px; text-align: center;
+      background: linear-gradient(180deg, transparent, var(--mf-paper-2));
+    }
+    .pullquote-close p {
+      font-family: var(--mf-serif); font-size: 32px; font-style: italic; color: var(--mf-ink);
+      line-height: 1.35; max-width: 620px; margin: 0 auto 20px;
+    }
+    .pullquote-close cite {
+      font-size: 13px; color: var(--mf-muted); font-family: var(--mf-mono); letter-spacing: 0.08em;
+      text-transform: uppercase; font-style: normal; display: block;
+    }
+    @media (max-width: 800px) {
+      article.case-body { padding: 60px 24px; }
+      .pullquote-block, .image-break, .pullquote-close { margin-left: -24px; margin-right: -24px; padding-left: 24px; padding-right: 24px; }
+    }
+
+    /* ---------- More-stories CTA ---------- */
+    .more-stories { padding: 100px 40px; background: var(--mf-paper-2); text-align: center; }
+    .more-stories-inner { max-width: 760px; margin: 0 auto; }
+    .more-stories h2 { font-size: 48px; font-weight: 400; letter-spacing: -0.025em; line-height: 1; margin-bottom: 40px; color: var(--mf-ink); }
+    .more-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: left; }
+    .more-card { padding: 24px; background: #fff; border-radius: var(--mf-radius-lg); border: 1px solid var(--mf-line); }
+    .more-card .kind { margin-bottom: 8px; }
+    .more-card .org { font-family: var(--mf-serif); font-size: 15px; font-weight: 500; color: var(--mf-ink); margin-bottom: 12px; }
+    .more-card .title { font-size: 14px; color: var(--mf-ink-3); line-height: 1.5; margin-bottom: 12px; }
+    .more-card .soon { font-size: 12px; color: var(--mf-accent); font-weight: 500; }
+    .more-stories-cta { margin-top: 48px; }
+    @media (max-width: 800px) { .more-grid { grid-template-columns: 1fr; } }
+
+    /* ---------- Footer (light) ---------- */
+    .mf-footer { padding: 80px 40px 40px; background: var(--mf-paper-2); color: var(--mf-ink); border-top: 1px solid var(--mf-line); }
+    .mf-footer-inner { max-width: 1200px; margin: 0 auto; }
+    .mf-footer-grid { display: grid; grid-template-columns: 1.4fr repeat(4, 1fr); gap: 60px; margin-bottom: 60px; }
+    .mf-footer-brand p { margin-top: 16px; font-size: 14px; color: var(--mf-muted); line-height: 1.6; max-width: 260px; }
+    .mf-footer-col h4 {
+      font-family: var(--mf-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--mf-muted); margin-bottom: 16px; font-weight: 400;
+    }
+    .mf-footer-col ul { display: flex; flex-direction: column; gap: 10px; }
+    .mf-footer-col a { font-size: 14px; color: var(--mf-ink-3); }
+    .mf-footer-col a:hover { color: var(--mf-ink); }
+    .mf-footer-bottom {
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+      padding-top: 30px; border-top: 1px solid var(--mf-line);
+    }
+    .mf-footer-bottom .copy { font-size: 13px; color: var(--mf-muted); }
+    .mf-footer-bottom .meta { display: flex; gap: 20px; font-size: 13px; color: var(--mf-muted); }
+    @media (max-width: 900px) { .mf-footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; } }
+    @media (max-width: 560px) { .mf-footer-grid { grid-template-columns: 1fr; } }
+
+    /* ---------- Print ---------- */
+    @media print {
+      .mf-nav, .more-stories, .mf-footer { display: none; }
+      .cover { background: #1a1613 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      article.case-body { font-size: 12pt; max-width: 100%; }
+      .pullquote-block, .image-break, .pullquote-close { margin-left: 0; margin-right: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ NAV ============ -->
+  <nav class="mf-nav">
+    <a href="../index.html" class="mf-logo">
+      <span class="mark">M</span>
+      <span class="word">MemberForge</span>
+    </a>
+    <div class="mf-nav-links">
+      <a href="../index.html">Product</a>
+      <a href="../index.html#audiences">Who it&rsquo;s for</a>
+      <a href="../pricing.html">Pricing</a>
+      <a href="../stories.html" class="active">Stories</a>
+      <a href="#">Docs</a>
+    </div>
+    <div class="mf-nav-right">
+      <a href="../member-login.html" class="signin">Sign in</a>
+      <a href="../signup.html" class="mf-btn accent sm">Start your chapter <i class="fas fa-arrow-right" style="font-size:10px;"></i></a>
+    </div>
+  </nav>
+
+  <!-- ============ COVER ============ -->
+  <section class="cover">
+    <div class="cover-inner">
+      <div class="cover-masthead">
+        <div>MemberForge &middot; Stories &middot; No. 001</div>
+        <div>Published &middot; March 2026</div>
+        <div>Est. read &middot; 14 min</div>
+      </div>
+      <span class="cover-eyebrow">Case study &middot; The founding chapter</span>
+      <h1>How one chapter built<br>the platform<br><em>every chapter needed.</em></h1>
+      <p class="dek">The story of Xi Tau Lambda Chapter of Alpha Phi Alpha Fraternity &mdash; 40 years of North Dallas service, a stack of tools that stopped fitting, and the decision to build the thing right.</p>
+    </div>
+  </section>
+
+  <!-- ============ LEAD IMAGE ============ -->
+  <section class="lead-image-section">
+    <div class="mf-photo dark">chapter/gala_wide_shot.jpg</div>
+    <div class="lead-caption">Xi Tau Lambda&rsquo;s 13th Annual Scholarship Gala &middot; September 2025 &middot; Renaissance Dallas</div>
+  </section>
+
+  <!-- ============ ARTICLE BODY ============ -->
+  <article class="case-body">
+
+    <p class="dek-para">When Bro. Cedric Washington took the gavel as 20th Chapter President of Xi Tau Lambda in 2024, he inherited three things: a beloved 40-year-old chapter, a Wild Apricot subscription, and a growing sense that the tools were getting in the way of the work.</p>
+
+    <p><span class="dropcap">X</span>i Tau Lambda was chartered March 3, 1984 as the 607th seat in the House of Alpha. Twenty-two founding brothers stepped forward in North Dallas County &mdash; professionals, educators, ministers &mdash; and set out to serve. Forty years later, the chapter has hosted fourteen Scholarship Galas, seeded the Sankofa Foundation, and put mentors into McKinney ISD classrooms every fall.</p>
+
+    <p>It also, by 2023, had a website on Wild Apricot, a dues tracker in Google Sheets, three group chats, a shared Google Drive, a PayPal account, a Constant Contact account, and &mdash; the treasurer&rsquo;s private favorite &mdash; a spreadsheet reconciling all of them.</p>
+
+    <p class="tight">&ldquo;We were spending more time managing the tools than doing the work of the chapter,&rdquo; Washington says. &ldquo;That&rsquo;s a bad ratio.&rdquo;</p>
+
+    <h2>The moment that broke it.</h2>
+
+    <p>The turning point wasn&rsquo;t dramatic. It was a Tuesday night in February 2023, and the treasurer at the time &mdash; a working CFO with two kids under ten &mdash; had to reconcile the January books.</p>
+
+    <p>Dues had come in through Wild Apricot&rsquo;s payment processor. Reimbursements had come in through a Google Form. Requisitions had been submitted on paper at chapter meeting. The gala tickets were a separate PayPal export. He worked until 1 a.m.</p>
+
+    <p class="tight">&ldquo;He didn&rsquo;t quit,&rdquo; Washington says. &ldquo;He said something worse. He said, <em class="accent">I don&rsquo;t mind doing the work. I mind doing the same work three times.</em>&rdquo;</p>
+
+    <div class="pullquote-block">
+      <p>&ldquo;I don&rsquo;t mind doing the work. I mind doing the same work three times.&rdquo;</p>
+      <cite>&mdash; The 2023 Xi Tau Lambda treasurer</cite>
+    </div>
+
+    <h2>What they tried first.</h2>
+
+    <p>The chapter looked at everything. Wild Apricot&rsquo;s higher tiers (still didn&rsquo;t handle requisitions or approvals the way officer culture demanded). MemberClicks, MemberSuite, YourMembership. All were built for professional associations &mdash; trade groups, alumni networks with paid staff &mdash; not for a chapter of volunteers who turn over officers every two years.</p>
+
+    <p>They tried piecing together Notion + Stripe + Airtable. Beautiful, on paper. Impossible to keep synced. And when the 2024 officers rotated in, the whole scaffolding collapsed because nobody wanted to inherit &ldquo;how the last VP wired eight tools together.&rdquo;</p>
+
+    <p class="tight">&ldquo;The problem,&rdquo; Washington says, &ldquo;is nobody was building for chapters. Nobody was building for the specific shape of what we do &mdash; a small, volunteer-run, brand-conscious organization with a treasurer, a president, an event calendar, dues, and members who deserve better than a Wix template.&rdquo;</p>
+
+    <div class="image-break">
+      <div class="mf-photo">chapter/mentoring_session.jpg</div>
+      <div class="caption">Sankofa Foundation mentoring session &middot; McKinney ISD &middot; Fall 2024</div>
+    </div>
+
+    <h2>Building the thing right.</h2>
+
+    <p>So they built it. What started as &ldquo;let me fix our chapter site over Christmas break&rdquo; became, six months in, a real product. One codebase. Multi-tenant from the ground up. Postgres row-level security instead of trust-the-client. Live tenant branding instead of paid theme upgrades. AI-assisted announcements instead of copy-pasting from Constant Contact. A finance sub-portal that made the treasurer&rsquo;s Sundays possible again.</p>
+
+    <p>They put Xi Tau Lambda on it. Then a sister chapter &mdash; Alpha Phi Omega at UT Dallas &mdash; asked if they could use it too. That was the moment the project stopped being a chapter&rsquo;s website and started being a platform.</p>
+
+    <p class="tight">&ldquo;I never set out to build a company,&rdquo; Washington says. &ldquo;But once you build the thing your community needs, other communities notice. And you have a choice &mdash; help them, or watch them do the same painful thing you just did.&rdquo;</p>
+
+    <div class="results-block">
+      <span class="mf-eyebrow">By the numbers &middot; Xi Tau Lambda, 6 months on MemberForge</span>
+      <div class="results-grid">
+        <div><span class="stat-n">4</span><span class="stat-l">tools consolidated into 1</span></div>
+        <div><span class="stat-n">12 min</span><span class="stat-l">to publish a monthly newsletter (was 4 hours)</span></div>
+        <div><span class="stat-n">93%</span><span class="stat-l">dues collection this term</span></div>
+        <div><span class="stat-n">$8,400+</span><span class="stat-l">raised via the built-in Sankofa gift add-on</span></div>
+        <div><span class="stat-n">0</span><span class="stat-l">admin agency fees paid</span></div>
+        <div><span class="stat-n">1 hour</span><span class="stat-l">total time the treasurer spent reconciling Q3</span></div>
+      </div>
+    </div>
+
+    <h2>What comes next.</h2>
+
+    <p>Xi Tau Lambda is the founding chapter, but not the only one anymore. A handful of chapters, churches, and alumni groups have joined the invited beta. Federation is in development for national orgs that want to bring hundreds of chapters onto one platform.</p>
+
+    <p>But the philosophy hasn&rsquo;t drifted. Every feature that ships to every tenant was built because a real chapter &mdash; usually Xi Tau Lambda first &mdash; needed it. The kiosk check-in came from the gala. The AI newsletter draft came from the monthly comms load. The moderation queue came from a rush-week social-media incident nobody wants to talk about.</p>
+
+    <p class="tight">&ldquo;This is a tool built by a chapter, for chapters, and the day it stops being that is the day it starts sucking,&rdquo; Washington says. &ldquo;So we won&rsquo;t let it.&rdquo;</p>
+
+    <div class="pullquote-close">
+      <p>&ldquo;GOODWILL is the monarch of this house. MemberForge gives every chapter a place where that goodwill can actually live.&rdquo;</p>
+      <cite>&mdash; Bro. Cedric Washington &middot; 20th President, Xi Tau Lambda</cite>
+    </div>
+
+  </article>
+
+  <!-- ============ MORE STORIES / CTA ============ -->
+  <section class="more-stories">
+    <div class="more-stories-inner">
+      <span class="mf-eyebrow" style="margin-bottom:16px;">Read more stories</span>
+      <h2>Every chapter has one.</h2>
+      <div class="more-grid">
+        <div class="more-card">
+          <span class="mf-eyebrow muted kind">Congregation</span>
+          <div class="org">Riverside Church</div>
+          <div class="title">How Sunday bulletin day went from six hours to fifteen minutes</div>
+          <span class="soon">Coming soon &rarr;</span>
+        </div>
+        <div class="more-card">
+          <span class="mf-eyebrow muted kind">Service Fraternity</span>
+          <div class="org">Alpha Phi Omega</div>
+          <div class="title">Coordinating five service projects across three campuses</div>
+          <span class="soon">Coming soon &rarr;</span>
+        </div>
+        <div class="more-card">
+          <span class="mf-eyebrow muted kind">Alumni chapter</span>
+          <div class="org">Delta Gamma Alumni</div>
+          <div class="title">Reconnecting 4,200 alumni across seven cities</div>
+          <span class="soon">Coming soon &rarr;</span>
+        </div>
+      </div>
+      <div class="more-stories-cta">
+        <a href="../signup.html" class="mf-btn accent lg">Start your chapter&rsquo;s story <i class="fas fa-arrow-right" style="font-size:11px;"></i></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="mf-footer">
+    <div class="mf-footer-inner">
+      <div class="mf-footer-grid">
+        <div class="mf-footer-brand">
+          <a href="../index.html" class="mf-logo">
+            <span class="mark">M</span>
+            <span class="word">MemberForge</span>
+          </a>
+          <p>A branded home for every chapter, congregation, and alumni community. One platform, your identity.</p>
+        </div>
+        <div class="mf-footer-col">
+          <h4>Product</h4>
+          <ul>
+            <li><a href="../index.html#product">Features</a></li>
+            <li><a href="../index.html">Public site</a></li>
+            <li><a href="#">Member portal</a></li>
+            <li><a href="#">Admin dashboard</a></li>
+            <li><a href="#">Finance module</a></li>
+          </ul>
+        </div>
+        <div class="mf-footer-col">
+          <h4>Who it&rsquo;s for</h4>
+          <ul>
+            <li><a href="#">Fraternities &amp; sororities</a></li>
+            <li><a href="#">Churches &amp; parishes</a></li>
+            <li><a href="#">Alumni chapters</a></li>
+            <li><a href="#">Service organizations</a></li>
+          </ul>
+        </div>
+        <div class="mf-footer-col">
+          <h4>Resources</h4>
+          <ul>
+            <li><a href="#">Docs</a></li>
+            <li><a href="#">Onboarding guide</a></li>
+            <li><a href="#">Migration from Wix</a></li>
+            <li><a href="#">Changelog</a></li>
+            <li><a href="#">Status</a></li>
+          </ul>
+        </div>
+        <div class="mf-footer-col">
+          <h4>Company</h4>
+          <ul>
+            <li><a href="#">About</a></li>
+            <li><a href="#">Beta program</a></li>
+            <li><a href="#">Contact</a></li>
+            <li><a href="#">Privacy</a></li>
+            <li><a href="#">Terms</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="mf-footer-bottom">
+        <div class="copy">&copy; 2026 MemberForge. Built with care for communities.</div>
+        <div class="meta">
+          <span>hello@memberforge.app</span>
+          <span>&middot;</span>
+          <span>Made in Austin, TX</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
