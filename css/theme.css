@@ -1,34 +1,78 @@
 /* =============================================
    MemberForge — Base Theme Stylesheet
    Generic, tenant-brandable membership-org theme.
-   Colors below are defaults only — js/org-context.js
-   overwrites --accent/--accent-*/--ink at runtime from
-   each organization's saved brand settings.
+
+   Two token layers coexist here:
+
+   1. Original tokens (--accent, --ink, --white, --gray-*, --radius, ...)
+      Tenant pages use these. js/org-context.js overwrites --accent /
+      --ink at runtime from each org's saved brand. Defaults below are
+      the warm "Modern Workspace" palette — any tenant that hasn't
+      customized their brand color gets these instead of raw indigo.
+
+   2. --mf-* tokens (--mf-paper, --mf-ink-3, --mf-serif, --mf-mono, ...)
+      MemberForge's own marketing pages (signup, index at the apex
+      domain, pricing, stories) use these. Never overridden per-tenant.
 ============================================= */
 
-/* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+/* Google Fonts — Fraunces (display serif), Inter Tight (sans), JetBrains
+   Mono (labels). Playfair + Inter kept as fallbacks for older references. */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ---------- CSS Variables ---------- */
 :root {
-  --ink: #0b0f19;
+  /* ============= ORIGINAL TOKENS (tenant-overridable) ============= */
+  --ink: #1a1613;
   --ink-deep: #05070c;
-  --accent: #4F46E5;
-  --accent-light: #7C74EF;
-  --accent-dark: #3730A3;
-  --accent-pale: #EEF0FF;
+  --accent: #c7562d;
+  --accent-light: #d97250;
+  --accent-dark: #a34419;
+  --accent-pale: #f4d6c4;
   --on-accent: #ffffff;
   --white: #ffffff;
-  --gray-100: #f8f8f8;
-  --gray-200: #e8e8e8;
-  --gray-400: #999;
-  --gray-600: #666;
-  --gray-800: #333;
+  --gray-100: #f7f3ec;
+  --gray-200: #e8e0d0;
+  --gray-400: #8a7d70;
+  --gray-600: #6b5d51;
+  --gray-800: #2a231d;
   --nav-height: 80px;
   --radius: 4px;
-  --shadow: 0 4px 30px rgba(0,0,0,0.15);
+  --shadow: 0 4px 30px rgba(26, 22, 19, 0.15);
   --shadow-accent: 0 4px 20px color-mix(in srgb, var(--accent) 30%, transparent);
   --transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  /* ============= NEW --mf-* TOKENS (marketing-side, never overridden) ============= */
+  --mf-ink: #1a1613;
+  --mf-ink-2: #2a231d;
+  --mf-ink-3: #4a3f36;
+  --mf-paper: #f7f3ec;
+  --mf-paper-2: #efe9de;
+  --mf-paper-3: #e6dfd0;
+  --mf-line: rgba(26, 22, 19, 0.12);
+  --mf-line-2: rgba(26, 22, 19, 0.06);
+  --mf-muted: #6b5d51;
+  --mf-muted-2: #8a7d70;
+
+  --mf-accent: #c7562d;
+  --mf-accent-2: #a34419;
+  --mf-accent-soft: #f4d6c4;
+  --mf-accent-tint: rgba(199, 86, 45, 0.08);
+
+  --mf-serif: 'Fraunces', 'Playfair Display', Georgia, serif;
+  --mf-sans: 'Inter Tight', 'Inter', system-ui, sans-serif;
+  --mf-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --mf-radius-sm: 6px;
+  --mf-radius: 10px;
+  --mf-radius-lg: 18px;
+  --mf-radius-xl: 28px;
+
+  --mf-shadow-1: 0 1px 2px rgba(26, 22, 19, 0.05), 0 1px 3px rgba(26, 22, 19, 0.06);
+  --mf-shadow-2: 0 4px 12px rgba(26, 22, 19, 0.06), 0 12px 32px rgba(26, 22, 19, 0.08);
+  --mf-shadow-3: 0 24px 60px rgba(26, 22, 19, 0.14), 0 4px 16px rgba(26, 22, 19, 0.08);
+
+  --mf-ease: cubic-bezier(.2, .7, .3, 1);
+  --mf-ease-in: cubic-bezier(.4, 0, 1, 1);
 }
 
 /* ---------- Reset & Base ---------- */
@@ -37,9 +81,9 @@
 html { scroll-behavior: smooth; font-size: 16px; }
 
 body {
-  font-family: 'Inter', sans-serif;
-  background: var(--white);
-  color: var(--gray-800);
+  font-family: var(--mf-sans);
+  background: var(--mf-paper);
+  color: var(--mf-ink-3);
   line-height: 1.6;
   overflow-x: hidden;
 }
@@ -1518,4 +1562,159 @@ h1, h2, h3, h4, h5 {
   .btn { width: 100%; justify-content: center; }
   .cta-actions { flex-direction: column; }
   .impact-grid { grid-template-columns: 1fr; }
+}
+
+/* =============================================================================
+   MemberForge marketing components — warm/community system
+   Used only on marketing pages (signup, index-at-apex-domain, pricing,
+   stories) via the --mf-* tokens above. Tenant pages don't reference these.
+============================================================================= */
+
+.mf-h1, .mf-h2, .mf-h3, .mf-h4 {
+  font-family: var(--mf-serif);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+  color: var(--mf-ink);
+  margin: 0;
+}
+.mf-h1 { font-size: clamp(56px, 8vw, 84px); letter-spacing: -0.032em; line-height: 0.98; font-weight: 500; }
+.mf-h2 { font-size: clamp(40px, 5vw, 56px); letter-spacing: -0.025em; line-height: 1.02; }
+.mf-h3 { font-size: clamp(24px, 3vw, 32px); }
+.mf-h1 em, .mf-h2 em { color: var(--mf-accent); font-style: italic; font-weight: 400; }
+
+.mf-eyebrow {
+  font-family: var(--mf-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mf-accent);
+  display: inline-block;
+}
+.mf-eyebrow.muted { color: var(--mf-muted); }
+
+.mf-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-family: var(--mf-sans);
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: -0.005em;
+  border: 1px solid transparent;
+  transition: transform .15s ease, box-shadow .2s ease, background .2s ease,
+              color .2s ease, border-color .2s ease;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+}
+.mf-btn.accent { background: var(--mf-accent); color: #fff; }
+.mf-btn.accent:hover { background: var(--mf-accent-2); transform: translateY(-1px);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--mf-accent) 40%, transparent); }
+.mf-btn.ghost { background: transparent; color: var(--mf-ink); border-color: var(--mf-line); }
+.mf-btn.ghost:hover { border-color: var(--mf-ink); background: var(--mf-paper-2); }
+.mf-btn.primary { background: var(--mf-ink); color: var(--mf-paper); }
+.mf-btn.primary:hover { background: var(--mf-accent); transform: translateY(-1px); }
+.mf-btn.white { background: #fff; color: var(--mf-ink); border-color: var(--mf-line); }
+.mf-btn.white:hover { background: var(--mf-paper); transform: translateY(-1px); }
+.mf-btn.lg { padding: 14px 24px; font-size: 15px; }
+.mf-btn.sm { padding: 8px 14px; font-size: 13px; }
+
+/* Primary CTA hover shimmer */
+.mf-btn.accent { position: relative; overflow: hidden; }
+.mf-btn.accent::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(120deg, transparent 20%, rgba(255,255,255,0.25) 50%, transparent 80%);
+  transform: translateX(-100%); transition: transform .8s var(--mf-ease);
+  pointer-events: none;
+}
+.mf-btn.accent:hover::after { transform: translateX(100%); }
+
+/* Inputs */
+.mf-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid var(--mf-line);
+  border-radius: var(--mf-radius);
+  font-family: var(--mf-sans);
+  font-size: 15px;
+  color: var(--mf-ink);
+  transition: border-color .15s, box-shadow .15s;
+}
+.mf-input:focus {
+  outline: none; border-color: var(--mf-accent);
+  box-shadow: 0 0 0 3px var(--mf-accent-tint);
+}
+.mf-input::placeholder { color: var(--mf-muted-2); }
+.mf-label { display: block; font-size: 13px; font-weight: 500; color: var(--mf-ink-2); margin-bottom: 6px; }
+
+/* Photo placeholder — striped bg + mono explainer.
+   Use for imagery slots until real photography is dropped in. */
+.mf-photo {
+  position: relative;
+  background:
+    repeating-linear-gradient(135deg, rgba(26,22,19,0.05) 0 1px, transparent 1px 8px),
+    linear-gradient(160deg, var(--mf-paper-3), var(--mf-paper-2));
+  border-radius: var(--mf-radius);
+  overflow: hidden;
+  color: var(--mf-muted);
+  font-family: var(--mf-mono);
+  font-size: 11px;
+  display: flex;
+  align-items: flex-end;
+  padding: 12px;
+  min-height: 200px;
+}
+.mf-photo.dark {
+  background:
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 8px),
+    linear-gradient(160deg, var(--mf-ink), var(--mf-ink-2));
+  color: rgba(255,255,255,0.55);
+}
+
+/* Marketing section spacing */
+.mf-section { padding: 100px 40px; }
+.mf-section.sm { padding: 60px 40px; }
+.mf-section.lg { padding: 120px 40px; }
+.mf-section.on-paper-2 { background: var(--mf-paper-2); }
+.mf-section.on-ink { background: var(--mf-ink); color: #fff; }
+.mf-container { max-width: 1200px; margin: 0 auto; }
+.mf-container.tight { max-width: 900px; }
+.mf-container.article { max-width: 720px; }
+
+@media (max-width: 768px) {
+  .mf-section { padding: 60px 24px; }
+  .mf-section.sm { padding: 48px 24px; }
+  .mf-section.lg { padding: 80px 24px; }
+}
+
+/* Motion keyframes used by hero + product previews */
+@keyframes mfBadgePulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--mf-accent-tint); }
+  50% { box-shadow: 0 0 0 4px var(--mf-accent-tint); }
+}
+@keyframes mfFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes mfFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.mf-fadeup { animation: mfFadeUp .8s var(--mf-ease) both; }
+.mf-fadeup.d1 { animation-delay: .05s; }
+.mf-fadeup.d2 { animation-delay: .15s; }
+.mf-fadeup.d3 { animation-delay: .25s; }
+.mf-fadeup.d4 { animation-delay: .35s; }
+.mf-fadeup.d5 { animation-delay: .45s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mf-fadeup, .mf-btn.accent::after,
+  [class*="mfBadgePulse"], [class*="mfFloat"] {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
 }

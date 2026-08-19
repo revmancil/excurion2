@@ -33,6 +33,23 @@
     creed: ''
   };
 
+  // True only for the bare apex or www.<root domain> (e.g. memberforge.app,
+  // www.memberforge.app) with no ?org= override — MemberForge's own
+  // marketing site, not a tenant request. A custom tenant domain (e.g.
+  // www.acmealumni.org) is NOT marketing-root; it still resolves by
+  // `custom_domain` lookup below. Exposed as MF.isMarketingRoot so a page
+  // (namely index.html, which serves both marketing and tenant content from
+  // one file) can render the marketing homepage instead of treating a
+  // no-tenant-found result as a broken link.
+  function isMarketingRootHost() {
+    if (new URLSearchParams(window.location.search).get('org')) return false;
+    const host = window.location.hostname;
+    const isLocal = host === 'localhost' || host === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(host);
+    if (isLocal) return !!window.MEMBERFORGE_LOCAL_IS_MARKETING_ROOT;
+    const labels = host.split('.');
+    return labels.length <= 2 || (labels.length === 3 && labels[0] === 'www');
+  }
+
   function resolveOrgSlug() {
     const params = new URLSearchParams(window.location.search);
     const override = params.get('org');
@@ -43,13 +60,11 @@
     if (isLocal) return null;
 
     const labels = host.split('.');
-    // Bare apex or www.<root domain> (e.g. memberforge.app, www.memberforge.app)
-    // is the MemberForge marketing/signup site, not a tenant — no org to resolve.
+    // Bare apex or www.<root domain> is marketing-root (see isMarketingRootHost) —
+    // still worth a custom_domain lookup in case a customer's own domain
+    // happens to collide with this shape, but expect null in the normal case.
     const isApexOrWww = labels.length <= 2 || (labels.length === 3 && labels[0] === 'www');
     if (isApexOrWww) {
-      // Still allow a customer's fully custom domain (e.g. www.acmealumni.org)
-      // to resolve by exact hostname match — that's handled by the caller via
-      // the `custom_domain` lookup below, so return the full host either way.
       return { by: 'custom_domain', value: host };
     }
     return { by: 'subdomain', value: labels[0].toLowerCase() };
@@ -81,13 +96,13 @@
 
   function applyBranding(org) {
     const root = document.documentElement.style;
-    const accent = (org.accent_color && hexToRgb(org.accent_color)) ? org.accent_color : '#4F46E5';
-    const ink = (org.ink_color && hexToRgb(org.ink_color)) ? org.ink_color : '#0b0f19';
+    const accent = (org.accent_color && hexToRgb(org.accent_color)) ? org.accent_color : '#c7562d';
+    const ink = (org.ink_color && hexToRgb(org.ink_color)) ? org.ink_color : '#1a1613';
     root.setProperty('--accent', accent);
     root.setProperty('--accent-light', mix(accent, '#ffffff', 0.28));
     root.setProperty('--accent-dark', mix(accent, '#000000', 0.28));
     root.setProperty('--accent-pale', mix(accent, '#ffffff', 0.92));
-    root.setProperty('--on-accent', relativeLuminance(accent) > 0.5 ? '#0b0f19' : '#ffffff');
+    root.setProperty('--on-accent', relativeLuminance(accent) > 0.5 ? '#1a1613' : '#ffffff');
     root.setProperty('--ink', ink);
     root.setProperty('--ink-deep', mix(ink, '#000000', 0.25));
 
@@ -151,8 +166,8 @@
     logo_url: null,
     favicon_url: null,
     hero_image_url: null,
-    accent_color: '#4F46E5',
-    ink_color: '#0b0f19',
+    accent_color: '#c7562d',
+    ink_color: '#1a1613',
     contact_email: 'hello@example.org',
     contact_phone: '',
     contact_address: '123 Main St, Anytown, USA',
@@ -165,14 +180,14 @@
 
   function showDemoBanner() {
     const bar = document.createElement('div');
-    bar.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#0b0f19;color:#fff;font-family:Inter,sans-serif;font-size:0.78rem;padding:10px 16px;text-align:center;border-top:2px solid #4F46E5;';
+    bar.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#1a1613;color:#fff;font-family:Inter,sans-serif;font-size:0.78rem;padding:10px 16px;text-align:center;border-top:2px solid #c7562d;';
     bar.innerHTML = 'Preview mode — showing sample content because no Supabase project is connected yet. <a href="README.md" style="color:#7C74EF;">Setup instructions</a>';
     document.body.appendChild(bar);
   }
 
   function orgNotFound() {
     document.body.innerHTML = `
-      <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;background:#0b0f19;color:#fff;text-align:center;padding:24px;">
+      <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;background:#1a1613;color:#fff;text-align:center;padding:24px;">
         <div>
           <h1 style="font-size:1.5rem;margin-bottom:12px;">We couldn't find that organization</h1>
           <p style="opacity:0.7;">Check the link you used, or if you're setting up MemberForge for the first time, <a href="/signup.html" style="color:#7C74EF;">create your organization</a>.</p>
@@ -206,7 +221,18 @@
 
   const MF = {
     org: null,
+    isMarketingRoot: false,
     ready: (async () => {
+      if (isMarketingRootHost()) {
+        // MemberForge's own marketing domain (apex/www) — there is no
+        // tenant to resolve, and no Supabase call is made. Pages that
+        // serve both marketing and tenant content from one file (namely
+        // index.html) check MF.isMarketingRoot after awaiting MF.ready to
+        // decide which branch to render, instead of getting the generic
+        // "organization not found" screen.
+        MF.isMarketingRoot = true;
+        return null;
+      }
       if (isUnconfiguredBackend()) {
         MF.org = DEMO_ORG;
         applyBranding(DEMO_ORG);
