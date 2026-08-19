@@ -2444,7 +2444,7 @@ function bootFail(title, msg, linkHtml) {
   if (vsBtn) vsBtn.href = home;
 
   if (!MFAuth.loadSession()) {
-    window.location.href = 'admin-login.html' + orgQS();
+    window.location.href = 'admin-login.html' + orgQS() + '&reason=no_session';
     return;
   }
 

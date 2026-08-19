@@ -119,6 +119,28 @@
     document.getElementById('memberLoginLink').href = withOrgParam('member-login.html');
     document.getElementById('backToSiteLink').href = withOrgParam('index.html');
 
+    // Diagnostic: admin-dashboard.html sends people back here with
+    // ?reason=no_session when it couldn't find a valid session right after
+    // a redirect from here — which otherwise looks like sign-in silently
+    // "doing nothing." Surface exactly what's in storage so this is
+    // debuggable without opening devtools.
+    if (new URLSearchParams(window.location.search).get('reason') === 'no_session') {
+      const key = `mf_session_${org.slug}`;
+      const raw = localStorage.getItem(key);
+      let detail = `No session found under localStorage key "${key}".`;
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          detail = `Found a stored session, but it was rejected — expires_at=${parsed.expires_at} `
+            + `(${parsed.expires_at ? new Date(parsed.expires_at * 1000).toISOString() : 'missing'}), `
+            + `now=${new Date().toISOString()}, has access_token=${!!parsed.access_token}.`;
+        } catch (e) {
+          detail = `Found a stored session but couldn't parse it as JSON: ${e.message}`;
+        }
+      }
+      showError('Signed in, but the dashboard could not find a valid session — please sign in again. (' + detail + ')');
+    }
+
     // Already signed in with a valid session for this org? Skip straight to the dashboard.
     if (MFAuth.loadSession() && MFAuth.isSignedIn()) {
       window.location.href = withOrgParam('admin-dashboard.html');
