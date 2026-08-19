@@ -21,6 +21,19 @@
 (function () {
   function storageKey(org) { return `mf_session_${org.slug}`; }
 
+  // Supabase's token response normally includes an absolute `expires_at`
+  // (Unix seconds) alongside the relative `expires_in` — but don't trust
+  // that unconditionally. If `expires_at` is ever missing, loadSession()'s
+  // `!session.expires_at` check would treat the session as already expired
+  // and silently discard it, which looks exactly like sign-in "not working"
+  // (redirected to the dashboard, immediately bounced back to login).
+  // Derive it from expires_in as a fallback so that can't happen.
+  function resolveExpiresAt(data) {
+    if (data && data.expires_at) return data.expires_at;
+    const ttl = (data && data.expires_in) || 3600;
+    return Math.floor(Date.now() / 1000) + ttl;
+  }
+
   const MFAuth = {
     session: null,
     member: null,
@@ -59,7 +72,7 @@
       this.saveSession({
         access_token: data.access_token,
         refresh_token: data.refresh_token,
-        expires_at: data.expires_at,
+        expires_at: resolveExpiresAt(data),
         user: data.user
       });
       return data.user;
@@ -154,7 +167,7 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error_description || data.msg || 'Registration failed');
       if (data.access_token) {
-        this.saveSession({ access_token: data.access_token, refresh_token: data.refresh_token, expires_at: data.expires_at, user: data.user });
+        this.saveSession({ access_token: data.access_token, refresh_token: data.refresh_token, expires_at: resolveExpiresAt(data), user: data.user });
       }
       const memberRow = MF.stamp({
         auth_user_id: data.user.id,
