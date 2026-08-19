@@ -33,9 +33,20 @@
     creed: ''
   };
 
-  // True only for the bare apex or www.<root domain> (e.g. memberforge.app,
-  // www.memberforge.app) with no ?org= override — MemberForge's own
-  // marketing site, not a tenant request. A custom tenant domain (e.g.
+  // Shared hosting-platform domains whose subdomain label is a project/
+  // deployment name, not a tenant slug (e.g. Vercel gives every project a
+  // `your-project.vercel.app` URL, and preview deploys look like
+  // `your-project-git-branch-you.vercel.app` — none of that is under an
+  // org's control the way a real subdomain under your own root domain is).
+  // Before a custom domain with real wildcard subdomains is set up, the
+  // whole site lives on one of these and should be treated as marketing
+  // root; tenant pages are reached via the `?org=<slug>` override instead.
+  const SHARED_PLATFORM_SUFFIXES = ['.vercel.app', '.netlify.app', '.pages.dev', '.github.io'];
+
+  // True for the bare apex or www.<root domain> (e.g. memberforge.app,
+  // www.memberforge.app), or any host on a shared hosting-platform domain
+  // (see above) — with no ?org= override. MemberForge's own marketing
+  // site, not a tenant request. A custom tenant domain (e.g.
   // www.acmealumni.org) is NOT marketing-root; it still resolves by
   // `custom_domain` lookup below. Exposed as MF.isMarketingRoot so a page
   // (namely index.html, which serves both marketing and tenant content from
@@ -46,6 +57,7 @@
     const host = window.location.hostname;
     const isLocal = host === 'localhost' || host === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(host);
     if (isLocal) return !!window.MEMBERFORGE_LOCAL_IS_MARKETING_ROOT;
+    if (SHARED_PLATFORM_SUFFIXES.some(suffix => host.endsWith(suffix))) return true;
     const labels = host.split('.');
     return labels.length <= 2 || (labels.length === 3 && labels[0] === 'www');
   }

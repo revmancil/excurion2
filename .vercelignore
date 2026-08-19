@@ -1,0 +1,3 @@
+# Backend-only content — deployed to Supabase separately, never served
+# as static web assets by Vercel.
+supabase/
