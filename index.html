@@ -262,6 +262,1178 @@
 </footer>
 </div>
 
+<!-- =========================================================================
+     MEMBERFORGE MARKETING HOMEPAGE  (apex / www — MF.isMarketingRoot)
+     =========================================================================
+     This block is a SIBLING of #pageShell, not part of it. It is shown only
+     when js/org-context.js resolves the request to MemberForge's own
+     marketing root (bare apex or www.<root domain>, no ?org= override), in
+     which case #pageShell and the announcement bar are hidden and NO tenant
+     data is fetched. Everything here is static — marketing pages make no
+     Supabase calls.
+
+     Design source: Genspark "Modern Workspace" handoff —
+     05-page-index.md (spec), mf_landing_b_v2.jsx (reference implementation),
+     mf_shared.jsx (nav/footer/audiences/pricing), 03-copy-inventory.md (copy).
+     Component vocabulary is the .mf-* system in css/theme.css; page-specific
+     classes are prefixed .mfm-* and every rule below is scoped to
+     #marketingRoot so the tenant homepage above is untouched.
+========================================================================= -->
+<div id="marketingRoot" style="display:none;">
+<style>
+  /* ---- scoping: every selector is under #marketingRoot ---- */
+  #marketingRoot { background: var(--mf-paper); color: var(--mf-ink-3); font-family: var(--mf-sans); }
+  #marketingRoot h1, #marketingRoot h2, #marketingRoot h3, #marketingRoot h4 {
+    font-family: var(--mf-serif); color: var(--mf-ink); font-weight: 500; line-height: 1.05; margin: 0;
+  }
+  #marketingRoot a { color: inherit; text-decoration: none; }
+  #marketingRoot p { margin: 0; }
+  #marketingRoot .mfm-arrow { font-size: 10px; margin-left: 4px; }
+
+  /* ---------- NAV (mf_shared.jsx MFNav, variant "paper") ---------- */
+  #marketingRoot .mfm-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 40px; background: transparent; color: var(--mf-ink);
+    border-bottom: 1px solid var(--mf-line-2);
+    position: relative; z-index: 20;
+  }
+  #marketingRoot .mfm-logo { display: flex; align-items: center; gap: 10px; }
+  #marketingRoot .mfm-logo-mark {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--mf-accent); color: #fff;
+    display: grid; place-items: center;
+    font-family: var(--mf-serif); font-weight: 700; font-size: 17px; letter-spacing: -0.03em;
+    box-shadow: 0 2px 6px rgba(26,22,19,0.12), inset 0 -2px 0 rgba(0,0,0,0.15);
+  }
+  #marketingRoot .mfm-logo-word {
+    font-family: var(--mf-serif); font-weight: 500; font-size: 19px;
+    letter-spacing: -0.02em; color: var(--mf-ink);
+  }
+  #marketingRoot .mfm-logo.sm .mfm-logo-mark { width: 26px; height: 26px; font-size: 14px; }
+  #marketingRoot .mfm-logo.sm .mfm-logo-word { font-size: 16px; }
+  #marketingRoot .mfm-nav-links { display: flex; gap: 4px; align-items: center; }
+  #marketingRoot .mfm-nav-links a {
+    padding: 8px 14px; font-size: 14px; color: var(--mf-ink-3);
+    border-radius: 6px; transition: background .2s ease, color .2s ease;
+  }
+  #marketingRoot .mfm-nav-links a:hover { background: var(--mf-paper-2); color: var(--mf-ink); }
+  #marketingRoot .mfm-nav-links a.active { font-weight: 500; color: var(--mf-ink); }
+  #marketingRoot .mfm-nav-actions { display: flex; gap: 8px; align-items: center; }
+  #marketingRoot .mfm-nav-signin { font-size: 14px; color: var(--mf-ink-3); padding: 8px 12px; }
+  #marketingRoot .mfm-nav-actions .mf-btn i { font-size: 10px; }
+
+  /* ---------- HERO ---------- */
+  #marketingRoot .mfm-hero { padding: 48px 40px 80px; position: relative; overflow: hidden; }
+  #marketingRoot .mfm-hero-wash-a,
+  #marketingRoot .mfm-hero-wash-b,
+  #marketingRoot .mfm-hero-grain { position: absolute; inset: 0; pointer-events: none; }
+  #marketingRoot .mfm-hero-wash-a { background: radial-gradient(1400px 500px at 88% -60px, var(--mf-accent-tint), transparent 55%); }
+  #marketingRoot .mfm-hero-wash-b { background: radial-gradient(700px 300px at 12% 100%, var(--mf-accent-tint), transparent 60%); opacity: .5; }
+  #marketingRoot .mfm-hero-grain {
+    opacity: .4;
+    background-image: radial-gradient(circle at 1px 1px, rgba(26,22,19,0.045) 1px, transparent 0);
+    background-size: 32px 32px;
+  }
+  #marketingRoot .mfm-mark {
+    position: absolute; top: 24px;
+    font-family: var(--mf-mono); font-size: 10px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--mf-muted);
+  }
+  #marketingRoot .mfm-mark-tl { left: 40px; }
+  #marketingRoot .mfm-mark-tr { right: 40px; }
+  #marketingRoot .mfm-hero-inner {
+    max-width: 1280px; margin: 0 auto; position: relative;
+    display: grid; grid-template-columns: 1fr 1.15fr; gap: 60px; align-items: center;
+  }
+
+  #marketingRoot .mfm-hero-badge {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 5px 16px 5px 5px; border-radius: 999px;
+    background: #fff; border: 1px solid var(--mf-line);
+    font-size: 12px; color: var(--mf-ink-3);
+    margin-bottom: 32px; box-shadow: var(--mf-shadow-1);
+  }
+  #marketingRoot .mfm-badge-pill {
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--mf-accent); color: #fff;
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em;
+  }
+  /* Class is literally named mfBadgePulse so theme.css's
+     prefers-reduced-motion rule ([class*="mfBadgePulse"]) disables it. */
+  #marketingRoot .mfBadgePulse { animation: mfBadgePulse 2.4s ease-in-out infinite; }
+  #marketingRoot .mfm-badge-sep { opacity: .4; font-family: var(--mf-mono); }
+  #marketingRoot .mfm-badge-cta { color: var(--mf-accent); font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+  #marketingRoot .mfm-badge-cta i { font-size: 9px; }
+
+  #marketingRoot .mfm-hero-sub {
+    margin-top: 28px; font-size: 19px; color: var(--mf-ink-3); line-height: 1.55; max-width: 540px;
+  }
+  #marketingRoot .mfm-hero-sub strong { color: var(--mf-ink); font-weight: 500; }
+  #marketingRoot .mfm-hero-ctas { margin-top: 36px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  #marketingRoot .mfm-hero-ctas .mf-btn i { font-size: 11px; }
+  #marketingRoot .mfm-hero-fine {
+    margin-top: 20px; font-size: 13px; color: var(--mf-muted); font-family: var(--mf-mono);
+    display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  }
+  #marketingRoot .mfm-hero-fine .ok { display: inline-flex; gap: 6px; align-items: center; }
+  #marketingRoot .mfm-hero-fine .ok i { color: #2e6b4f; font-size: 12px; }
+  #marketingRoot .mfm-hero-fine .sep { opacity: .4; }
+
+  /* ---------- HERO PRODUCT-PREVIEW STACK ---------- */
+  #marketingRoot .mfm-stack { position: relative; height: 660px; perspective: 1200px; }
+  #marketingRoot .mfm-stack-wash {
+    position: absolute; inset: 10% 5%; pointer-events: none;
+    background: radial-gradient(closest-side, var(--mf-accent-tint), transparent);
+    filter: blur(20px);
+  }
+  /* Parallax target: JS writes translate3d() here. Rotation lives on the
+     inner .mfm-tilt so it survives the reduced-motion transform reset. */
+  #marketingRoot .mfm-stack-item { position: absolute; transition: transform .4s var(--mf-ease); }
+  #marketingRoot .mfm-stack-portal { top: 20px; right: 0; width: 480px; }
+  #marketingRoot .mfm-stack-admin  { top: 380px; right: 300px; width: 340px; }
+  #marketingRoot .mfm-stack-newsletter { top: 0; right: 200px; }
+  #marketingRoot .mfm-stack-dues { bottom: 0; right: 380px; }
+  #marketingRoot .mfm-stack-rsvp { bottom: 130px; right: 0; }
+  /* Class named mfFloat so theme.css's reduced-motion rule catches it. */
+  #marketingRoot .mfFloat { animation: mfFloat 4s ease-in-out infinite; }
+  #marketingRoot .mfm-stack-dues .mfFloat { animation-duration: 5s; animation-delay: .6s; }
+  #marketingRoot .mfm-stack-rsvp .mfFloat { animation-duration: 4.5s; animation-delay: .3s; }
+
+  #marketingRoot .mfm-chip {
+    background: #fff; padding: 11px 14px; border-radius: 12px;
+    border: 1px solid var(--mf-line); box-shadow: var(--mf-shadow-2);
+    display: flex; gap: 10px; align-items: center; min-width: 240px;
+  }
+  #marketingRoot .mfm-chip-icon {
+    width: 28px; height: 28px; border-radius: 8px; background: var(--mf-accent);
+    color: #fff; display: grid; place-items: center; font-size: 11px; flex-shrink: 0;
+  }
+  #marketingRoot .mfm-chip-title { font-size: 12px; font-weight: 500; color: var(--mf-ink); }
+  #marketingRoot .mfm-chip-sub { font-size: 11px; color: var(--mf-muted); }
+  #marketingRoot .mfm-chip-dot {
+    margin-left: auto; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--mf-accent); box-shadow: 0 0 0 4px var(--mf-accent-tint); flex-shrink: 0;
+  }
+  #marketingRoot .mfm-chip.dark {
+    background: var(--mf-ink); color: #fff; border-color: transparent;
+    padding: 12px 16px; min-width: 260px; gap: 12px;
+    box-shadow: 0 20px 40px rgba(26,22,19,0.25);
+  }
+  #marketingRoot .mfm-chip.dark .mfm-chip-icon { width: 32px; height: 32px; font-size: 12px; }
+  #marketingRoot .mfm-chip.dark .mfm-chip-title { color: #fff; }
+  #marketingRoot .mfm-chip.dark .mfm-chip-sub { color: rgba(255,255,255,0.55); }
+  #marketingRoot .mfm-chip.rsvp { min-width: 220px; padding: 10px 14px; }
+  #marketingRoot .mfm-avatars { display: flex; margin-right: 4px; }
+  #marketingRoot .mfm-avatars span {
+    width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff;
+    color: #fff; font-size: 8px; font-weight: 600; font-family: var(--mf-serif);
+    display: grid; place-items: center;
+  }
+  #marketingRoot .mfm-avatars span + span { margin-left: -6px; }
+
+  /* --- fake browser chrome + portal preview --- */
+  #marketingRoot .mfm-browser {
+    background: #fff; border-radius: var(--mf-radius-lg);
+    border: 1px solid var(--mf-line); overflow: hidden; box-shadow: var(--mf-shadow-3);
+  }
+  #marketingRoot .mfm-browser-bar {
+    padding: 10px 14px; border-bottom: 1px solid var(--mf-line-2);
+    display: flex; align-items: center; gap: 10px; background: var(--mf-paper-2);
+  }
+  #marketingRoot .mfm-dots { display: flex; gap: 6px; }
+  #marketingRoot .mfm-dots span { width: 10px; height: 10px; border-radius: 50%; }
+  #marketingRoot .mfm-url {
+    flex: 1; background: #fff; border: 1px solid var(--mf-line); border-radius: 6px;
+    padding: 4px 10px; font-family: var(--mf-mono); font-size: 10px; color: var(--mf-muted);
+  }
+  #marketingRoot .mfm-tenant-nav {
+    background: #1a1613; padding: 12px 18px; display: flex; align-items: center; gap: 12px;
+  }
+  #marketingRoot .mfm-tenant-crest {
+    width: 28px; height: 28px; border-radius: 50%; background: #b5872b; color: #fff;
+    display: grid; place-items: center; font-family: var(--mf-serif); font-weight: 600; font-size: 12px;
+  }
+  #marketingRoot .mfm-tenant-name { color: #fff; font-family: var(--mf-serif); font-size: 13px; font-weight: 500; }
+  #marketingRoot .mfm-tenant-sub { color: rgba(255,255,255,0.5); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+  #marketingRoot .mfm-tenant-links { margin-left: auto; display: flex; gap: 14px; }
+  #marketingRoot .mfm-tenant-links span { color: rgba(255,255,255,0.6); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+  #marketingRoot .mfm-tenant-links span.on { color: #b5872b; }
+  #marketingRoot .mfm-portal-body { padding: 22px; }
+  #marketingRoot .mfm-kicker {
+    font-family: var(--mf-mono); font-size: 10px; color: var(--mf-muted);
+    letter-spacing: .1em; text-transform: uppercase;
+  }
+  #marketingRoot .mfm-portal-title { font-family: var(--mf-serif); font-size: 22px; color: var(--mf-ink); letter-spacing: -0.01em; margin: 6px 0 4px; }
+  #marketingRoot .mfm-portal-meta { font-size: 12px; color: var(--mf-muted); margin-bottom: 16px; }
+  #marketingRoot .mfm-portal-actions { display: flex; gap: 8px; margin-bottom: 20px; }
+  #marketingRoot .mfm-pill-gold { padding: 7px 14px; border-radius: 999px; background: #b5872b; color: #fff; font-size: 12px; font-weight: 500; }
+  #marketingRoot .mfm-pill-line { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--mf-line); color: var(--mf-ink); font-size: 12px; }
+  #marketingRoot .mfm-tri { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  #marketingRoot .mfm-tri > div { padding: 12px; background: var(--mf-paper); border-radius: 8px; }
+  #marketingRoot .mfm-tri .v { font-family: var(--mf-serif); font-size: 18px; color: var(--mf-ink); }
+  #marketingRoot .mfm-tri .v small { font-size: 10px; color: var(--mf-muted); }
+
+  /* --- admin members mini --- */
+  #marketingRoot .mfm-card {
+    background: #fff; border-radius: var(--mf-radius); border: 1px solid var(--mf-line);
+    overflow: hidden; box-shadow: var(--mf-shadow-2);
+  }
+  #marketingRoot .mfm-card-head {
+    padding: 10px 14px; border-bottom: 1px solid var(--mf-line-2);
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  #marketingRoot .mfm-card-head .t { font-family: var(--mf-serif); font-size: 13px; font-weight: 500; color: var(--mf-ink); }
+  #marketingRoot .mfm-card-head .m { font-family: var(--mf-mono); font-size: 10px; color: var(--mf-muted); }
+  #marketingRoot .mfm-row {
+    display: flex; align-items: center; gap: 10px; padding: 8px 6px;
+    border-bottom: 1px solid var(--mf-line-2);
+  }
+  #marketingRoot .mfm-row:last-child { border-bottom: none; }
+  #marketingRoot .mfm-ava {
+    width: 24px; height: 24px; border-radius: 50%; background: var(--mf-paper-2);
+    color: var(--mf-ink-3); display: grid; place-items: center; font-size: 10px; font-weight: 500;
+  }
+  #marketingRoot .mfm-row .n { flex: 1; font-size: 13px; color: var(--mf-ink); }
+  #marketingRoot .mfm-row .s { font-family: var(--mf-mono); font-size: 10px; color: var(--mf-muted); }
+
+  /* ---------- TRUST STRIP ---------- */
+  #marketingRoot .mfm-trust { padding: 0 40px 80px; background: var(--mf-paper); }
+  #marketingRoot .mfm-trust-inner { max-width: 1280px; margin: 0 auto; }
+  #marketingRoot .mfm-trust-label {
+    font-family: var(--mf-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--mf-muted); margin-bottom: 20px; text-align: center;
+  }
+  #marketingRoot .mfm-trust-logos { display: flex; gap: 36px; justify-content: center; align-items: center; flex-wrap: wrap; }
+  #marketingRoot .mfm-trust-logo { display: flex; align-items: center; gap: 10px; opacity: .75; }
+  #marketingRoot .mfm-trust-mark {
+    width: 30px; height: 30px; border-radius: 6px; color: #fff;
+    display: grid; place-items: center; font-family: var(--mf-serif); font-weight: 600; font-size: 11px;
+  }
+  #marketingRoot .mfm-trust-name { font-size: 13px; color: var(--mf-ink); font-weight: 500; line-height: 1.2; }
+  #marketingRoot .mfm-trust-kind {
+    font-size: 10px; color: var(--mf-muted); font-family: var(--mf-mono);
+    letter-spacing: .06em; text-transform: uppercase; line-height: 1.2;
+  }
+
+  /* ---------- STORY BAR ---------- */
+  #marketingRoot .mfm-story { padding: 32px 40px; background: var(--mf-ink); color: #fff; }
+  #marketingRoot .mfm-story-inner {
+    max-width: 1200px; margin: 0 auto; display: flex; gap: 20px;
+    align-items: center; justify-content: space-between; flex-wrap: wrap;
+  }
+  #marketingRoot .mfm-story-id { display: flex; align-items: center; gap: 14px; }
+  #marketingRoot .mfm-story-crest {
+    width: 40px; height: 40px; border-radius: 50%; background: #b5872b; color: #fff;
+    display: grid; place-items: center; font-family: var(--mf-serif); font-weight: 600; font-size: 13px; flex-shrink: 0;
+  }
+  #marketingRoot .mfm-story-t { font-size: 14px; font-weight: 500; }
+  #marketingRoot .mfm-story-s { font-size: 12px; color: rgba(255,255,255,0.55); }
+  #marketingRoot .mfm-story-link { font-size: 13px; color: var(--mf-accent-soft); display: inline-flex; gap: 6px; align-items: center; }
+
+  /* ---------- METRICS ---------- */
+  #marketingRoot .mfm-metrics { padding: 80px 40px; background: var(--mf-paper-2); }
+  #marketingRoot .mfm-metrics-grid {
+    max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+  }
+  #marketingRoot .mfm-metric-n {
+    font-family: var(--mf-serif); font-size: 64px; font-weight: 400;
+    letter-spacing: -0.03em; line-height: 1; color: var(--mf-accent);
+  }
+  #marketingRoot .mfm-metric-l { margin-top: 8px; font-size: 15px; font-weight: 500; color: var(--mf-ink); }
+  #marketingRoot .mfm-metric-s { margin-top: 6px; font-size: 13px; color: var(--mf-muted); line-height: 1.5; }
+
+  /* ---------- PRODUCT ROWS ---------- */
+  #marketingRoot .mfm-products { padding: 120px 40px; }
+  #marketingRoot .mfm-products-head { margin-bottom: 60px; max-width: 720px; }
+  #marketingRoot .mfm-products-head .mf-eyebrow { margin-bottom: 16px; }
+  #marketingRoot .mfm-prow {
+    display: grid; grid-template-columns: 1fr 1.1fr; gap: 60px; align-items: center; padding: 60px 0;
+    border-top: 1px solid var(--mf-line);
+  }
+  #marketingRoot .mfm-prow:first-of-type { border-top: none; }
+  #marketingRoot .mfm-prow.flip { grid-template-columns: 1.1fr 1fr; }
+  #marketingRoot .mfm-prow.flip .mfm-prow-text { order: 2; }
+  #marketingRoot .mfm-prow.flip .mfm-prow-side { order: 1; }
+  #marketingRoot .mfm-prow h3 { font-size: 44px; margin: 16px 0 20px; letter-spacing: -0.02em; line-height: 1.05; }
+  #marketingRoot .mfm-prow-body { font-size: 17px; color: var(--mf-ink-3); line-height: 1.6; margin-bottom: 24px; }
+  #marketingRoot .mfm-checks { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+  #marketingRoot .mfm-checks div { display: flex; gap: 12px; font-size: 15px; color: var(--mf-ink-3); }
+  #marketingRoot .mfm-checks i { color: var(--mf-accent); font-size: 11px; margin-top: 6px; }
+  #marketingRoot .mfm-textlink { font-size: 14px; color: var(--mf-accent); font-weight: 500; }
+
+  /* --- previews inside product rows --- */
+  #marketingRoot .mfm-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  #marketingRoot .mfm-panel {
+    background: #fff; border: 1px solid var(--mf-line); border-radius: var(--mf-radius-lg);
+    padding: 20px; box-shadow: var(--mf-shadow-2);
+  }
+  #marketingRoot .mfm-evrow { padding: 12px 0; border-bottom: 1px solid var(--mf-line-2); }
+  #marketingRoot .mfm-evrow:last-child { border-bottom: none; }
+  #marketingRoot .mfm-evrow .t { font-size: 13px; font-weight: 500; margin-bottom: 4px; color: var(--mf-ink); }
+  #marketingRoot .mfm-evrow .m { font-size: 11px; color: var(--mf-muted); display: flex; gap: 8px; align-items: center; }
+  #marketingRoot .mfm-evrow .m i { font-size: 10px; }
+  #marketingRoot .mfm-evrow .m .r { margin-left: auto; font-family: var(--mf-mono); font-size: 10px; color: var(--mf-accent); }
+  #marketingRoot .mfm-evrow .m .r.done { color: #2e6b4f; }
+  #marketingRoot .mfm-memcard {
+    background: linear-gradient(160deg, #1a1613, #2a231d); color: #fff;
+    border-radius: var(--mf-radius-lg); padding: 20px; box-shadow: var(--mf-shadow-2);
+    border: 1px solid rgba(255,255,255,0.1);
+    display: flex; flex-direction: column; position: relative; overflow: hidden;
+  }
+  #marketingRoot .mfm-memcard-glow {
+    position: absolute; top: -30px; right: -30px; width: 120px; height: 120px;
+    border-radius: 50%; background: rgba(181,135,43,0.15);
+  }
+  #marketingRoot .mfm-memcard .lab {
+    font-family: var(--mf-mono); font-size: 9px; color: rgba(255,255,255,0.5);
+    letter-spacing: .14em; text-transform: uppercase;
+  }
+  #marketingRoot .mfm-memcard .nm { font-family: var(--mf-serif); font-size: 20px; margin-top: 8px; letter-spacing: -0.01em; }
+  #marketingRoot .mfm-memcard .sub { font-size: 11px; color: rgba(255,255,255,0.6); }
+  #marketingRoot .mfm-memcard-foot {
+    margin-top: auto; padding-top: 24px; display: flex; justify-content: space-between; align-items: flex-end;
+  }
+  #marketingRoot .mfm-memcard-foot .ch { font-size: 12px; color: #fff; }
+  #marketingRoot .mfm-qr {
+    width: 44px; height: 44px; background: #fff; border-radius: 4px;
+    background-image:
+      repeating-linear-gradient(0deg, #000 0 2px, transparent 2px 4px),
+      repeating-linear-gradient(90deg, #000 0 2px, transparent 2px 4px);
+  }
+  #marketingRoot .mfm-modrow { padding: 10px 0; border-bottom: 1px solid var(--mf-line-2); }
+  #marketingRoot .mfm-modrow:last-child { border-bottom: none; }
+  #marketingRoot .mfm-modrow .line { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  #marketingRoot .mfm-modrow .t {
+    font-size: 12px; font-weight: 500; color: var(--mf-ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #marketingRoot .mfm-modrow .w { font-size: 10px; color: var(--mf-muted); }
+  #marketingRoot .mfm-status {
+    font-size: 9px; font-family: var(--mf-mono); letter-spacing: .08em; text-transform: uppercase;
+    padding: 3px 7px; border-radius: 999px; flex-shrink: 0;
+    background: var(--mf-accent-tint); color: var(--mf-accent);
+  }
+  #marketingRoot .mfm-status.ok { background: rgba(46,107,79,0.1); color: #2e6b4f; }
+  #marketingRoot .mfm-status.neutral { background: var(--mf-paper-2); color: var(--mf-muted); }
+  #marketingRoot .mfm-ai-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  #marketingRoot .mfm-ai-icon {
+    width: 20px; height: 20px; border-radius: 4px; background: var(--mf-accent);
+    color: #fff; display: grid; place-items: center; font-size: 9px;
+  }
+  #marketingRoot .mfm-ai-title { font-family: var(--mf-serif); font-size: 15px; font-weight: 500; margin-bottom: 8px; letter-spacing: -0.01em; color: var(--mf-ink); }
+  #marketingRoot .mfm-ai-body { font-size: 11px; color: var(--mf-ink-3); line-height: 1.5; margin-bottom: 12px; }
+  #marketingRoot .mfm-mini-actions { display: flex; gap: 6px; }
+  #marketingRoot .mfm-mini-actions .go { padding: 5px 10px; border-radius: 999px; background: var(--mf-accent); color: #fff; font-size: 10px; font-weight: 500; }
+  #marketingRoot .mfm-mini-actions .alt { padding: 5px 10px; border-radius: 999px; background: var(--mf-paper-2); color: var(--mf-muted); font-size: 10px; }
+  #marketingRoot .mfm-ledger { background: #fff; border: 1px solid var(--mf-line); border-radius: var(--mf-radius-lg); overflow: hidden; box-shadow: var(--mf-shadow-2); }
+  #marketingRoot .mfm-ledger-head {
+    padding: 14px 20px; border-bottom: 1px solid var(--mf-line-2);
+    display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  }
+  #marketingRoot .mfm-ledger-head .t { font-family: var(--mf-serif); font-size: 16px; font-weight: 500; color: var(--mf-ink); }
+  #marketingRoot .mfm-ledger-head .s { font-size: 11px; color: var(--mf-muted); font-family: var(--mf-mono); letter-spacing: .05em; }
+  #marketingRoot .mfm-ledger-head .bal { font-family: var(--mf-serif); font-size: 22px; font-weight: 500; color: var(--mf-ink); }
+  #marketingRoot .mfm-ledger-head .ball { font-size: 10px; color: var(--mf-muted); font-family: var(--mf-mono); letter-spacing: .06em; text-transform: uppercase; }
+  #marketingRoot .mfm-ledger-rows { padding: 0 20px; }
+  #marketingRoot .mfm-lrow {
+    display: grid; grid-template-columns: 1.6fr 1fr auto auto; gap: 14px;
+    padding: 12px 0; border-bottom: 1px solid var(--mf-line-2); align-items: center;
+  }
+  #marketingRoot .mfm-lrow:last-child { border-bottom: none; }
+  #marketingRoot .mfm-lrow .l { font-size: 13px; color: var(--mf-ink); }
+  #marketingRoot .mfm-lrow .w { font-size: 11px; color: var(--mf-muted); }
+  #marketingRoot .mfm-lrow .a { font-family: var(--mf-mono); font-size: 13px; color: var(--mf-ink); }
+  #marketingRoot .mfm-lrow .mfm-status { min-width: 68px; text-align: center; font-size: 10px; padding: 3px 8px; }
+  #marketingRoot .mfm-ledger-foot {
+    padding: 12px 20px; background: var(--mf-paper);
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  #marketingRoot .mfm-ledger-foot .l { font-family: var(--mf-mono); font-size: 9px; color: var(--mf-muted); letter-spacing: .08em; text-transform: uppercase; }
+  #marketingRoot .mfm-ledger-foot .v { font-family: var(--mf-mono); font-size: 13px; color: var(--mf-ink); font-weight: 500; }
+
+  /* ---------- COMPARISON TEASE ---------- */
+  #marketingRoot .mfm-compare { padding: 80px 40px; background: var(--mf-paper-2); }
+  #marketingRoot .mfm-compare-inner { max-width: 1000px; margin: 0 auto; text-align: center; }
+  #marketingRoot .mfm-compare .mf-eyebrow { margin-bottom: 16px; }
+  #marketingRoot .mfm-compare h2 { font-size: 44px; letter-spacing: -0.02em; margin-bottom: 20px; }
+  #marketingRoot .mfm-compare p { font-size: 17px; color: var(--mf-ink-3); max-width: 620px; margin: 0 auto 32px; }
+
+  /* ---------- AUDIENCES ---------- */
+  #marketingRoot .mfm-audiences { padding: 120px 40px; }
+  #marketingRoot .mfm-audiences-head { margin-bottom: 48px; max-width: 720px; }
+  #marketingRoot .mfm-audiences-head .mf-eyebrow { margin-bottom: 16px; }
+  #marketingRoot .mfm-aud-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  #marketingRoot .mfm-aud {
+    background: var(--mf-paper-2); border-radius: var(--mf-radius-lg);
+    padding: 32px; border: 1px solid var(--mf-line);
+  }
+  #marketingRoot .mfm-aud-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  #marketingRoot .mfm-aud-mark {
+    width: 44px; height: 44px; border-radius: 10px; color: #fff;
+    display: grid; place-items: center; font-family: var(--mf-serif); font-weight: 600; font-size: 15px;
+  }
+  #marketingRoot .mfm-aud h3 { font-size: 24px; margin-bottom: 20px; }
+  #marketingRoot .mfm-aud-pts { display: flex; flex-direction: column; gap: 10px; }
+  #marketingRoot .mfm-aud-pts div { display: flex; gap: 10px; font-size: 14px; color: var(--mf-ink-3); }
+  #marketingRoot .mfm-aud-pts i { color: var(--mf-accent); font-size: 11px; margin-top: 5px; }
+
+  /* ---------- TESTIMONIAL ---------- */
+  #marketingRoot .mfm-testimonial { padding: 120px 40px; background: var(--mf-ink); }
+  #marketingRoot .mfm-testimonial-inner { max-width: 900px; margin: 0 auto; color: #fff; text-align: center; }
+  #marketingRoot .mfm-quote {
+    font-family: var(--mf-serif); font-size: 44px; line-height: 1.2; font-weight: 400;
+    font-style: italic; margin-bottom: 32px; letter-spacing: -0.015em; color: #fff;
+  }
+  #marketingRoot .mfm-byline { display: flex; align-items: center; justify-content: center; gap: 14px; }
+  #marketingRoot .mfm-byline-ava {
+    width: 48px; height: 48px; border-radius: 50%; background: #b5872b; color: #fff;
+    display: grid; place-items: center; font-family: var(--mf-serif); font-weight: 600; font-size: 15px;
+  }
+  #marketingRoot .mfm-byline-text { text-align: left; }
+  #marketingRoot .mfm-byline-name { font-size: 15px; font-weight: 500; }
+  #marketingRoot .mfm-byline-role { font-size: 13px; color: rgba(255,255,255,0.55); }
+
+  /* ---------- PRICING PREVIEW ---------- */
+  #marketingRoot .mfm-pricing { padding: 120px 40px; }
+  #marketingRoot .mfm-pricing-head { text-align: center; margin-bottom: 60px; }
+  #marketingRoot .mfm-pricing-head .mf-eyebrow { margin-bottom: 16px; }
+  #marketingRoot .mfm-tiers { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 860px; margin: 0 auto; }
+  #marketingRoot .mfm-tier {
+    background: #fff; border-radius: var(--mf-radius-xl); padding: 40px; border: 1px solid var(--mf-line);
+  }
+  #marketingRoot .mfm-tier.dark { background: var(--mf-ink); color: #fff; border-color: transparent; }
+  #marketingRoot .mfm-tier-amount { font-family: var(--mf-serif); font-size: 48px; margin: 14px 0 4px; color: var(--mf-ink); font-weight: 500; }
+  #marketingRoot .mfm-tier.dark .mfm-tier-amount { color: #fff; }
+  #marketingRoot .mfm-tier-sub { font-size: 14px; color: var(--mf-muted); margin-bottom: 24px; }
+  #marketingRoot .mfm-tier.dark .mfm-tier-sub { color: rgba(255,255,255,0.6); }
+  #marketingRoot .mfm-tier-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+  #marketingRoot .mfm-tier-list div { display: flex; gap: 10px; font-size: 14px; color: var(--mf-ink-3); }
+  #marketingRoot .mfm-tier-list i { color: var(--mf-accent); font-size: 11px; margin-top: 5px; }
+  #marketingRoot .mfm-tier.dark .mfm-tier-list div { color: rgba(255,255,255,0.8); }
+  #marketingRoot .mfm-tier.dark .mfm-tier-list i { color: var(--mf-accent-soft); }
+  #marketingRoot .mfm-tier .mf-btn { width: 100%; justify-content: center; }
+  #marketingRoot .mfm-pricing-foot { text-align: center; margin-top: 24px; }
+  #marketingRoot .mfm-pricing-foot a { font-size: 13px; color: var(--mf-accent); font-weight: 500; }
+
+  /* ---------- FINAL CTA ---------- */
+  #marketingRoot .mfm-cta { padding: 0 40px 120px; }
+  #marketingRoot .mfm-cta-inner {
+    max-width: 1200px; margin: 0 auto; background: var(--mf-ink); color: #fff;
+    border-radius: var(--mf-radius-xl); padding: 80px 60px; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  #marketingRoot .mfm-cta-glow {
+    position: absolute; top: -100px; right: -100px; width: 400px; height: 400px; border-radius: 50%;
+    background: radial-gradient(circle, var(--mf-accent-tint) 0%, transparent 70%);
+  }
+  #marketingRoot .mfm-cta .mf-eyebrow { color: var(--mf-accent-soft); margin-bottom: 20px; position: relative; }
+  #marketingRoot .mfm-cta h2 { font-size: 64px; font-weight: 400; letter-spacing: -0.025em; line-height: 1; color: #fff; position: relative; }
+  #marketingRoot .mfm-cta-actions { margin-top: 40px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; position: relative; }
+  #marketingRoot .mfm-btn-onink { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.15); }
+  #marketingRoot .mfm-btn-onink:hover { background: rgba(255,255,255,0.14); }
+
+  /* ---------- FOOTER ---------- */
+  #marketingRoot .mfm-footer {
+    background: var(--mf-paper-2); color: var(--mf-ink);
+    padding: 80px 40px 40px; border-top: 1px solid var(--mf-line);
+  }
+  #marketingRoot .mfm-footer-inner { max-width: 1200px; margin: 0 auto; }
+  #marketingRoot .mfm-footer-grid {
+    display: grid; grid-template-columns: 1.4fr repeat(4, 1fr); gap: 60px; margin-bottom: 60px;
+  }
+  #marketingRoot .mfm-footer-tag {
+    margin-top: 16px; font-size: 14px; color: var(--mf-muted); line-height: 1.6; max-width: 260px;
+  }
+  #marketingRoot .mfm-footer-col h4 {
+    font-family: var(--mf-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--mf-muted); margin-bottom: 16px; font-weight: 500;
+  }
+  #marketingRoot .mfm-footer-col ul { display: flex; flex-direction: column; gap: 10px; list-style: none; }
+  #marketingRoot .mfm-footer-col a { font-size: 14px; color: var(--mf-ink-3); }
+  #marketingRoot .mfm-footer-col a:hover { color: var(--mf-accent); }
+  #marketingRoot .mfm-footer-bottom {
+    display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding-top: 30px; border-top: 1px solid var(--mf-line);
+    font-size: 13px; color: var(--mf-muted);
+  }
+  #marketingRoot .mfm-footer-meta { display: flex; gap: 20px; }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 1180px) {
+    #marketingRoot .mfm-nav-links { display: none; }
+  }
+  @media (max-width: 1024px) {
+    #marketingRoot .mfm-hero-inner { grid-template-columns: 1fr; gap: 48px; }
+    #marketingRoot .mfm-stack { height: 520px; transform: scale(.82); transform-origin: top center; }
+    #marketingRoot .mfm-stack-portal { width: 420px; }
+    #marketingRoot .mfm-metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 32px; }
+    #marketingRoot .mfm-prow, #marketingRoot .mfm-prow.flip { grid-template-columns: 1fr; gap: 40px; }
+    #marketingRoot .mfm-prow.flip .mfm-prow-text,
+    #marketingRoot .mfm-prow.flip .mfm-prow-side { order: 0; }
+    #marketingRoot .mfm-aud-grid { grid-template-columns: 1fr; }
+    #marketingRoot .mfm-footer-grid { grid-template-columns: 1fr 1fr; gap: 40px; }
+  }
+  @media (max-width: 720px) {
+    #marketingRoot .mfm-nav { padding: 14px 20px; }
+    #marketingRoot .mfm-nav-signin { display: none; }
+    #marketingRoot .mfm-hero { padding: 40px 20px 56px; }
+    #marketingRoot .mfm-mark { display: none; }
+    /* Mobile: collapse the parallax stack to one flat preview card. */
+    #marketingRoot .mfm-stack { height: auto; transform: none; display: block; }
+    #marketingRoot .mfm-stack-wash,
+    #marketingRoot .mfm-stack-admin,
+    #marketingRoot .mfm-stack-newsletter,
+    #marketingRoot .mfm-stack-dues,
+    #marketingRoot .mfm-stack-rsvp { display: none; }
+    #marketingRoot .mfm-stack-portal {
+      position: static; width: 100%; max-width: 460px; margin: 0 auto; transform: none !important;
+    }
+    #marketingRoot .mfm-stack-portal .mfm-tilt { transform: none !important; }
+    #marketingRoot .mfm-trust { padding: 0 20px 56px; }
+    #marketingRoot .mfm-story, #marketingRoot .mfm-metrics { padding: 40px 20px; }
+    #marketingRoot .mfm-metrics-grid { grid-template-columns: 1fr; }
+    #marketingRoot .mfm-metric-n { font-size: 52px; }
+    #marketingRoot .mfm-products, #marketingRoot .mfm-audiences, #marketingRoot .mfm-pricing { padding: 64px 20px; }
+    #marketingRoot .mfm-prow { padding: 48px 0; }
+    #marketingRoot .mfm-prow h3 { font-size: 32px; }
+    #marketingRoot .mfm-duo { grid-template-columns: 1fr; }
+    #marketingRoot .mfm-compare { padding: 56px 20px; }
+    #marketingRoot .mfm-compare h2 { font-size: 32px; }
+    #marketingRoot .mfm-testimonial { padding: 72px 20px; }
+    #marketingRoot .mfm-quote { font-size: 28px; }
+    #marketingRoot .mfm-tiers { grid-template-columns: 1fr; }
+    #marketingRoot .mfm-tier { padding: 28px; }
+    #marketingRoot .mfm-cta { padding: 0 20px 64px; }
+    #marketingRoot .mfm-cta-inner { padding: 56px 24px; }
+    #marketingRoot .mfm-cta h2 { font-size: 38px; }
+    #marketingRoot .mfm-footer { padding: 56px 20px 32px; }
+    #marketingRoot .mfm-footer-grid { grid-template-columns: 1fr; gap: 32px; }
+    #marketingRoot .mfm-ledger-foot { grid-template-columns: 1fr 1fr; }
+    #marketingRoot .mfm-lrow { grid-template-columns: 1fr auto; row-gap: 4px; }
+    #marketingRoot .mfm-lrow .w { display: none; }
+  }
+</style>
+
+<!-- ===================== NAV ===================== -->
+<nav class="mfm-nav">
+  <a href="index.html" class="mfm-logo">
+    <span class="mfm-logo-mark">M</span>
+    <span class="mfm-logo-word">MemberForge</span>
+  </a>
+  <div class="mfm-nav-links">
+    <a href="#product-rows" class="active">Product</a>
+    <a href="#audiences">Who it&rsquo;s for</a>
+    <a href="pricing.html">Pricing</a>
+    <a href="stories.html">Stories</a>
+    <a href="#">Docs</a>
+  </div>
+  <div class="mfm-nav-actions">
+    <a href="#" class="mfm-nav-signin">Sign in</a>
+    <a href="signup.html" class="mf-btn accent sm">Start your chapter <i class="fas fa-arrow-right"></i></a>
+  </div>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<section class="mfm-hero" id="hero-marketing">
+  <div class="mfm-hero-wash-a"></div>
+  <div class="mfm-hero-wash-b"></div>
+  <div class="mfm-hero-grain"></div>
+
+  <div class="mfm-mark mfm-mark-tl">No. 001 &middot; Product</div>
+  <div class="mfm-mark mfm-mark-tr">Est. 2026 &middot; Beta</div>
+
+  <div class="mfm-hero-inner">
+    <div class="mfm-hero-left">
+      <a href="stories.html" class="mfm-hero-badge mf-fadeup d1">
+        <span class="mfm-badge-pill mfBadgePulse">Beta</span>
+        Built by a chapter. For every chapter.
+        <span class="mfm-badge-sep">&middot;</span>
+        <span class="mfm-badge-cta">Read our story <i class="fas fa-arrow-right"></i></span>
+      </a>
+
+      <h1 class="mf-h1 mf-fadeup d2">
+        The operating system<br />
+        for the organizations<br />
+        <em>that raised us.</em>
+      </h1>
+
+      <p class="mfm-hero-sub mf-fadeup d3">
+        A branded public site. A private member portal. An admin dashboard your officers actually enjoy using. A finance module your treasurer will send you a thank-you note about.
+        <strong>One platform. Your identity.</strong>
+      </p>
+
+      <div class="mfm-hero-ctas mf-fadeup d4">
+        <a href="signup.html" class="mf-btn accent lg">Start your chapter <i class="fas fa-arrow-right"></i></a>
+        <a href="#tour" class="mf-btn ghost lg"><i class="fas fa-play"></i> Watch a 90-sec tour</a>
+      </div>
+
+      <div class="mfm-hero-fine mf-fadeup d5">
+        <span class="ok"><i class="fas fa-circle-check"></i> Free during beta</span>
+        <span class="sep">&middot;</span>
+        <span>10 min to go live</span>
+        <span class="sep">&middot;</span>
+        <span>No credit card</span>
+      </div>
+    </div>
+
+    <!-- Product-preview stack — pointer parallax (see script below) -->
+    <div class="mfm-stack" id="heroStack" aria-hidden="true">
+      <div class="mfm-stack-wash"></div>
+
+      <!-- Xi Tau Lambda member portal preview -->
+      <div class="mfm-stack-item mfm-stack-portal mf-fadeup d2" data-magnitude="-8">
+        <div class="mfm-tilt" style="transform: rotate(-1.5deg);">
+          <div class="mfm-browser">
+            <div class="mfm-browser-bar">
+              <div class="mfm-dots">
+                <span style="background:#e2534a;"></span>
+                <span style="background:#e8b73f;"></span>
+                <span style="background:#4bb659;"></span>
+              </div>
+              <div class="mfm-url">xi-tau-lambda.memberforge.app / portal</div>
+            </div>
+            <div class="mfm-tenant-nav">
+              <div class="mfm-tenant-crest">XT&Lambda;</div>
+              <div>
+                <div class="mfm-tenant-name">Xi Tau Lambda</div>
+                <div class="mfm-tenant-sub">Alpha Phi Alpha &middot; #607</div>
+              </div>
+              <div class="mfm-tenant-links">
+                <span class="on">Events</span><span>Directory</span><span>Dues</span><span>Docs</span>
+              </div>
+            </div>
+            <div class="mfm-portal-body">
+              <div class="mfm-kicker">Welcome back, Bro. Marcus</div>
+              <div class="mfm-portal-title">14th Alpha Legacy Scholarship Gala</div>
+              <div class="mfm-portal-meta">Saturday, September 20 &middot; 7:00 PM &middot; Renaissance Dallas Hotel</div>
+              <div class="mfm-portal-actions">
+                <span class="mfm-pill-gold">RSVP &middot; You + 1</span>
+                <span class="mfm-pill-line">View details</span>
+              </div>
+              <div class="mfm-tri">
+                <div><div class="mfm-kicker" style="font-size:9px;">Dues</div><div class="v">$0 <small>owed</small></div></div>
+                <div><div class="mfm-kicker" style="font-size:9px;">Directory</div><div class="v">127 <small>brothers</small></div></div>
+                <div><div class="mfm-kicker" style="font-size:9px;">Card</div><div class="v">Active</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin members mini -->
+      <div class="mfm-stack-item mfm-stack-admin mf-fadeup d3" data-magnitude="-14">
+        <div class="mfm-tilt" style="transform: rotate(2.5deg);">
+          <div class="mfm-card">
+            <div class="mfm-card-head">
+              <div class="t">Members &middot; 127 active</div>
+              <div class="m">4 pending</div>
+            </div>
+            <div style="padding:12px;">
+              <div class="mfm-row"><span class="mfm-ava">ME</span><span class="n">Bro. Marcus Ellery</span><span class="s">Active</span></div>
+              <div class="mfm-row"><span class="mfm-ava">PN</span><span class="n">Bro. Priya Nair</span><span class="s">Pending</span></div>
+              <div class="mfm-row"><span class="mfm-ava">JC</span><span class="n">Bro. James Chen</span><span class="s">Active</span></div>
+              <div class="mfm-row"><span class="mfm-ava">SR</span><span class="n">Bro. Sofia Ruiz</span><span class="s">Active</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Newsletter chip -->
+      <div class="mfm-stack-item mfm-stack-newsletter mf-fadeup d4" data-magnitude="-22">
+        <div class="mfFloat">
+          <div class="mfm-chip" style="transform: rotate(-4deg);">
+            <span class="mfm-chip-icon"><i class="fas fa-wand-magic-sparkles"></i></span>
+            <span>
+              <span class="mfm-chip-title" style="display:block;">Newsletter drafted with AI</span>
+              <span class="mfm-chip-sub">Review &amp; send to 127 brothers</span>
+            </span>
+            <span class="mfm-chip-dot"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dues chip (dark) -->
+      <div class="mfm-stack-item mfm-stack-dues mf-fadeup d5" data-magnitude="-18">
+        <div class="mfFloat">
+          <div class="mfm-chip dark" style="transform: rotate(3deg);">
+            <span class="mfm-chip-icon"><i class="fas fa-check"></i></span>
+            <span>
+              <span class="mfm-chip-title" style="display:block;">Chapter dues &middot; $240</span>
+              <span class="mfm-chip-sub">Bro. Priya Nair &middot; via Stripe</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RSVP chip -->
+      <div class="mfm-stack-item mfm-stack-rsvp mf-fadeup d5" data-magnitude="-10">
+        <div class="mfFloat">
+          <div class="mfm-chip rsvp" style="transform: rotate(-2deg);">
+            <span class="mfm-avatars">
+              <span style="background:#b5872b;">ME</span>
+              <span style="background:#7a2e2a;">JC</span>
+              <span style="background:#2e6b4f;">PN</span>
+            </span>
+            <span>
+              <span class="mfm-chip-title" style="display:block;">3 new RSVPs</span>
+              <span class="mfm-chip-sub">Fall Gala &middot; 87 going</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== TRUST STRIP ===================== -->
+<section class="mfm-trust" id="trust-strip">
+  <div class="mfm-trust-inner">
+    <div class="mfm-trust-label">In beta with chapters, congregations &amp; alumni groups</div>
+    <div class="mfm-trust-logos">
+      <div class="mfm-trust-logo">
+        <span class="mfm-trust-mark" style="background:#b5872b;">XT&Lambda;</span>
+        <span><span class="mfm-trust-name" style="display:block;">Xi Tau Lambda</span><span class="mfm-trust-kind">Alpha Phi Alpha &middot; North Dallas</span></span>
+      </div>
+      <div class="mfm-trust-logo">
+        <span class="mfm-trust-mark" style="background:#7a2e2a;">K&Delta;P</span>
+        <span><span class="mfm-trust-name" style="display:block;">Kappa Delta Rho</span><span class="mfm-trust-kind">Fraternity</span></span>
+      </div>
+      <div class="mfm-trust-logo">
+        <span class="mfm-trust-mark" style="background:#c7562d;">A&Phi;&Omega;</span>
+        <span><span class="mfm-trust-name" style="display:block;">Alpha Phi Omega</span><span class="mfm-trust-kind">Service</span></span>
+      </div>
+      <div class="mfm-trust-logo">
+        <span class="mfm-trust-mark" style="background:#2e6b4f;">RC</span>
+        <span><span class="mfm-trust-name" style="display:block;">Riverside Church</span><span class="mfm-trust-kind">Congregation</span></span>
+      </div>
+      <div class="mfm-trust-logo">
+        <span class="mfm-trust-mark" style="background:#b5872b;">&Delta;&Gamma;</span>
+        <span><span class="mfm-trust-name" style="display:block;">Delta Gamma Alumni</span><span class="mfm-trust-kind">Alumni</span></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== STORY BAR ===================== -->
+<section class="mfm-story" id="story-bar">
+  <div class="mfm-story-inner">
+    <div class="mfm-story-id">
+      <div class="mfm-story-crest">XT&Lambda;</div>
+      <div>
+        <div class="mfm-story-t">Xi Tau Lambda &middot; Chapter #607 &middot; Est. 1984</div>
+        <div class="mfm-story-s">The chapter that built MemberForge because Wild Apricot didn&rsquo;t fit.</div>
+      </div>
+    </div>
+    <a href="stories.html" class="mfm-story-link">Read the full story <i class="fas fa-arrow-right" style="font-size:10px;"></i></a>
+  </div>
+</section>
+
+<!-- ===================== METRICS ===================== -->
+<section class="mfm-metrics" id="metrics">
+  <div class="mfm-metrics-grid">
+    <div>
+      <div class="mfm-metric-n">4</div>
+      <div class="mfm-metric-l">tools replaced</div>
+      <div class="mfm-metric-s">Website, dues tracker, group chat, drive folder &mdash; one login for all of it.</div>
+    </div>
+    <div>
+      <div class="mfm-metric-n">12 min</div>
+      <div class="mfm-metric-l">setup</div>
+      <div class="mfm-metric-s">Average time from signup to a branded, populated site.</div>
+    </div>
+    <div>
+      <div class="mfm-metric-n">100%</div>
+      <div class="mfm-metric-l">tenant isolation</div>
+      <div class="mfm-metric-s">Row-level security in Postgres. Not &ldquo;trust the client.&rdquo;</div>
+    </div>
+    <div>
+      <div class="mfm-metric-n">$0</div>
+      <div class="mfm-metric-l">during beta</div>
+      <div class="mfm-metric-s">Every feature. Unlimited members. Free while we&rsquo;re building with you.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PRODUCT ROWS ===================== -->
+<section class="mfm-products" id="product-rows">
+  <span id="tour"></span>
+  <div class="mf-container">
+    <div class="mfm-products-head">
+      <div class="mf-eyebrow">The Product</div>
+      <h2 class="mf-h2">Fewer tools. More time with your people.</h2>
+    </div>
+
+    <!-- Row 1 — For Members -->
+    <div class="mfm-prow">
+      <div class="mfm-prow-text">
+        <div class="mf-eyebrow">For Members</div>
+        <h3>A portal that respects them.</h3>
+        <p class="mfm-prow-body">Members see what matters to them: the next event, what they owe, who&rsquo;s in the directory, their digital card. No dashboards to configure. No preferences to hunt down. It just opens to the thing.</p>
+        <div class="mfm-checks">
+          <div><i class="fas fa-check"></i> One-tap RSVP with QR check-in</div>
+          <div><i class="fas fa-check"></i> Digital membership card, printable</div>
+          <div><i class="fas fa-check"></i> Directory with per-member privacy</div>
+          <div><i class="fas fa-check"></i> Dues owing at a glance</div>
+        </div>
+        <a href="#" class="mfm-textlink">Take a closer look <i class="fas fa-arrow-right mfm-arrow"></i></a>
+      </div>
+      <div class="mfm-prow-side">
+        <div class="mfm-duo">
+          <div class="mfm-panel">
+            <div class="mf-eyebrow muted" style="margin-bottom:12px;">Upcoming</div>
+            <div class="mfm-evrow">
+              <div class="t">Fall Chapter Meeting</div>
+              <div class="m"><i class="fas fa-calendar"></i> Sep 14 &middot; 7pm <span class="r done">RSVP&rsquo;d</span></div>
+            </div>
+            <div class="mfm-evrow">
+              <div class="t">Sankofa Mentoring Session</div>
+              <div class="m"><i class="fas fa-calendar"></i> Sep 21 &middot; 10am <span class="r">RSVP</span></div>
+            </div>
+            <div class="mfm-evrow">
+              <div class="t">Community Service Day</div>
+              <div class="m"><i class="fas fa-calendar"></i> Sep 28 &middot; 9am <span class="r">RSVP</span></div>
+            </div>
+          </div>
+          <div class="mfm-memcard">
+            <div class="mfm-memcard-glow"></div>
+            <div class="lab">Membership card &middot; 2026</div>
+            <div class="nm">Marcus Ellery</div>
+            <div class="sub">Line Br. 2018 &middot; Full Member</div>
+            <div class="mfm-memcard-foot">
+              <div>
+                <div class="lab" style="font-size:8px;">Chapter</div>
+                <div class="ch">Xi Tau Lambda &middot; #607</div>
+              </div>
+              <div class="mfm-qr"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2 — For Officers (preview left, text right) -->
+    <div class="mfm-prow flip">
+      <div class="mfm-prow-text">
+        <div class="mf-eyebrow">For Officers</div>
+        <h3>One place to run everything.</h3>
+        <p class="mfm-prow-body">Publish news, moderate submissions, manage events, permission your officers by section, and edit page content live. No devs. No deploys. Just changes that ship the moment you save.</p>
+        <div class="mfm-checks">
+          <div><i class="fas fa-check"></i> AI-drafted announcements &amp; newsletters</div>
+          <div><i class="fas fa-check"></i> Moderation queues (news, gallery, RSVPs)</div>
+          <div><i class="fas fa-check"></i> Section-level admin permissions</div>
+          <div><i class="fas fa-check"></i> Live page content editor</div>
+        </div>
+        <a href="#" class="mfm-textlink">Take a closer look <i class="fas fa-arrow-right mfm-arrow"></i></a>
+      </div>
+      <div class="mfm-prow-side">
+        <div class="mfm-duo">
+          <div class="mfm-panel">
+            <div class="mf-eyebrow muted" style="margin-bottom:12px;">Moderation queue</div>
+            <div class="mfm-modrow">
+              <div class="line">
+                <div style="min-width:0;flex:1;">
+                  <div class="t">Line Brothers Reunion Recap</div>
+                  <div class="w">Bro. James Chen &middot; News post</div>
+                </div>
+                <span class="mfm-status">pending</span>
+              </div>
+            </div>
+            <div class="mfm-modrow">
+              <div class="line">
+                <div style="min-width:0;flex:1;">
+                  <div class="t">18 photos from Founders Day</div>
+                  <div class="w">Bro. Priya Nair &middot; Gallery</div>
+                </div>
+                <span class="mfm-status">pending</span>
+              </div>
+            </div>
+            <div class="mfm-modrow">
+              <div class="line">
+                <div style="min-width:0;flex:1;">
+                  <div class="t">Rush info session</div>
+                  <div class="w">Bro. Sofia Ruiz &middot; Announcement</div>
+                </div>
+                <span class="mfm-status ok">approved</span>
+              </div>
+            </div>
+          </div>
+          <div class="mfm-panel">
+            <div class="mfm-ai-head">
+              <span class="mfm-ai-icon"><i class="fas fa-wand-magic-sparkles"></i></span>
+              <span class="mf-eyebrow">AI newsletter draft</span>
+            </div>
+            <div class="mfm-ai-title">September News from Xi Tau Lambda</div>
+            <div class="mfm-ai-body">Brothers, three quick things for the month ahead: our 14th Scholarship Gala is set for September 20, Sankofa mentoring resumes in McKinney ISD on the 21st, and we&rsquo;re looking for a hospitality chair for Founders Week&hellip;</div>
+            <div class="mfm-mini-actions">
+              <span class="go">Review &amp; send</span>
+              <span class="alt">Regenerate</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 3 — For Treasurers -->
+    <div class="mfm-prow">
+      <div class="mfm-prow-text">
+        <div class="mf-eyebrow">For Treasurers</div>
+        <h3>Finance that finally makes sense.</h3>
+        <p class="mfm-prow-body">Dues via Stripe with one link per member. Requisitions with an approval chain. Reimbursements with receipts. A treasurer console that shows the ledger &mdash; not another spreadsheet.</p>
+        <div class="mfm-checks">
+          <div><i class="fas fa-check"></i> One dues table, one source of truth</div>
+          <div><i class="fas fa-check"></i> Approval chain (submitter &rarr; treasurer &rarr; president)</div>
+          <div><i class="fas fa-check"></i> Receipt uploads with Storage RLS</div>
+          <div><i class="fas fa-check"></i> Export to QuickBooks-friendly CSV</div>
+        </div>
+        <a href="#" class="mfm-textlink">Take a closer look <i class="fas fa-arrow-right mfm-arrow"></i></a>
+      </div>
+      <div class="mfm-prow-side">
+        <div class="mfm-ledger">
+          <div class="mfm-ledger-head">
+            <div>
+              <div class="t">Treasurer console</div>
+              <div class="s">Fall term &middot; Xi Tau Lambda</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="bal">$8,412.30</div>
+              <div class="ball">Balance</div>
+            </div>
+          </div>
+          <div class="mfm-ledger-rows">
+            <div class="mfm-lrow">
+              <div class="l">Reimbursement &middot; Gala DJ deposit</div>
+              <div class="w">Bro. James Chen</div>
+              <div class="a">$420.00</div>
+              <span class="mfm-status">pending</span>
+            </div>
+            <div class="mfm-lrow">
+              <div class="l">Requisition &middot; Rush programs</div>
+              <div class="w">Bro. Sofia Ruiz</div>
+              <div class="a">$1,240.00</div>
+              <span class="mfm-status ok">approved</span>
+            </div>
+            <div class="mfm-lrow">
+              <div class="l">Dues &middot; Q3 2026</div>
+              <div class="w">Bro. Priya Nair</div>
+              <div class="a">$240.00</div>
+              <span class="mfm-status neutral">paid</span>
+            </div>
+            <div class="mfm-lrow">
+              <div class="l">Reimbursement &middot; Retreat catering</div>
+              <div class="w">Bro. Marcus Ellery</div>
+              <div class="a">$186.50</div>
+              <span class="mfm-status neutral">paid</span>
+            </div>
+            <div class="mfm-lrow">
+              <div class="l">Dues &middot; Q3 2026</div>
+              <div class="w">Bro. Ada Owens</div>
+              <div class="a">$240.00</div>
+              <span class="mfm-status neutral">paid</span>
+            </div>
+          </div>
+          <div class="mfm-ledger-foot">
+            <div><div class="l">Collected</div><div class="v">$12,480</div></div>
+            <div><div class="l">Requisitions</div><div class="v">$3,120</div></div>
+            <div><div class="l">Reimbursements</div><div class="v">$948</div></div>
+            <div><div class="l">Pending</div><div class="v">$420</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== COMPARISON TEASE ===================== -->
+<section class="mfm-compare" id="comparison-tease">
+  <div class="mfm-compare-inner">
+    <div class="mf-eyebrow">An honest note</div>
+    <h2 class="mf-h2">Coming from Wild Apricot?<br /><em>We&rsquo;ve been there.</em></h2>
+    <p>The founding chapter switched off Wild Apricot in 2023 because it couldn&rsquo;t give them what they needed. We wrote a full comparison &mdash; features, pricing, honest limitations &mdash; so you can decide.</p>
+    <a href="vs-wild-apricot.html" class="mf-btn ghost lg">Read the comparison <i class="fas fa-arrow-right" style="font-size:11px;"></i></a>
+  </div>
+</section>
+
+<!-- ===================== AUDIENCES ===================== -->
+<section class="mfm-audiences" id="audiences">
+  <div class="mf-container">
+    <div class="mfm-audiences-head">
+      <div class="mf-eyebrow">Who it&rsquo;s for</div>
+      <h2 class="mf-h2">Built with the communities we know best.</h2>
+    </div>
+    <div class="mfm-aud-grid">
+      <div class="mfm-aud">
+        <div class="mfm-aud-head">
+          <span class="mfm-aud-mark" style="background:#7a2e2a;">K&Delta;</span>
+          <span class="mf-eyebrow">Greek Life</span>
+        </div>
+        <h3>Fraternities &amp; sororities</h3>
+        <div class="mfm-aud-pts">
+          <div><i class="fas fa-check"></i><span>Rush events with capacity holds</span></div>
+          <div><i class="fas fa-check"></i><span>Chapter dues, badge fees, and formal tickets</span></div>
+          <div><i class="fas fa-check"></i><span>Alumni directory + graduation flow</span></div>
+          <div><i class="fas fa-check"></i><span>Officer transitions in one click</span></div>
+        </div>
+      </div>
+      <div class="mfm-aud">
+        <div class="mfm-aud-head">
+          <span class="mfm-aud-mark" style="background:#2e6b4f;">RC</span>
+          <span class="mf-eyebrow">Faith</span>
+        </div>
+        <h3>Churches &amp; parishes</h3>
+        <div class="mfm-aud-pts">
+          <div><i class="fas fa-check"></i><span>Weekly bulletin + sermon archive</span></div>
+          <div><i class="fas fa-check"></i><span>Ministry sign-ups &amp; small groups</span></div>
+          <div><i class="fas fa-check"></i><span>Tithe &amp; offering (Stripe-powered)</span></div>
+          <div><i class="fas fa-check"></i><span>Prayer requests, member care log</span></div>
+        </div>
+      </div>
+      <div class="mfm-aud">
+        <div class="mfm-aud-head">
+          <span class="mfm-aud-mark" style="background:#b5872b;">&Delta;&Gamma;</span>
+          <span class="mf-eyebrow">Alumni</span>
+        </div>
+        <h3>Alumni chapters</h3>
+        <div class="mfm-aud-pts">
+          <div><i class="fas fa-check"></i><span>Chapter events across cities</span></div>
+          <div><i class="fas fa-check"></i><span>Class year filters + reunion tools</span></div>
+          <div><i class="fas fa-check"></i><span>Annual giving campaigns</span></div>
+          <div><i class="fas fa-check"></i><span>Career board &amp; mentorship</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== TESTIMONIAL ===================== -->
+<section class="mfm-testimonial" id="testimonial">
+  <div class="mfm-testimonial-inner">
+    <div class="mfm-quote">&ldquo;GOODWILL is the monarch of this house. MemberForge gives every chapter a place where that goodwill can actually live &mdash; the events, the roster, the ledger, the story. All of it, one login.&rdquo;</div>
+    <div class="mfm-byline">
+      <div class="mfm-byline-ava">CW</div>
+      <div class="mfm-byline-text">
+        <div class="mfm-byline-name">Bro. Cedric Washington</div>
+        <div class="mfm-byline-role">20th Chapter President &middot; Xi Tau Lambda &middot; Alpha Phi Alpha</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PRICING PREVIEW ===================== -->
+<section class="mfm-pricing" id="pricing-preview">
+  <div class="mfm-pricing-head">
+    <div class="mf-eyebrow">Pricing</div>
+    <h2 class="mf-h2">Free during beta. Fair after.</h2>
+  </div>
+  <div class="mfm-tiers">
+    <div class="mfm-tier">
+      <div class="mf-eyebrow muted">Preview</div>
+      <div class="mfm-tier-amount">Free</div>
+      <div class="mfm-tier-sub">During our invite-only beta, every feature is free while we get it right with early chapters.</div>
+      <div class="mfm-tier-list">
+        <div><i class="fas fa-check"></i><span>Unlimited members</span></div>
+        <div><i class="fas fa-check"></i><span>Public site + member portal</span></div>
+        <div><i class="fas fa-check"></i><span>Full admin + finance modules</span></div>
+        <div><i class="fas fa-check"></i><span>Custom subdomain</span></div>
+        <div><i class="fas fa-check"></i><span>Email support from the team</span></div>
+      </div>
+      <a href="signup.html" class="mf-btn ghost lg">Request an invite</a>
+    </div>
+    <div class="mfm-tier dark">
+      <div class="mf-eyebrow" style="color:var(--mf-accent-soft);">Coming later</div>
+      <div class="mfm-tier-amount">Growth</div>
+      <div class="mfm-tier-sub">Everything in Preview, plus tools we&rsquo;re building with our biggest tenants &mdash; announced when it&rsquo;s ready.</div>
+      <div class="mfm-tier-list">
+        <div><i class="fas fa-check"></i><span>Custom domain with automated SSL</span></div>
+        <div><i class="fas fa-check"></i><span>Multi-chapter federation</span></div>
+        <div><i class="fas fa-check"></i><span>API access &amp; webhooks</span></div>
+        <div><i class="fas fa-check"></i><span>SSO for national orgs</span></div>
+        <div><i class="fas fa-check"></i><span>Priority support</span></div>
+      </div>
+      <a href="pricing.html" class="mf-btn white lg">Join the waitlist</a>
+    </div>
+  </div>
+  <div class="mfm-pricing-foot">
+    <a href="pricing.html">See the full pricing page <i class="fas fa-arrow-right mfm-arrow"></i></a>
+  </div>
+</section>
+
+<!-- ===================== FINAL CTA ===================== -->
+<section class="mfm-cta" id="final-cta">
+  <div class="mfm-cta-inner">
+    <div class="mfm-cta-glow"></div>
+    <div class="mf-eyebrow">Ready when you are</div>
+    <h2>Ten minutes.<br />A whole new home.</h2>
+    <div class="mfm-cta-actions">
+      <a href="signup.html" class="mf-btn accent lg">Create your organization</a>
+      <a href="#" class="mf-btn lg mfm-btn-onink">Book a walk-through</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="mfm-footer">
+  <div class="mfm-footer-inner">
+    <div class="mfm-footer-grid">
+      <div>
+        <div class="mfm-logo">
+          <span class="mfm-logo-mark">M</span>
+          <span class="mfm-logo-word">MemberForge</span>
+        </div>
+        <p class="mfm-footer-tag">A branded home for every chapter, congregation, and alumni community. One platform, your identity.</p>
+      </div>
+      <div class="mfm-footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#product-rows">Features</a></li>
+          <li><a href="#product-rows">Public site</a></li>
+          <li><a href="#product-rows">Member portal</a></li>
+          <li><a href="#product-rows">Admin dashboard</a></li>
+          <li><a href="#product-rows">Finance module</a></li>
+        </ul>
+      </div>
+      <div class="mfm-footer-col">
+        <h4>Who it&rsquo;s for</h4>
+        <ul>
+          <li><a href="#audiences">Fraternities &amp; sororities</a></li>
+          <li><a href="#audiences">Churches &amp; parishes</a></li>
+          <li><a href="#audiences">Alumni chapters</a></li>
+          <li><a href="#audiences">Service organizations</a></li>
+        </ul>
+      </div>
+      <div class="mfm-footer-col">
+        <h4>Resources</h4>
+        <ul>
+          <li><a href="#">Docs</a></li>
+          <li><a href="#">Onboarding guide</a></li>
+          <li><a href="#">Migration from Wix</a></li>
+          <li><a href="#">Changelog</a></li>
+          <li><a href="#">Status</a></li>
+        </ul>
+      </div>
+      <div class="mfm-footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="stories.html">About</a></li>
+          <li><a href="signup.html">Beta program</a></li>
+          <li><a href="mailto:hello@memberforge.app">Contact</a></li>
+          <li><a href="#">Privacy</a></li>
+          <li><a href="#">Terms</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="mfm-footer-bottom">
+      <div>&copy; 2026 MemberForge. Built with care for communities.</div>
+      <div class="mfm-footer-meta">
+        <span>hello@memberforge.app</span>
+        <span>&middot;</span>
+        <span>Made in Austin, TX</span>
+      </div>
+    </div>
+  </div>
+</footer>
+</div>
+<!-- =============== END MEMBERFORGE MARKETING HOMEPAGE =============== -->
+
 <script src="js/main.js"></script>
 <script src="js/news-articles.js"></script>
 <script>
@@ -563,8 +1735,79 @@ async function loadHomeAnnounce() {
   } catch (err) { /* No announcement — bar stays hidden. */ }
 }
 
+/* ==========================================================================
+   MEMBERFORGE MARKETING HOMEPAGE (apex / www)
+   ==========================================================================
+   Everything below drives #marketingRoot only. It never touches the tenant
+   markup or the tenant render path above. */
+
+/* Pointer parallax on the hero product-preview stack. Each card translates
+   8–22px inversely to the pointer (rAF-driven, 0.1 lerp). Rotation lives on
+   the inner .mfm-tilt element, so only the translate is written here.
+   Skipped entirely under prefers-reduced-motion. */
+function initMarketingHeroParallax() {
+  const stack = document.getElementById('heroStack');
+  if (!stack) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const cards = stack.querySelectorAll('[data-magnitude]');
+  if (!cards.length) return;
+  let raf = 0;
+  let target = { x: 0, y: 0 };
+  const current = { x: 0, y: 0 };
+
+  function tick() {
+    current.x += (target.x - current.x) * 0.1;
+    current.y += (target.y - current.y) * 0.1;
+    cards.forEach(el => {
+      const m = parseFloat(el.dataset.magnitude) || 0;
+      el.style.transform = `translate3d(${current.x * m}px, ${current.y * m}px, 0)`;
+    });
+    if (Math.abs(target.x - current.x) > 0.001 || Math.abs(target.y - current.y) > 0.001) {
+      raf = requestAnimationFrame(tick);
+    } else {
+      raf = 0;
+    }
+  }
+
+  stack.addEventListener('mousemove', (e) => {
+    const rect = stack.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    target = {
+      x: ((e.clientX - rect.left) / rect.width - 0.5) * 2,   // -1..1
+      y: ((e.clientY - rect.top) / rect.height - 0.5) * 2
+    };
+    if (!raf) raf = requestAnimationFrame(tick);
+  });
+  stack.addEventListener('mouseleave', () => {
+    target = { x: 0, y: 0 };
+    if (!raf) raf = requestAnimationFrame(tick);
+  });
+}
+
+/* Swap the page over to MemberForge's own marketing homepage: hide the
+   tenant shell + announcement bar, reveal #marketingRoot. No data loads. */
+function renderMarketingHome() {
+  const shell = document.getElementById('pageShell');
+  if (shell) shell.style.display = 'none';
+  const bar = document.querySelector('.announce-bar');
+  if (bar) bar.style.display = 'none';
+  const root = document.getElementById('marketingRoot');
+  if (root) root.style.display = 'block';
+  // The tenant title is a {{ORG_NAME}} placeholder that org-context.js fills
+  // in from the org row — there is no org here, so set the marketing title.
+  document.title = 'MemberForge — One platform. Your identity.';
+  const desc = document.querySelector('meta[name="description"]');
+  if (desc) desc.setAttribute('content', 'MemberForge is the operating system for fraternities, sororities, congregations, and alumni chapters — a branded public site, member portal, admin dashboard, and finance module in one platform.');
+  initMarketingHeroParallax();
+}
+
 (async function() {
   const org = await MF.ready;
+  // Marketing root resolves org to null on purpose (apex/www is not a tenant,
+  // and no Supabase call was made), so this must be checked BEFORE the
+  // !org early-return below, which means "that tenant doesn't exist".
+  if (MF.isMarketingRoot) { renderMarketingHome(); return; }
   if (!org) return;
   await loadHomeAnnounce();
   try {
