@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pricing | MemberForge</title>
+  <meta name="description" content="Free right now. Fair when it isn't. MemberForge is in invite-only beta — every feature is free while we get it right with early chapters." />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What happens when beta ends?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Current beta orgs get 90 days to decide on Growth. If you pass, you keep everything you built — export your data anytime. If you subscribe, we grandfather beta pricing for the first year."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is my data really isolated from other orgs?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Every table has an org_id column and a Postgres row-level-security policy enforcing it. Cross-org reads are impossible — not by trust, by database policy. See our architecture doc for the full details."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I use my own domain?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, on any tier. Point your DNS at MemberForge, set your custom domain in admin, and the tenant router resolves it the same way it resolves the subdomain."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Do you charge for Stripe fees?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Stripe's own processing fees apply (2.9% + $0.30), but MemberForge takes zero platform fee on top of that. Every dollar collected minus Stripe's cut goes to your org."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What if my chapter has 500 members? 5,000?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No per-member fee. Unlimited members on every tier. If you're past 2,500 and want dedicated support / SSO, that's the Growth plan."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    body { background: var(--mf-paper); color: var(--mf-ink-3); }
+
+    /* ---------- Marketing nav (matches stories.html / mf_shared.jsx conventions) ---------- */
+    .mf-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 40px;
+      border-bottom: 1px solid var(--mf-line-2);
+    }
+    .mf-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .mf-logo .mark {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--mf-accent); color: #fff;
+      display: grid; place-items: center;
+      font-family: var(--mf-serif); font-weight: 700; font-size: 17px; letter-spacing: -0.03em;
+      box-shadow: 0 2px 6px rgba(26,22,19,0.12), inset 0 -2px 0 rgba(0,0,0,0.15);
+      flex-shrink: 0;
+    }
+    .mf-logo .word { font-family: var(--mf-serif); font-weight: 500; font-size: 19px; letter-spacing: -0.02em; color: var(--mf-ink); }
+    .mf-nav-links { display: flex; align-items: center; gap: 4px; }
+    .mf-nav-links a {
+      padding: 8px 14px; font-size: 14px; border-radius: 6px; color: var(--mf-ink-3); font-weight: 400;
+    }
+    .mf-nav-links a:hover { color: var(--mf-ink); }
+    .mf-nav-links a.active { color: var(--mf-ink); font-weight: 500; }
+    .mf-nav-right { display: flex; align-items: center; gap: 8px; }
+    .mf-nav-right .signin { font-size: 14px; color: var(--mf-ink-3); padding: 8px 12px; }
+    @media (max-width: 900px) {
+      .mf-nav-links { display: none; }
+      .mf-nav { padding: 16px 20px; }
+    }
+
+    /* ---------- Hero ---------- */
+    .hero-sub { font-size: 19px; color: var(--mf-ink-3); max-width: 640px; margin: 24px auto 0; line-height: 1.55; }
+
+    /* ---------- Tier cards ---------- */
+    .tier-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 860px; margin: 0 auto; }
+    .tier-card {
+      background: #fff;
+      border-radius: var(--mf-radius-xl);
+      border: 1px solid var(--mf-line);
+      padding: 40px;
+    }
+    .tier-card.dark {
+      background: var(--mf-ink); color: #fff; border: none;
+    }
+    .tier-amount {
+      font-family: var(--mf-serif); font-size: 48px;
+      letter-spacing: -0.02em; margin: 14px 0 4px;
+    }
+    .tier-sub {
+      font-size: 14px; color: var(--mf-muted); margin-bottom: 24px;
+    }
+    .tier-card.dark .tier-sub { color: rgba(255,255,255,0.6); }
+    .tier-bullets { list-style: none; padding: 0; margin: 0 0 28px; display: flex; flex-direction: column; gap: 10px; }
+    .tier-bullets li {
+      display: flex; gap: 10px; font-size: 14px; color: var(--mf-ink-3);
+      line-height: 1.5;
+    }
+    .tier-bullets li::before {
+      content: '✓'; color: var(--mf-accent);
+      font-size: 12px; margin-top: 3px; flex-shrink: 0;
+    }
+    .tier-card.dark .tier-bullets li { color: rgba(255,255,255,0.8); }
+    .tier-card.dark .tier-bullets li::before { color: var(--mf-accent-soft); }
+    @media (max-width: 720px) {
+      .tier-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ---------- Feature comparison ---------- */
+    .feature-table {
+      background: #fff;
+      border-radius: var(--mf-radius-lg);
+      border: 1px solid var(--mf-line);
+      overflow: hidden;
+    }
+    .feature-group-header {
+      padding: 18px 24px;
+      background: var(--mf-paper-2);
+      border-top: 1px solid var(--mf-line);
+      font-family: var(--mf-mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--mf-ink-3);
+      font-weight: 500;
+    }
+    .feature-group-header:first-child { border-top: none; }
+    .feature-row {
+      display: grid;
+      grid-template-columns: 1fr 80px;
+      padding: 12px 24px;
+      border-top: 1px solid var(--mf-line-2);
+      align-items: center;
+      font-size: 14px;
+      color: var(--mf-ink-3);
+    }
+    .feature-row i {
+      color: var(--mf-accent);
+      text-align: center;
+    }
+
+    /* ---------- FAQ ---------- */
+    .faq-item {
+      border-top: 1px solid var(--mf-line);
+      padding: 20px 0;
+    }
+    .faq-item summary {
+      font-size: 18px;
+      font-weight: 500;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      color: var(--mf-ink);
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary::after {
+      content: '+';
+      font-size: 20px;
+      color: var(--mf-muted);
+      transition: transform .2s var(--mf-ease);
+      flex-shrink: 0;
+    }
+    .faq-item[open] summary::after { transform: rotate(45deg); }
+    .faq-item p {
+      margin-top: 12px;
+      font-size: 15px;
+      color: var(--mf-ink-3);
+      line-height: 1.6;
+      max-width: 640px;
+    }
+
+    /* ---------- Footer (matches stories.html / mf_shared.jsx conventions) ---------- */
+    .mf-footer { padding: 80px 40px 40px; background: var(--mf-ink); color: rgba(255,255,255,0.8); }
+    .mf-footer-inner { max-width: 1200px; margin: 0 auto; }
+    .mf-footer-grid { display: grid; grid-template-columns: 1.4fr repeat(4, 1fr); gap: 60px; margin-bottom: 60px; }
+    .mf-footer-brand p { margin-top: 16px; font-size: 14px; color: rgba(255,255,255,0.55); line-height: 1.6; max-width: 260px; }
+    .mf-footer-col h4 {
+      font-family: var(--mf-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: rgba(255,255,255,0.4); margin-bottom: 16px; font-weight: 400;
+    }
+    .mf-footer-col ul { display: flex; flex-direction: column; gap: 10px; }
+    .mf-footer-col a { font-size: 14px; color: rgba(255,255,255,0.75); }
+    .mf-footer-col a:hover { color: #fff; }
+    .mf-footer-bottom {
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+      padding-top: 30px; border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .mf-footer-bottom .copy { font-size: 13px; color: rgba(255,255,255,0.5); }
+    .mf-footer-bottom .meta { display: flex; gap: 20px; font-size: 13px; color: rgba(255,255,255,0.5); }
+    @media (max-width: 900px) {
+      .mf-footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+    }
+    @media (max-width: 560px) {
+      .mf-footer-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ NAV ============ -->
+  <nav class="mf-nav">
+    <a href="index.html" class="mf-logo">
+      <span class="mark">M</span>
+      <span class="word">MemberForge</span>
+    </a>
+    <div class="mf-nav-links">
+      <a href="index.html">Product</a>
+      <a href="index.html#audiences">Who it&rsquo;s for</a>
+      <a href="pricing.html" class="active">Pricing</a>
+      <a href="stories.html">Stories</a>
+      <a href="#">Docs</a>
+    </div>
+    <div class="mf-nav-right">
+      <a href="member-login.html" class="signin">Sign in</a>
+      <a href="signup.html" class="mf-btn accent sm">Start your chapter <i class="fas fa-arrow-right" style="font-size:10px;"></i></a>
+    </div>
+  </nav>
+
+  <!-- ============ HERO ============ -->
+  <section class="mf-section" style="text-align:center;">
+    <div class="mf-container tight">
+      <span class="mf-eyebrow">Pricing</span>
+      <h1 class="mf-h1" style="margin:20px 0 24px;">
+        Free right now.<br>
+        <em>Fair when it isn&rsquo;t.</em>
+      </h1>
+      <p class="hero-sub">
+        MemberForge is in invite-only beta with a handful of chapters.
+        Everything below is free while we&rsquo;re in beta. When we launch Growth,
+        current beta orgs get 90 days to decide.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ TIER CARDS ============ -->
+  <section class="mf-section" style="padding-top:0;">
+    <div class="tier-grid">
+
+      <div class="tier-card">
+        <span class="mf-eyebrow muted">Preview</span>
+        <div class="tier-amount">Free</div>
+        <p class="tier-sub">During our invite-only beta, every feature is free while we get it right with early chapters.</p>
+        <ul class="tier-bullets">
+          <li>Unlimited members</li>
+          <li>Public site + member portal</li>
+          <li>Full admin + finance modules</li>
+          <li>Custom subdomain</li>
+          <li>Email support from the team</li>
+        </ul>
+        <a href="signup.html" class="mf-btn ghost lg" style="width:100%;justify-content:center;">Request an invite</a>
+      </div>
+
+      <div class="tier-card dark">
+        <span class="mf-eyebrow" style="color:var(--mf-accent-soft);">Coming later</span>
+        <div class="tier-amount">Growth</div>
+        <p class="tier-sub">Everything in Preview, plus tools we&rsquo;re building with our biggest tenants — announced when it&rsquo;s ready.</p>
+        <ul class="tier-bullets">
+          <li>Custom domain with automated SSL</li>
+          <li>Multi-chapter federation</li>
+          <li>API access &amp; webhooks</li>
+          <li>SSO for national orgs</li>
+          <li>Priority support</li>
+        </ul>
+        <a href="signup.html" class="mf-btn white lg" style="width:100%;justify-content:center;">Join the waitlist</a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ FEATURE COMPARISON ============ -->
+  <section class="mf-section on-paper-2">
+    <div class="mf-container tight" style="text-align:center; margin-bottom:40px;">
+      <span class="mf-eyebrow">What&rsquo;s included</span>
+      <h2 class="mf-h2">Everything, in one place.</h2>
+    </div>
+    <div class="mf-container tight">
+      <div class="feature-table">
+
+        <div class="feature-group-header">Public website</div>
+        <div class="feature-row"><span>Branded homepage</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>About &amp; leadership pages</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Events with capacity &amp; RSVPs</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>News feed &amp; gallery</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Membership inquiry form</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Custom subdomain (yourorg.memberforge.app)</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Custom domain (BYO)</span><i class="fas fa-check"></i></div>
+
+        <div class="feature-group-header">Member portal</div>
+        <div class="feature-row"><span>Directory with privacy controls</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Dues via Stripe (self-serve)</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Documents &amp; shared drives</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Digital membership card</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Newsletters &amp; announcements</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Kiosk check-in for events/meetings</span><i class="fas fa-check"></i></div>
+
+        <div class="feature-group-header">Admin dashboard</div>
+        <div class="feature-row"><span>Member management &amp; invites</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Section-level admin permissions</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Moderation queues</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>AI-drafted announcements &amp; newsletters</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Live page content editor</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Fundraiser microsite</span><i class="fas fa-check"></i></div>
+
+        <div class="feature-group-header">Finance sub-portal</div>
+        <div class="feature-row"><span>Dues collection &amp; tracking</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Requisitions with approval chain</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Reimbursements with receipts</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Treasurer console + ledger</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>QuickBooks-friendly CSV export</span><i class="fas fa-check"></i></div>
+
+        <div class="feature-group-header">Platform</div>
+        <div class="feature-row"><span>Postgres row-level security (real isolation)</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Live tenant branding (colors, logo, fonts)</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Email support &middot; founder responds</span><i class="fas fa-check"></i></div>
+        <div class="feature-row"><span>Weekly changelog</span><i class="fas fa-check"></i></div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="mf-section">
+    <div class="mf-container article">
+      <div style="text-align:center; margin-bottom:60px;">
+        <span class="mf-eyebrow">FAQ</span>
+        <h2 class="mf-h2" style="margin-top:16px;">Questions we get a lot.</h2>
+      </div>
+
+      <details class="faq-item">
+        <summary>What happens when beta ends?</summary>
+        <p>Current beta orgs get 90 days to decide on Growth. If you pass, you keep everything you built — export your data anytime. If you subscribe, we grandfather beta pricing for the first year.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Is my data really isolated from other orgs?</summary>
+        <p>Yes. Every table has an org_id column and a Postgres row-level-security policy enforcing it. Cross-org reads are impossible — not by trust, by database policy. See our architecture doc for the full details.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Can I use my own domain?</summary>
+        <p>Yes, on any tier. Point your DNS at MemberForge, set your custom domain in admin, and the tenant router resolves it the same way it resolves the subdomain.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>Do you charge for Stripe fees?</summary>
+        <p>No. Stripe&rsquo;s own processing fees apply (2.9% + $0.30), but MemberForge takes zero platform fee on top of that. Every dollar collected minus Stripe&rsquo;s cut goes to your org.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>What if my chapter has 500 members? 5,000?</summary>
+        <p>No per-member fee. Unlimited members on every tier. If you&rsquo;re past 2,500 and want dedicated support / SSO, that&rsquo;s the Growth plan.</p>
+      </details>
+
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="mf-footer">
+    <div class="mf-footer-inner">
+      <div class="mf-footer-grid">
+        <div class="mf-footer-brand">
+          <a href="index.html" class="mf-logo">
+            <span class="mark">M</span>
+            <span class="word" style="color:#fff;">MemberForge</span>
+          </a>
+          <p>A branded home for every chapter, congregation, and alumni community. One platform, your identity.</p>
+        </div>
+        <div class="mf-footer-col">
+          <h4>Product</h4>
+          <ul>
+            <li><a href="index.html#product">Features</a></li>
+            <li><a href="index.html">Public site</a></li>
+            <li><a href="#">Member portal</a></li>
+            <li><a href="#">Admin dashboard</a></li>
+            <li><a href="#">Finance module</a></li>
+          </ul>
+        </div>
+        <div class="mf-footer-col">
+          <h4>Who it&rsquo;s for</h4>
+          <ul>
+            <li><a href="#">Fraternities &amp; sororities</a></li>
+            <li><a href="#">Churches &amp; parishes</a></li>
+            <li><a href="#">Alumni chapters</a></li>
+            <li><a href="#">Service organizations</a></li>
+          </ul>
+        </div>
+        <div class="mf-footer-col">
+          <h4>Resources</h4>
+          <ul>
+            <li><a href="#">Docs</a></li>
+            <li><a href="#">Onboarding guide</a></li>
+            <li><a href="#">Migration from Wix</a></li>
+            <li><a href="#">Changelog</a></li>
+            <li><a href="#">Status</a></li>
+          </ul>
+        </div>
+        <div class="mf-footer-col">
+          <h4>Company</h4>
+          <ul>
+            <li><a href="#">About</a></li>
+            <li><a href="#">Beta program</a></li>
+            <li><a href="#">Contact</a></li>
+            <li><a href="#">Privacy</a></li>
+            <li><a href="#">Terms</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="mf-footer-bottom">
+        <div class="copy">&copy; 2026 MemberForge. Built with care for communities.</div>
+        <div class="meta">
+          <span>hello@memberforge.app</span>
+          <span>&middot;</span>
+          <span>Made in Austin, TX</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
