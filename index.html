@@ -7,6 +7,14 @@
   <meta name="description" content="Member portal, events, and community for our organization — powered by MemberForge." />
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <script>
+    // This page has an actual marketing branch (#marketingRoot below) for
+    // MF.isMarketingRoot, so it opts out of org-context.js's default
+    // "organization not found" handling for that case — every other page
+    // that includes org-context.js does NOT set this, and correctly falls
+    // back to that guidance since it has nothing else to show.
+    window.MEMBERFORGE_HANDLES_MARKETING_ROOT = true;
+  </script>
   <script src="js/memberforge-client.js"></script>
   <script src="js/org-context.js"></script>
 </head>

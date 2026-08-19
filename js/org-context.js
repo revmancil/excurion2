@@ -197,12 +197,15 @@
     document.body.appendChild(bar);
   }
 
-  function orgNotFound() {
+  function orgNotFound(noSubdomainRouting) {
+    const hint = noSubdomainRouting
+      ? `This looks like a shared preview URL with no tenant subdomain routing yet — add <code>?org=&lt;your-org-slug&gt;</code> to the address bar, or <a href="/signup.html" style="color:#d97250;">create an organization</a> if you haven't yet.`
+      : `Check the link you used, or if you're setting up MemberForge for the first time, <a href="/signup.html" style="color:#d97250;">create your organization</a>.`;
     document.body.innerHTML = `
       <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;background:#1a1613;color:#fff;text-align:center;padding:24px;">
         <div>
           <h1 style="font-size:1.5rem;margin-bottom:12px;">We couldn't find that organization</h1>
-          <p style="opacity:0.7;">Check the link you used, or if you're setting up MemberForge for the first time, <a href="/signup.html" style="color:#7C74EF;">create your organization</a>.</p>
+          <p style="opacity:0.7;max-width:440px;">${hint}</p>
         </div>
       </div>`;
   }
@@ -236,13 +239,18 @@
     isMarketingRoot: false,
     ready: (async () => {
       if (isMarketingRootHost()) {
-        // MemberForge's own marketing domain (apex/www) — there is no
-        // tenant to resolve, and no Supabase call is made. Pages that
-        // serve both marketing and tenant content from one file (namely
-        // index.html) check MF.isMarketingRoot after awaiting MF.ready to
-        // decide which branch to render, instead of getting the generic
-        // "organization not found" screen.
         MF.isMarketingRoot = true;
+        // Only index.html actually has a marketing branch to render for
+        // this case (set window.MEMBERFORGE_HANDLES_MARKETING_ROOT = true
+        // before this script loads to claim that). Every other tenant-only
+        // page (admin-login.html, member-portal.html, ...) still has
+        // nothing to show without a real org, so it must fall through to
+        // the same "organization not found" guidance a bad ?org= would get
+        // — silently returning null here would leave those pages looking
+        // inert (buttons that appear to do nothing) instead of explaining
+        // that the URL needs ?org=<slug> until a custom domain is set up.
+        if (window.MEMBERFORGE_HANDLES_MARKETING_ROOT) return null;
+        if (!window.MEMBERFORGE_ALLOW_NO_ORG) orgNotFound(true);
         return null;
       }
       if (isUnconfiguredBackend()) {
