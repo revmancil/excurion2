@@ -264,6 +264,18 @@
   // every page silently instead of loudly). Assigning `MF.ready` as a
   // separate statement, after `MF` is a fully-initialized binding, fixes it.
   MF.ready = (async () => {
+    // Every page loads this script from <head> (before <script defer> or a
+    // <body>-end placement), so document.body can still be null here. The
+    // branches below can reach a document.body.* write (orgNotFound,
+    // applyBranding, showDemoBanner) with zero `await` in between — e.g.
+    // the marketing-root/demo-mode paths — so without this wait they could
+    // run mid-parse and crash on a null document.body, which then turned
+    // MF.ready into a rejected promise and silently broke the rest of the
+    // page's init script (this is exactly how a login form once ended up
+    // falling back to a native GET submit with the password in the URL).
+    if (document.readyState === 'loading') {
+      await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }));
+    }
     if (isMarketingRootHost()) {
       MF.isMarketingRoot = true;
       // Only index.html actually has a marketing branch to render for
