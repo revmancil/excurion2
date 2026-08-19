@@ -237,43 +237,7 @@
   const MF = {
     org: null,
     isMarketingRoot: false,
-    ready: (async () => {
-      if (isMarketingRootHost()) {
-        MF.isMarketingRoot = true;
-        // Only index.html actually has a marketing branch to render for
-        // this case (set window.MEMBERFORGE_HANDLES_MARKETING_ROOT = true
-        // before this script loads to claim that). Every other tenant-only
-        // page (admin-login.html, member-portal.html, ...) still has
-        // nothing to show without a real org, so it must fall through to
-        // the same "organization not found" guidance a bad ?org= would get
-        // — silently returning null here would leave those pages looking
-        // inert (buttons that appear to do nothing) instead of explaining
-        // that the URL needs ?org=<slug> until a custom domain is set up.
-        if (window.MEMBERFORGE_HANDLES_MARKETING_ROOT) return null;
-        if (!window.MEMBERFORGE_ALLOW_NO_ORG) orgNotFound(true);
-        return null;
-      }
-      if (isUnconfiguredBackend()) {
-        MF.org = DEMO_ORG;
-        applyBranding(DEMO_ORG);
-        showDemoBanner();
-        return DEMO_ORG;
-      }
-      try {
-        const org = await resolve();
-        if (!org) {
-          if (!window.MEMBERFORGE_ALLOW_NO_ORG) orgNotFound();
-          return null;
-        }
-        MF.org = org;
-        applyBranding(org);
-        return org;
-      } catch (err) {
-        console.error('MemberForge: failed to resolve organization', err);
-        if (!window.MEMBERFORGE_ALLOW_NO_ORG) orgNotFound();
-        return null;
-      }
-    })(),
+    ready: null, // assigned just below, once MF itself is fully constructed
     /** Prefix a PostgREST query string with this tenant's org_id filter. */
     scope(query = '') {
       if (!MF.org) throw new Error('MemberForge: org not resolved yet — await MF.ready first.');
@@ -285,6 +249,57 @@
       return Object.assign({}, data, { org_id: MF.org.id });
     }
   };
+
+  // IMPORTANT: this is assigned AFTER `const MF = {...}` has fully finished
+  // evaluating, not inline as one of its properties. Several branches below
+  // touch `MF.org`/`MF.isMarketingRoot` synchronously (before any `await`),
+  // which async functions run eagerly the instant they're invoked — if this
+  // were still an inline `ready: (async () => {...})()` property (as it
+  // used to be), that first synchronous touch of `MF` would happen *while*
+  // the `const MF = {...}` statement was still being evaluated, i.e. while
+  // the `MF` binding was still in its temporal dead zone. That threw
+  // "Cannot access 'MF' before initialization" on every page load, as an
+  // unhandled promise rejection (async functions turn a thrown error into a
+  // rejected promise, not a synchronous crash — which is why this broke
+  // every page silently instead of loudly). Assigning `MF.ready` as a
+  // separate statement, after `MF` is a fully-initialized binding, fixes it.
+  MF.ready = (async () => {
+    if (isMarketingRootHost()) {
+      MF.isMarketingRoot = true;
+      // Only index.html actually has a marketing branch to render for
+      // this case (set window.MEMBERFORGE_HANDLES_MARKETING_ROOT = true
+      // before this script loads to claim that). Every other tenant-only
+      // page (admin-login.html, member-portal.html, ...) still has
+      // nothing to show without a real org, so it must fall through to
+      // the same "organization not found" guidance a bad ?org= would get
+      // — silently returning null here would leave those pages looking
+      // inert (buttons that appear to do nothing) instead of explaining
+      // that the URL needs ?org=<slug> until a custom domain is set up.
+      if (window.MEMBERFORGE_HANDLES_MARKETING_ROOT) return null;
+      if (!window.MEMBERFORGE_ALLOW_NO_ORG) orgNotFound(true);
+      return null;
+    }
+    if (isUnconfiguredBackend()) {
+      MF.org = DEMO_ORG;
+      applyBranding(DEMO_ORG);
+      showDemoBanner();
+      return DEMO_ORG;
+    }
+    try {
+      const org = await resolve();
+      if (!org) {
+        if (!window.MEMBERFORGE_ALLOW_NO_ORG) orgNotFound();
+        return null;
+      }
+      MF.org = org;
+      applyBranding(org);
+      return org;
+    } catch (err) {
+      console.error('MemberForge: failed to resolve organization', err);
+      if (!window.MEMBERFORGE_ALLOW_NO_ORG) orgNotFound();
+      return null;
+    }
+  })();
 
   window.MF = MF;
 })();
