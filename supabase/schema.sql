@@ -432,6 +432,7 @@ on public.event_registrations for insert to anon, authenticated
 with check (
   payment_status = 'free' and coalesce(amount_cents, 0) = 0 and event_id is not null
   and coalesce(nullif(trim(stripe_checkout_session_id), ''), null) is null
+  and org_id = (select e.org_id from public.events e where e.id = event_id)
 );
 drop policy if exists "event_registrations_read_auth" on public.event_registrations;
 create policy "event_registrations_read_auth" on public.event_registrations for select to authenticated
@@ -441,7 +442,8 @@ create policy "event_registrations_delete_auth" on public.event_registrations fo
 using ( public.current_user_can_manage(org_id, 'events') );
 
 drop policy if exists "event_attendance_insert_anon" on public.event_attendance;
-create policy "event_attendance_insert_anon" on public.event_attendance for insert to anon, authenticated with check (true);
+create policy "event_attendance_insert_anon" on public.event_attendance for insert to anon, authenticated
+with check ( event_id is not null and org_id = (select e.org_id from public.events e where e.id = event_id) );
 drop policy if exists "event_attendance_read_auth" on public.event_attendance;
 create policy "event_attendance_read_auth" on public.event_attendance for select to authenticated
 using ( public.current_user_can_manage(org_id, 'events') );
@@ -606,7 +608,8 @@ using ( public.current_user_is_org_member(org_id) or public.current_user_can_man
 with check ( public.current_user_is_org_member(org_id) or public.current_user_can_manage(org_id, 'meetings') );
 
 drop policy if exists "meeting_attendance_insert_anon" on public.meeting_attendance;
-create policy "meeting_attendance_insert_anon" on public.meeting_attendance for insert to anon, authenticated with check (true);
+create policy "meeting_attendance_insert_anon" on public.meeting_attendance for insert to anon, authenticated
+with check ( meeting_id is not null and org_id = (select m.org_id from public.meetings m where m.id = meeting_id) );
 drop policy if exists "meeting_attendance_read_auth" on public.meeting_attendance;
 create policy "meeting_attendance_read_auth" on public.meeting_attendance for select to authenticated
 using ( public.current_user_can_manage(org_id, 'meetings') );

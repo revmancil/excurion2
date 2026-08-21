@@ -19,7 +19,19 @@ function esc(s: unknown): string {
     .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+// The payload only carries IDs — every field that ends up in the email
+// (recipient, name, meeting details, response) is looked up server-side
+// from the database below, never trusted from the request body. This
+// function used to accept all of that as free-text fields with no auth
+// check at all, which made it a fully open email relay: anyone could POST
+// any recipient/subject/body they liked and have it sent from MemberForge's
+// domain. Requiring a signed-in member's own RSVP closes that off.
 interface Payload {
+  org_id: string;
+  meeting_id: string | number;
+}
+
+interface RsvpDetails {
   member_name: string;
   member_email: string;
   meeting_title: string;
@@ -27,12 +39,10 @@ interface Payload {
   meeting_time?: string;
   meeting_location?: string;
   response: "yes" | "maybe" | "no";
-  org_id?: string;
-  notify_email?: string;
 }
 
 function buildMemberEmail(
-  p: Payload,
+  p: RsvpDetails,
   orgName: string,
   portalUrl: string,
 ): { subject: string; html: string } {
@@ -98,7 +108,7 @@ function buildMemberEmail(
 }
 
 function buildAdminEmail(
-  p: Payload,
+  p: RsvpDetails,
   orgName: string,
   dashboardUrl: string,
 ): { subject: string; html: string } {
@@ -169,52 +179,102 @@ serve(async (req) => {
 
   if (!resendKey) return json({ error: "Email not configured." }, 503);
 
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const anonKey     = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  if (!supabaseUrl || !serviceKey || !anonKey) {
+    return json({ error: "Supabase is not configured on the server." }, 503);
+  }
+
   let payload: Payload;
   try { payload = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
 
-  if (!payload.member_email || !payload.member_name || !payload.meeting_title || !payload.response) {
+  const orgId = String(payload.org_id ?? "").trim();
+  const meetingId = parseInt(String(payload.meeting_id ?? ""), 10);
+  if (!orgId || !Number.isFinite(meetingId)) {
     return json({ error: "Missing required fields." }, 400);
   }
 
-  // org_id is expected directly in the payload — the meeting RSVP flow
-  // already knows which org it's operating in when it calls this function.
-  const orgId = String(payload.org_id ?? "").trim();
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-
-  let orgName = "Your Organization";
-  let portalUrl = `https://app.${rootDomain}/member-portal.html`;
-  let dashboardUrl = `https://app.${rootDomain}/admin-dashboard.html`;
-  let adminEmail = String(payload.notify_email ?? "").trim();
-
-  if (orgId && supabaseUrl && serviceKey) {
-    const admin = createClient(supabaseUrl, serviceKey);
-    const { data: org } = await admin
-      .from("organizations")
-      .select("name, slug, custom_domain, contact_email")
-      .eq("id", orgId)
-      .maybeSingle();
-    if (org) {
-      if (org.name) orgName = String(org.name);
-      const base = org.custom_domain ? `https://${org.custom_domain}` : `https://${org.slug}.${rootDomain}`;
-      portalUrl = `${base.replace(/\/$/, "")}/member-portal.html`;
-      dashboardUrl = `${base.replace(/\/$/, "")}/admin-dashboard.html`;
-      if (!adminEmail && org.contact_email) adminEmail = String(org.contact_email).trim();
-    }
+  // Require the caller to be signed in, and only ever send a confirmation
+  // for THEIR OWN RSVP — never on behalf of an email address supplied in
+  // the request body.
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!authHeader.startsWith("Bearer ")) {
+    return json({ error: "Sign in to receive an RSVP confirmation." }, 401);
+  }
+  const userClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: userData, error: userErr } = await userClient.auth.getUser();
+  if (userErr || !userData?.user?.id) {
+    return json({ error: "Invalid or expired session. Please sign in again." }, 401);
   }
 
-  if (!adminEmail) adminEmail = Deno.env.get("ADMIN_NOTIFY_EMAIL") ?? "";
+  const admin = createClient(supabaseUrl, serviceKey);
+
+  const { data: org } = await admin
+    .from("organizations")
+    .select("name, slug, custom_domain, contact_email")
+    .eq("id", orgId)
+    .maybeSingle();
+  if (!org) return json({ error: "Organization not found." }, 404);
+
+  const { data: member } = await admin
+    .from("members")
+    .select("id, first_name, last_name, email")
+    .eq("org_id", orgId)
+    .eq("auth_user_id", userData.user.id)
+    .maybeSingle();
+  if (!member?.id) {
+    return json({ error: "You're not a member of this organization." }, 403);
+  }
+
+  const { data: meeting } = await admin
+    .from("meetings")
+    .select("id, title, meeting_date, start_time, location")
+    .eq("org_id", orgId)
+    .eq("id", meetingId)
+    .maybeSingle();
+  if (!meeting) return json({ error: "Meeting not found." }, 404);
+
+  const { data: rsvp } = await admin
+    .from("meeting_rsvps")
+    .select("response")
+    .eq("org_id", orgId)
+    .eq("meeting_id", meetingId)
+    .eq("member_id", member.id)
+    .maybeSingle();
+  if (!rsvp?.response) return json({ error: "No RSVP found for this meeting." }, 404);
+
+  const memberName = [member.first_name, member.last_name].filter(Boolean).join(" ") || "Member";
+  const details: RsvpDetails = {
+    member_name: memberName,
+    member_email: String(member.email ?? userData.user.email ?? ""),
+    meeting_title: String(meeting.title ?? "Meeting"),
+    meeting_date: meeting.meeting_date ? String(meeting.meeting_date) : undefined,
+    meeting_time: meeting.start_time ? String(meeting.start_time) : undefined,
+    meeting_location: meeting.location ? String(meeting.location) : undefined,
+    response: (rsvp.response as "yes" | "maybe" | "no") ?? "yes",
+  };
+
+  const rootBase = org.custom_domain ? `https://${org.custom_domain}` : `https://${org.slug}.${rootDomain}`;
+  const orgName = String(org.name ?? "Your Organization");
+  const portalUrl = `${rootBase.replace(/\/$/, "")}/member-portal.html`;
+  const dashboardUrl = `${rootBase.replace(/\/$/, "")}/admin-dashboard.html`;
+  // The admin copy always goes to the org's own contact address — never a
+  // caller-supplied override, which would otherwise let any signed-in
+  // member redirect admin-facing notifications to an address they control.
+  const adminEmail = String(org.contact_email ?? Deno.env.get("ADMIN_NOTIFY_EMAIL") ?? "").trim();
 
   const from = `${fromName} <${fromEmail}>`;
 
   // Send both emails concurrently — don't fail if one bounces
-  const { subject: memberSubject, html: memberHtml } = buildMemberEmail(payload, orgName, portalUrl);
+  const { subject: memberSubject, html: memberHtml } = buildMemberEmail(details, orgName, portalUrl);
   const sends: Promise<void>[] = [
-    sendEmail(resendKey, from, payload.member_email, memberSubject, memberHtml),
+    sendEmail(resendKey, from, details.member_email, memberSubject, memberHtml),
   ];
   if (adminEmail) {
-    const { subject: adminSubject, html: adminHtml } = buildAdminEmail(payload, orgName, dashboardUrl);
+    const { subject: adminSubject, html: adminHtml } = buildAdminEmail(details, orgName, dashboardUrl);
     sends.push(sendEmail(resendKey, from, adminEmail, adminSubject, adminHtml));
   }
 

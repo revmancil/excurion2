@@ -313,12 +313,55 @@ serve(async (req) => {
       return json({ error: "Member profile not found." }, 403);
     }
 
-    const items = Array.isArray(payload.items) ? payload.items as Record<string, unknown>[] : [];
-    if (!items.length) return json({ error: "Cart is empty." }, 400);
+    const rawItems = Array.isArray(payload.items) ? payload.items as Record<string, unknown>[] : [];
+    if (!rawItems.length) return json({ error: "Cart is empty." }, 400);
 
     const notes = trimStr(payload.notes, 500);
-    const totalCents = items.reduce((s: number, i: Record<string, unknown>) =>
-      s + Math.round(Number(i.price ?? 0) * 100) * Math.max(1, parseInt(String(i.quantity ?? 1), 10)), 0);
+
+    // Price and name come from the database, never the client — a client
+    // could otherwise submit any price it likes for a real item_id and pay
+    // (and have the order ledger record) whatever amount it chose.
+    const itemIds = rawItems
+      .map((i) => parseInt(String(i.item_id ?? ""), 10))
+      .filter((n) => Number.isFinite(n));
+    if (itemIds.length !== rawItems.length) {
+      return json({ error: "Cart contains an invalid item." }, 400);
+    }
+
+    const { data: catalogRows, error: catalogErr } = await admin
+      .from("store_items")
+      .select("id,name,price,active")
+      .eq("org_id", orgId)
+      .in("id", itemIds);
+
+    if (catalogErr) {
+      console.error("store_items lookup:", catalogErr);
+      return json({ error: "Could not verify cart items." }, 500);
+    }
+
+    const catalog = new Map((catalogRows ?? []).map((row) => [row.id, row]));
+
+    const items = rawItems.map((i) => {
+      const id = parseInt(String(i.item_id ?? ""), 10);
+      const row = catalog.get(id);
+      const quantity = Math.max(1, parseInt(String(i.quantity ?? 1), 10));
+      return {
+        item_id: id,
+        row,
+        quantity,
+        selections: i.selections ?? {},
+      };
+    });
+
+    const unavailable = items.find((i) => !i.row || i.row.active === false);
+    if (unavailable) {
+      return json({ error: "One or more items in your cart are no longer available." }, 400);
+    }
+
+    const totalCents = items.reduce(
+      (s, i) => s + Math.round(Number(i.row!.price) * 100) * i.quantity,
+      0,
+    );
 
     if (totalCents <= 0) return json({ error: "Order total must be greater than zero for Stripe checkout." }, 400);
 
@@ -334,10 +377,10 @@ serve(async (req) => {
         member_email: userEmail,
         items: JSON.stringify(items.map((i) => ({
           item_id: i.item_id,
-          name: trimStr(i.name, 200),
-          price: Number(i.price ?? 0),
-          quantity: Math.max(1, parseInt(String(i.quantity ?? 1), 10)),
-          selections: i.selections ?? {},
+          name: trimStr(i.row!.name, 200),
+          price: Number(i.row!.price),
+          quantity: i.quantity,
+          selections: i.selections,
         }))),
         total: totalCents / 100,
         status: "awaiting_payment",
@@ -354,12 +397,12 @@ serve(async (req) => {
     }
 
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map((i) => ({
-      quantity: Math.max(1, parseInt(String(i.quantity ?? 1), 10)),
+      quantity: i.quantity,
       price_data: {
         currency: "usd",
-        unit_amount: Math.round(Number(i.price ?? 0) * 100),
+        unit_amount: Math.round(Number(i.row!.price) * 100),
         product_data: {
-          name: trimStr(i.name, 120) || "Store item",
+          name: trimStr(i.row!.name, 120) || "Store item",
           description: `${orgName} Store`,
         },
       },
