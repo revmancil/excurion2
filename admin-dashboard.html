@@ -513,6 +513,27 @@
 
     /* ── Settings ── */
     .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .billing-current {
+      background: var(--gray-50, #f7f8fa); border: 1px solid var(--gray-200);
+      border-radius: var(--radius); padding: 18px 20px;
+    }
+    .billing-current-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .billing-plan-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .billing-plan-card {
+      background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius);
+      padding: 18px 16px; text-align: center; display: flex; flex-direction: column; gap: 8px;
+    }
+    .billing-plan-card.current-plan { border-color: var(--brand, #4F46E5); box-shadow: 0 0 0 1px var(--brand, #4F46E5); }
+    .billing-plan-name { font-weight: 700; font-size: 0.95rem; }
+    .billing-plan-price { font-size: 1.5rem; font-weight: 800; }
+    .billing-plan-price span { font-size: 0.75rem; font-weight: 500; color: var(--gray-500); }
+    .billing-plan-limit { font-size: 0.8rem; color: var(--gray-500); margin-bottom: 6px; }
+    @media (max-width: 900px) {
+      .billing-plan-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px) {
+      .billing-plan-grid { grid-template-columns: 1fr; }
+    }
     .pw-change-section {
       background: rgba(231,76,60,0.04); border: 1px solid rgba(231,76,60,0.15);
       border-radius: var(--radius); padding: 20px; margin-top: 8px;
@@ -766,6 +787,9 @@
     <div class="nav-group-body" id="navbody-account">
       <button class="sidebar-link" data-section="settings" onclick="showPanel('settings')">
         <i class="fas fa-cog"></i> Settings
+      </button>
+      <button class="sidebar-link" data-section="billing" onclick="showPanel('billing')">
+        <i class="fas fa-credit-card"></i> Billing
       </button>
     </div>
   </div>
@@ -1680,6 +1704,60 @@
       </div>
     </div>
 
+    <!-- ══════ BILLING (full admins only — see canAccessSection) ══════ -->
+    <div class="panel" id="panel-billing">
+      <div class="section-card">
+        <div class="section-card-header"><h3><i class="fas fa-credit-card icon-brand"></i>Plan &amp; Billing</h3></div>
+        <div class="section-card-body">
+          <div id="billingCurrent" class="billing-current">
+            <div class="billing-current-row">
+              <div>
+                <div class="hint-text" style="margin:0;">Current plan</div>
+                <div id="billingPlanName" style="font-size:1.3rem;font-weight:800;">—</div>
+                <div id="billingPlanStatus" class="hint-text" style="margin:2px 0 0;"></div>
+              </div>
+              <div style="text-align:right;">
+                <div class="hint-text" style="margin:0;"><span data-mf-term="member_noun_plural">Members</span></div>
+                <div id="billingMemberCount" style="font-size:1.3rem;font-weight:800;">—</div>
+              </div>
+            </div>
+            <div id="billingManageWrap" style="display:none;margin-top:14px;">
+              <button class="btn-sm view" onclick="openBillingPortal()"><i class="fas fa-external-link-alt"></i> Manage billing &amp; invoices</button>
+            </div>
+          </div>
+
+          <h4 class="sub-head" style="margin-top:24px;">Plans</h4>
+          <div id="billingPlanGrid" class="billing-plan-grid">
+            <div class="billing-plan-card" data-plan="free">
+              <div class="billing-plan-name">Free</div>
+              <div class="billing-plan-price">$0<span>/mo</span></div>
+              <div class="billing-plan-limit">Up to 50 members</div>
+              <button class="btn-sm view" disabled>Included</button>
+            </div>
+            <div class="billing-plan-card" data-plan="start">
+              <div class="billing-plan-name">Start</div>
+              <div class="billing-plan-price">$49<span>/mo</span></div>
+              <div class="billing-plan-limit">Up to 250 members</div>
+              <button class="btn-sm brand" onclick="startPlanCheckout('start')"><i class="fas fa-arrow-up"></i> Upgrade</button>
+            </div>
+            <div class="billing-plan-card" data-plan="growth">
+              <div class="billing-plan-name">Growth</div>
+              <div class="billing-plan-price">$79<span>/mo</span></div>
+              <div class="billing-plan-limit">Up to 1,000 members</div>
+              <button class="btn-sm brand" onclick="startPlanCheckout('growth')"><i class="fas fa-arrow-up"></i> Upgrade</button>
+            </div>
+            <div class="billing-plan-card" data-plan="pro">
+              <div class="billing-plan-name">Pro</div>
+              <div class="billing-plan-price">$99<span>/mo</span></div>
+              <div class="billing-plan-limit">Unlimited members</div>
+              <button class="btn-sm brand" onclick="startPlanCheckout('pro')"><i class="fas fa-arrow-up"></i> Upgrade</button>
+            </div>
+          </div>
+          <p class="hint-text" style="margin-top:16px;">Upgrading or changing plans takes effect immediately. Cancel anytime from Manage billing — you keep your current plan until the end of the billing period.</p>
+        </div>
+      </div>
+    </div>
+
     <!-- ══════ DUES & PAYMENTS ══════ -->
     <div class="panel" id="panel-dues-admin">
       <div class="tab-bar">
@@ -2116,6 +2194,7 @@ const PANEL_META = {
   documents:              ['Documents', 'Files members can download'],
   store:                  ['Store', 'Items and orders'],
   settings:               ['Settings', 'Organization branding & your account'],
+  billing:                ['Billing', 'Plan & payment'],
   'dues-admin':           ['Dues & Payments', 'Payment history, manual entry & configuration'],
   requisitions:           ['Requisitions', 'Review spending requests'],
   reimbursements:         ['Reimbursements', 'Review reimbursement requests']
@@ -2388,6 +2467,7 @@ const PANEL_LOADERS = {
   'dues-admin': () => { if (!_panelLoaded.duesAdmin) loadDuesAdminPanel(); },
   fundraiser: () => loadFundraiserPanel(),
   settings: () => { if (!_panelLoaded.settings) loadSettings(); },
+  billing: () => loadBilling(),
   dashboard: () => updateDashboardStats(),
   pages: () => { if (!_pageEditorInitialized) loadPageSection('home'); }
 };
@@ -2468,8 +2548,22 @@ function bootFail(title, msg, linkHtml) {
   buildDashboardPagesList();
   document.body.classList.add('admin-ready');
 
-  // Land on the first section this admin can actually see.
-  showPanel('dashboard');
+  // Stripe's success_url/return_url for the billing checkout + portal both
+  // send the browser back here as ?section=billing[&billing=success|cancel]
+  // — land on that section directly instead of always defaulting to the
+  // dashboard, and surface a toast for the checkout outcome.
+  const qs = new URLSearchParams(window.location.search);
+  const requestedSection = qs.get('section');
+  const billingResult = qs.get('billing');
+  if (requestedSection && canAccessSection(requestedSection)) {
+    showPanel(requestedSection);
+  } else {
+    // Land on the first section this admin can actually see.
+    showPanel('dashboard');
+  }
+  if (billingResult === 'success') showToast('Plan updated.');
+  else if (billingResult === 'cancel') showToast('Checkout canceled — your plan was not changed.', 'info');
+
   updateDashboardStats();
   loadAllPendingCounts();
 })();
@@ -6557,6 +6651,108 @@ async function changePassword() {
     showToast('Password updated.');
   } catch (err) {
     showToast('Could not update password: ' + errMsg(err), 'error');
+  }
+}
+
+/* ══════════════════════════════════════════════
+   BILLING — MemberForge's own platform subscription for this org (not to
+   be confused with the org's own dues/events/store, which are the finance
+   sub-portal + stripe-checkout). Full-admin-only, see canAccessSection.
+══════════════════════════════════════════════ */
+const PLAN_LABELS = { free: 'Free', start: 'Start', growth: 'Growth', pro: 'Pro' };
+const PLAN_LIMITS = { free: 50, start: 250, growth: 1000, pro: null };
+
+/** Calls a billing Edge Function (stripe-subscription-checkout or
+    stripe-billing-portal) and redirects the browser to the Stripe-hosted
+    URL it returns. Both require a signed-in full admin, enforced server-side. */
+async function callBillingFunction(name, body) {
+  if (!MFAuth.isSignedIn()) { showToast('Session expired.', 'error'); return null; }
+  try {
+    const res = await fetch(sb.url + '/functions/v1/' + name, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: sb.key,
+        Authorization: 'Bearer ' + sb.session.access_token
+      },
+      body: JSON.stringify(Object.assign({ org_id: ORG.id }, body))
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error) {
+      if (res.status === 404) {
+        showToast('The ' + name + ' Edge Function is not deployed to this Supabase project yet.', 'error');
+      } else {
+        showToast(typeof data.error === 'string' ? data.error : ('Request failed (' + res.status + ')'), 'error');
+      }
+      return null;
+    }
+    return data;
+  } catch (err) {
+    showToast('Billing request failed: ' + errMsg(err), 'error');
+    return null;
+  }
+}
+
+async function startPlanCheckout(plan) {
+  const data = await callBillingFunction('stripe-subscription-checkout', { plan });
+  if (data && data.url) window.location.href = data.url;
+}
+
+async function openBillingPortal() {
+  const data = await callBillingFunction('stripe-billing-portal', {});
+  if (data && data.url) window.location.href = data.url;
+}
+
+async function loadBilling() {
+  // stripe_customer_id/subscription_status aren't in the public org fetch
+  // (js/org-context.js) — pulled here via a full-admin-gated RPC instead,
+  // which also never hands the raw Stripe customer ID to the client.
+  let status = null, hasCustomer = false, plan = (ORG.plan || 'free').toLowerCase();
+  try {
+    const rows = await sb.rpc('get_org_billing_status', { p_org_id: ORG.id });
+    const row = Array.isArray(rows) ? rows[0] : rows;
+    if (row) {
+      plan = (row.plan || plan).toLowerCase();
+      status = row.subscription_status;
+      hasCustomer = !!row.has_billing_customer;
+    }
+  } catch (err) {
+    console.error('get_org_billing_status', err);
+  }
+
+  const nameEl = document.getElementById('billingPlanName');
+  const statusEl = document.getElementById('billingPlanStatus');
+  if (nameEl) nameEl.textContent = PLAN_LABELS[plan] || plan;
+  if (statusEl) {
+    statusEl.textContent = status
+      ? ('Subscription: ' + status.replace(/_/g, ' '))
+      : (plan === 'free' ? 'No active subscription' : '');
+  }
+  document.getElementById('billingManageWrap').style.display = hasCustomer ? '' : 'none';
+
+  document.querySelectorAll('#billingPlanGrid .billing-plan-card').forEach(card => {
+    card.classList.toggle('current-plan', card.getAttribute('data-plan') === plan);
+    const btn = card.querySelector('button');
+    if (!btn) return;
+    if (card.getAttribute('data-plan') === plan) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-check"></i> Current plan';
+    } else if (card.getAttribute('data-plan') !== 'free') {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-arrow-up"></i> Upgrade';
+    }
+  });
+
+  const countEl = document.getElementById('billingMemberCount');
+  if (countEl) {
+    try {
+      const rows = await sb.getAll('members', MF.scope('select=id'));
+      const n = Array.isArray(rows) ? rows.length : 0;
+      const limit = PLAN_LIMITS[plan];
+      countEl.textContent = limit ? (n + ' / ' + limit) : String(n);
+    } catch {
+      countEl.textContent = '—';
+    }
   }
 }
 

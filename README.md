@@ -88,6 +88,8 @@ uploader is an admin of that org, so **always upload under your org's id**.
    `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
    `ANTHROPIC_API_KEY` (for the AI announcement-drafting assist), and a
    transactional-email provider key (Resend, per the original functions).
+   Platform billing (below) needs three more: `STRIPE_PRICE_START`,
+   `STRIPE_PRICE_GROWTH`, `STRIPE_PRICE_PRO`.
 3. **Point `js/memberforge-client.js` at your project** — set
    `window.MEMBERFORGE_SUPABASE_URL` / `window.MEMBERFORGE_SUPABASE_ANON_KEY`
    (e.g. in a small inline `<script>` before it loads, or edit the file's
@@ -104,7 +106,35 @@ uploader is an admin of that org, so **always upload under your org's id**.
    `create_organization` SQL RPC — this atomically creates the
    `organizations` row and makes the signing-up user that org's first full
    admin. From there they sign in at `admin-login.html?org=<slug>` and
-   configure branding, invite members, etc.
+   configure branding, invite members, etc. Every org starts on the Free
+   plan (up to 50 members) — no payment step at signup.
+6. **Platform subscription billing** — MemberForge charging an org to use
+   the platform (distinct from `stripe-checkout`, which handles an org's
+   *own* dues/event/store payments from its members). Free/Start/Growth/Pro
+   differ only by member cap (50/250/1,000/unlimited — see
+   `plan_member_limit()` in schema.sql); every plan gets every feature.
+   To wire it up:
+   1. In the Stripe Dashboard, create one recurring Product with three
+      Prices (or three Products, your call) for Start ($49/mo), Growth
+      ($79/mo), and Pro ($99/mo) — whatever amounts you actually want to
+      charge; the numbers above are just what shipped in `pricing.html`.
+   2. Set each Price ID as a secret: `supabase secrets set
+      STRIPE_PRICE_START=price_... STRIPE_PRICE_GROWTH=price_...
+      STRIPE_PRICE_PRO=price_...`.
+   3. Deploy the two billing functions: `supabase functions deploy
+      stripe-subscription-checkout` and `supabase functions deploy
+      stripe-billing-portal`.
+   4. In your existing Stripe webhook endpoint (the one already pointed at
+      `stripe-webhook`), add two more events: `customer.subscription.updated`
+      and `customer.subscription.deleted`, alongside the existing
+      `checkout.session.completed`.
+   5. Turn on the [Stripe Customer Portal](https://dashboard.stripe.com/settings/billing/portal)
+      in test and live mode — `stripe-billing-portal` opens it, and Stripe
+      returns an error if it's never been configured.
+   Admins manage their org's plan from the new **Billing** panel in
+   `admin-dashboard.html` (Account → Billing) — full admins only. Changing
+   the plan price in Stripe later doesn't require a code change, just a new
+   Price ID in the three secrets above.
 
 ## Feature surface
 
@@ -126,9 +156,6 @@ uploader is an admin of that org, so **always upload under your org's id**.
 
 ## What's intentionally out of scope for v1
 
-- **Billing for MemberForge itself** — there's no Stripe subscription flow
-  for organizations paying *MemberForge*; `organizations.plan` exists as a
-  column for this to hang off later.
 - **Custom domain SSL automation** — `organizations.custom_domain` is
   stored and resolved client-side, but provisioning TLS certificates for a
   customer's own domain is a hosting-provider-specific integration left to

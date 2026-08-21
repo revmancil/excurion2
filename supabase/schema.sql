@@ -52,12 +52,59 @@ create table if not exists public.organizations (
   contact_address   text,
   social_links      jsonb not null default '{}'::jsonb,   -- {facebook, instagram, youtube, linkedin, x}
   terminology       jsonb not null default '{}'::jsonb,   -- {member_noun, member_noun_plural, org_unit_noun, leader_noun, creed, ...}
-  plan              text not null default 'trial',
+  plan              text not null default 'free',   -- 'free' | 'start' | 'growth' | 'pro'
   custom_domain     text unique,
   owner_user_id     uuid references auth.users(id),
+  -- Platform subscription billing (MemberForge charging the org, not the
+  -- org's own dues/events/store — those go through stripe-checkout with a
+  -- separate metadata.kind). Written only by the stripe-subscription-checkout
+  -- and stripe-webhook edge functions (service role) — see
+  -- protect_org_billing_fields below, which pins these back to their old
+  -- values on any client-initiated update.
+  stripe_customer_id     text,
+  stripe_subscription_id text,
+  subscription_status    text,   -- 'active' | 'trialing' | 'past_due' | 'canceled' | 'unpaid' | null
+  plan_price_id           text,   -- the Stripe Price ID currently subscribed
+  plan_updated_at         timestamptz,
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now()
 );
+
+-- The block above only takes effect on a brand-new database. For a database
+-- where `organizations` already exists, add the new columns explicitly —
+-- `create table if not exists` is a no-op on an existing table, so it will
+-- never add these on its own. All of the below is safe to re-run.
+alter table public.organizations add column if not exists stripe_customer_id text;
+alter table public.organizations add column if not exists stripe_subscription_id text;
+alter table public.organizations add column if not exists subscription_status text;
+alter table public.organizations add column if not exists plan_price_id text;
+alter table public.organizations add column if not exists plan_updated_at timestamptz;
+alter table public.organizations alter column plan set default 'free';
+update public.organizations set plan = 'free' where plan = 'trial';
+
+create unique index if not exists organizations_stripe_customer_id_uidx
+  on public.organizations (stripe_customer_id) where stripe_customer_id is not null;
+create unique index if not exists organizations_stripe_subscription_id_uidx
+  on public.organizations (stripe_subscription_id) where stripe_subscription_id is not null;
+
+-- Member cap per plan. Kept as a function (not a stored column) so the
+-- limit for every org of a given plan lives in exactly one place.
+create or replace function public.plan_member_limit(p_plan text)
+returns integer language sql immutable as $$
+  select case p_plan
+    when 'start'  then 250
+    when 'growth' then 1000
+    when 'pro'    then null   -- unlimited
+    else 50                   -- 'free' and any unrecognized value
+  end;
+$$;
+
+create or replace function public.current_org_member_limit(p_org_id uuid)
+returns integer language sql stable security definer set search_path = public as $$
+  select public.plan_member_limit(plan) from public.organizations where id = p_org_id;
+$$;
+grant execute on function public.plan_member_limit(text) to anon, authenticated;
+grant execute on function public.current_org_member_limit(uuid) to anon, authenticated;
 
 alter table public.organizations enable row level security;
 
@@ -151,6 +198,35 @@ on public.organizations for update
 to authenticated
 using (public.current_user_can_manage(id, 'settings'))
 with check (public.current_user_can_manage(id, 'settings'));
+
+-- RLS only gates which ROWS an admin can update, not which COLUMNS — without
+-- this, any admin with 'settings' access could PATCH plan/stripe_* directly
+-- via PostgREST and grant their own org a paid plan for free. Only a
+-- service-role write (the stripe-subscription-checkout and stripe-webhook
+-- edge functions) may change these; every other update gets them pinned
+-- back to their prior values, same pattern as protect_member_privileged_fields.
+create or replace function public.protect_org_billing_fields()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if auth.role() = 'service_role' then
+    new.updated_at := now();
+    return new;
+  end if;
+  new.plan := old.plan;
+  new.stripe_customer_id := old.stripe_customer_id;
+  new.stripe_subscription_id := old.stripe_subscription_id;
+  new.subscription_status := old.subscription_status;
+  new.plan_price_id := old.plan_price_id;
+  new.plan_updated_at := old.plan_updated_at;
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists organizations_protect_billing_fields on public.organizations;
+create trigger organizations_protect_billing_fields
+before update on public.organizations
+for each row execute function public.protect_org_billing_fields();
 
 drop policy if exists "org_admins_select_self" on public.org_admins;
 create policy "org_admins_select_self"
@@ -297,6 +373,37 @@ drop trigger if exists members_protect_privileged_fields on public.members;
 create trigger members_protect_privileged_fields
 before insert or update on public.members
 for each row execute function public.protect_member_privileged_fields();
+
+-- Enforce the org's plan member cap on INSERT only — never on UPDATE, so
+-- editing an existing member's profile still works even if the org is
+-- currently at/over its cap (e.g. right after a downgrade). Applies to both
+-- the self-registration and admin-add insert paths equally, since both go
+-- through this same members table.
+create or replace function public.enforce_member_cap()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  limit_n integer;
+  current_n integer;
+  org_plan text;
+begin
+  limit_n := public.current_org_member_limit(new.org_id);
+  if limit_n is null then
+    return new; -- unlimited plan (pro)
+  end if;
+  select count(*) into current_n from public.members where org_id = new.org_id;
+  if current_n >= limit_n then
+    select plan into org_plan from public.organizations where id = new.org_id;
+    raise exception 'Member limit reached for the % plan (% members). Upgrade your plan to add more members.',
+      coalesce(org_plan, 'free'), limit_n;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists members_enforce_cap on public.members;
+create trigger members_enforce_cap
+before insert on public.members
+for each row execute function public.enforce_member_cap();
 
 -- =============================================================================
 -- SITE CONTENT (generic KV CMS) + PAGE SECTIONS (per-page rich content)
@@ -1024,3 +1131,29 @@ end;
 $$;
 revoke all on function public.create_organization(text, text, text) from public;
 grant execute on function public.create_organization(text, text, text) to authenticated;
+
+-- =============================================================================
+-- BILLING STATUS (read path for the admin Billing panel)
+--
+-- organizations is publicly readable (organizations_read_all, for public
+-- branding) — stripe_customer_id/subscription_status are deliberately NOT
+-- in that public select list in js/org-context.js, so the admin dashboard
+-- fetches them through this full-admin-gated RPC instead. It returns
+-- whether a Stripe customer exists, never the raw ID itself, since the
+-- dashboard only needs that to decide whether to show "Manage billing".
+-- =============================================================================
+create or replace function public.get_org_billing_status(p_org_id uuid)
+returns table (plan text, subscription_status text, has_billing_customer boolean)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.current_user_is_full_admin(p_org_id) then
+    raise exception 'Only a full admin can view billing status';
+  end if;
+  return query
+    select o.plan, o.subscription_status, (o.stripe_customer_id is not null)
+    from public.organizations o
+    where o.id = p_org_id;
+end;
+$$;
+revoke all on function public.get_org_billing_status(uuid) from public;
+grant execute on function public.get_org_billing_status(uuid) to authenticated;

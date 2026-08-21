@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.send-newsletter]
 verify_jwt = false
+
+[functions.stripe-subscription-checkout]
+verify_jwt = false
+
+[functions.stripe-billing-portal]
+verify_jwt = false

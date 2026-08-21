@@ -31,17 +31,126 @@ serve(async (req) => {
     return new Response("Invalid signature", { status: 400 });
   }
 
-  if (event.type !== "checkout.session.completed") {
-    return new Response(JSON.stringify({ received: true }), {
+  const ok = () =>
+    new Response(JSON.stringify({ received: true }), {
       headers: { "Content-Type": "application/json" },
     });
+
+  const admin = createClient(supabaseUrl, serviceKey);
+
+  // Maps a Stripe Price ID back to a plan name ('start' | 'growth' | 'pro').
+  // The same three env vars stripe-subscription-checkout uses to go the
+  // other direction (plan name -> price ID).
+  function planForPriceId(priceId: string | null | undefined): string | null {
+    if (!priceId) return null;
+    if (priceId === Deno.env.get("STRIPE_PRICE_START")) return "start";
+    if (priceId === Deno.env.get("STRIPE_PRICE_GROWTH")) return "growth";
+    if (priceId === Deno.env.get("STRIPE_PRICE_PRO")) return "pro";
+    return null;
+  }
+
+  // A subscription's org is looked up from its own metadata (set at
+  // creation time in stripe-subscription-checkout's subscription_data),
+  // falling back to matching on stripe_customer_id if that's ever missing.
+  async function orgIdForSubscription(sub: Stripe.Subscription): Promise<string | null> {
+    const metaOrgId = String(sub.metadata?.org_id ?? "").trim();
+    if (metaOrgId) return metaOrgId;
+    const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
+    if (!customerId) return null;
+    const { data } = await admin
+      .from("organizations")
+      .select("id")
+      .eq("stripe_customer_id", customerId)
+      .maybeSingle();
+    return data?.id ?? null;
+  }
+
+  if (event.type === "customer.subscription.updated") {
+    const sub = event.data.object as Stripe.Subscription;
+    const orgId = await orgIdForSubscription(sub);
+    if (!orgId) {
+      console.error("customer.subscription.updated: no matching org", sub.id);
+      return ok();
+    }
+    const priceId = sub.items.data[0]?.price?.id ?? null;
+    const plan = planForPriceId(priceId);
+    const { error } = await admin
+      .from("organizations")
+      .update({
+        subscription_status: sub.status,
+        stripe_subscription_id: sub.id,
+        plan_price_id: priceId,
+        plan: plan ?? undefined, // only overwrite plan if we recognize the price
+        plan_updated_at: new Date().toISOString(),
+      })
+      .eq("id", orgId);
+    if (error) {
+      console.error("organizations update (subscription.updated):", error);
+      return new Response(error.message, { status: 500 });
+    }
+    return ok();
+  }
+
+  if (event.type === "customer.subscription.deleted") {
+    const sub = event.data.object as Stripe.Subscription;
+    const orgId = await orgIdForSubscription(sub);
+    if (!orgId) {
+      console.error("customer.subscription.deleted: no matching org", sub.id);
+      return ok();
+    }
+    const { error } = await admin
+      .from("organizations")
+      .update({
+        plan: "free",
+        subscription_status: "canceled",
+        stripe_subscription_id: null,
+        plan_price_id: null,
+        plan_updated_at: new Date().toISOString(),
+      })
+      .eq("id", orgId);
+    if (error) {
+      console.error("organizations update (subscription.deleted):", error);
+      return new Response(error.message, { status: 500 });
+    }
+    return ok();
+  }
+
+  if (event.type !== "checkout.session.completed") {
+    return ok();
   }
 
   const session = event.data.object as Stripe.Checkout.Session;
+
+  if (session.mode === "subscription") {
+    const meta = session.metadata ?? {};
+    const orgId = String(meta.org_id ?? "").trim();
+    const plan = String(meta.plan ?? "").trim();
+    if (!orgId || !plan) {
+      console.error("Missing org_id/plan in subscription checkout metadata", meta);
+      return ok();
+    }
+    const subscriptionId =
+      typeof session.subscription === "string" ? session.subscription : session.subscription?.id;
+    const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
+    const { error } = await admin
+      .from("organizations")
+      .update({
+        plan,
+        subscription_status: "active",
+        stripe_customer_id: customerId ?? undefined,
+        stripe_subscription_id: subscriptionId ?? null,
+        plan_updated_at: new Date().toISOString(),
+      })
+      .eq("id", orgId);
+    if (error) {
+      console.error("organizations update (subscription checkout):", error);
+      return new Response(error.message, { status: 500 });
+    }
+    return ok();
+  }
+
   if (session.mode !== "payment" || session.payment_status !== "paid") {
-    return new Response(JSON.stringify({ received: true }), {
-      headers: { "Content-Type": "application/json" },
-    });
+    return ok();
   }
 
   const meta = session.metadata ?? {};
@@ -58,8 +167,6 @@ serve(async (req) => {
       headers: { "Content-Type": "application/json" },
     });
   }
-
-  const admin = createClient(supabaseUrl, serviceKey);
 
   if (kind === "event") {
     // events.id / event_registrations.event_id are uuid in the multi-tenant

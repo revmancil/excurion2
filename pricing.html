@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pricing | MemberForge</title>
-  <meta name="description" content="Free right now. Fair when it isn't. MemberForge is in invite-only beta — every feature is free while we get it right with early chapters." />
+  <meta name="description" content="Simple, member-count-based pricing. Every plan gets every feature — public site, member portal, admin dashboard, and finance module — the only difference is how many members you have." />
   <link rel="stylesheet" href="css/theme.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
   <script type="application/ld+json">
@@ -14,10 +14,18 @@
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "What happens when beta ends?",
+        "name": "Can I switch plans anytime?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Current beta orgs get 90 days to decide on Growth. If you pass, you keep everything you built — export your data anytime. If you subscribe, we grandfather beta pricing for the first year."
+          "text": "Yes. Upgrade from your admin dashboard whenever you're getting close to your member limit — it takes effect immediately. Downgrade or cancel anytime from the same billing screen; you keep your current plan until the end of the billing period."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What happens if I hit my member limit?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "You'll see it coming from your dashboard before it happens. Once you're at the limit, adding a new member prompts an upgrade — nothing about your existing site, members, or data is ever locked or degraded."
         }
       },
       {
@@ -33,15 +41,15 @@
         "name": "Can I use my own domain?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, on any tier. Point your DNS at MemberForge, set your custom domain in admin, and the tenant router resolves it the same way it resolves the subdomain."
+          "text": "Yes, on every plan, including Free. Point your DNS at MemberForge, set your custom domain in admin, and the tenant router resolves it the same way it resolves the subdomain."
         }
       },
       {
         "@type": "Question",
-        "name": "Do you charge for Stripe fees?",
+        "name": "Do you take a cut of the dues and event fees I collect?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "No. Stripe's own processing fees apply (2.9% + $0.30), but MemberForge takes zero platform fee on top of that. Every dollar collected minus Stripe's cut goes to your org."
+          "text": "No. When your members pay dues, event fees, or buy from your store, Stripe's own processing fees apply (2.9% + $0.30), but MemberForge takes zero cut on top of that — every dollar minus Stripe's fee goes to your org. That's separate from your monthly plan cost, which only covers the platform itself."
         }
       },
       {
@@ -49,7 +57,7 @@
         "name": "What if my chapter has 500 members? 5,000?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "No per-member fee. Unlimited members on every tier. If you're past 2,500 and want dedicated support / SSO, that's the Growth plan."
+          "text": "No per-member fee within a plan — you pay the plan price, not a per-head charge. Free covers up to 50, Start up to 250, Growth up to 1,000, and Pro is unlimited for national orgs and federations."
         }
       }
     ]
@@ -91,27 +99,34 @@
     .hero-sub { font-size: 19px; color: var(--mf-ink-3); max-width: 640px; margin: 24px auto 0; line-height: 1.55; }
 
     /* ---------- Tier cards ---------- */
-    .tier-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 860px; margin: 0 auto; }
+    .tier-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; max-width: 1120px; margin: 0 auto; align-items: stretch; }
     .tier-card {
       background: #fff;
       border-radius: var(--mf-radius-xl);
       border: 1px solid var(--mf-line);
-      padding: 40px;
+      padding: 30px 26px;
+      display: flex; flex-direction: column;
     }
     .tier-card.dark {
       background: var(--mf-ink); color: #fff; border: none;
     }
-    .tier-amount {
-      font-family: var(--mf-serif); font-size: 48px;
-      letter-spacing: -0.02em; margin: 14px 0 4px;
+    .tier-name {
+      font-family: var(--mf-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mf-muted);
     }
+    .tier-card.dark .tier-name { color: rgba(255,255,255,0.55); }
+    .tier-amount {
+      font-family: var(--mf-serif); font-size: 40px;
+      letter-spacing: -0.02em; margin: 10px 0 4px;
+    }
+    .tier-amount span { font-family: var(--mf-sans); font-size: 14px; font-weight: 500; color: var(--mf-muted); }
+    .tier-card.dark .tier-amount span { color: rgba(255,255,255,0.55); }
     .tier-sub {
-      font-size: 14px; color: var(--mf-muted); margin-bottom: 24px;
+      font-size: 14px; color: var(--mf-muted); margin-bottom: 20px;
     }
     .tier-card.dark .tier-sub { color: rgba(255,255,255,0.6); }
-    .tier-bullets { list-style: none; padding: 0; margin: 0 0 28px; display: flex; flex-direction: column; gap: 10px; }
+    .tier-bullets { list-style: none; padding: 0; margin: 0 0 24px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
     .tier-bullets li {
-      display: flex; gap: 10px; font-size: 14px; color: var(--mf-ink-3);
+      display: flex; gap: 10px; font-size: 13.5px; color: var(--mf-ink-3);
       line-height: 1.5;
     }
     .tier-bullets li::before {
@@ -120,7 +135,10 @@
     }
     .tier-card.dark .tier-bullets li { color: rgba(255,255,255,0.8); }
     .tier-card.dark .tier-bullets li::before { color: var(--mf-accent-soft); }
-    @media (max-width: 720px) {
+    @media (max-width: 920px) {
+      .tier-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px) {
       .tier-grid { grid-template-columns: 1fr; }
     }
 
@@ -242,13 +260,12 @@
     <div class="mf-container tight">
       <span class="mf-eyebrow">Pricing</span>
       <h1 class="mf-h1" style="margin:20px 0 24px;">
-        Free right now.<br>
-        <em>Fair when it isn&rsquo;t.</em>
+        Every feature,<br>
+        <em>every plan.</em>
       </h1>
       <p class="hero-sub">
-        MemberForge is in invite-only beta with a handful of chapters.
-        Everything below is free while we&rsquo;re in beta. When we launch Growth,
-        current beta orgs get 90 days to decide.
+        The only thing that changes between plans is how many members you have &mdash;
+        not which features you get. Start free, upgrade the moment you outgrow it.
       </p>
     </div>
   </section>
@@ -258,41 +275,66 @@
     <div class="tier-grid">
 
       <div class="tier-card">
-        <span class="mf-eyebrow muted">Preview</span>
-        <div class="tier-amount">Free</div>
-        <p class="tier-sub">During our invite-only beta, every feature is free while we get it right with early chapters.</p>
+        <span class="tier-name">Free</span>
+        <div class="tier-amount">$0<span>/mo</span></div>
+        <p class="tier-sub">Everything MemberForge does, sized for a chapter just getting started.</p>
         <ul class="tier-bullets">
-          <li>Unlimited members</li>
+          <li>Up to 50 members</li>
           <li>Public site + member portal</li>
           <li>Full admin + finance modules</li>
-          <li>Custom subdomain</li>
+          <li>Custom domain, included</li>
           <li>Email support from the team</li>
         </ul>
-        <a href="signup.html" class="mf-btn ghost lg" style="width:100%;justify-content:center;">Request an invite</a>
+        <a href="signup.html" class="mf-btn ghost lg" style="width:100%;justify-content:center;">Start free</a>
+      </div>
+
+      <div class="tier-card">
+        <span class="tier-name">Start</span>
+        <div class="tier-amount">$49<span>/mo</span></div>
+        <p class="tier-sub">Same everything, room to grow &mdash; for a chapter past its first year.</p>
+        <ul class="tier-bullets">
+          <li>Up to 250 members</li>
+          <li>Everything in Free</li>
+          <li>Priority email support</li>
+        </ul>
+        <a href="signup.html" class="mf-btn ghost lg" style="width:100%;justify-content:center;">Start free, upgrade later</a>
+      </div>
+
+      <div class="tier-card">
+        <span class="tier-name">Growth</span>
+        <div class="tier-amount">$79<span>/mo</span></div>
+        <p class="tier-sub">For a chapter that&rsquo;s outgrown &ldquo;small.&rdquo;</p>
+        <ul class="tier-bullets">
+          <li>Up to 1,000 members</li>
+          <li>Everything in Start</li>
+        </ul>
+        <a href="signup.html" class="mf-btn ghost lg" style="width:100%;justify-content:center;">Start free, upgrade later</a>
       </div>
 
       <div class="tier-card dark">
-        <span class="mf-eyebrow" style="color:var(--mf-accent-soft);">Coming later</span>
-        <div class="tier-amount">Growth</div>
-        <p class="tier-sub">Everything in Preview, plus tools we&rsquo;re building with our biggest tenants — announced when it&rsquo;s ready.</p>
+        <span class="tier-name">Pro</span>
+        <div class="tier-amount">$99<span>/mo</span></div>
+        <p class="tier-sub">Unlimited members &mdash; for national orgs and umbrella federations.</p>
         <ul class="tier-bullets">
-          <li>Custom domain with automated SSL</li>
-          <li>Multi-chapter federation</li>
-          <li>API access &amp; webhooks</li>
-          <li>SSO for national orgs</li>
+          <li>Unlimited members</li>
+          <li>Everything in Growth</li>
           <li>Priority support</li>
         </ul>
-        <a href="signup.html" class="mf-btn white lg" style="width:100%;justify-content:center;">Join the waitlist</a>
+        <a href="signup.html" class="mf-btn white lg" style="width:100%;justify-content:center;">Start free, upgrade later</a>
       </div>
 
     </div>
+    <p style="text-align:center;font-size:13px;color:var(--mf-muted);margin-top:20px;">
+      Every organization starts on Free. Upgrade anytime from your admin dashboard once you're close to your member limit.
+    </p>
   </section>
 
   <!-- ============ FEATURE COMPARISON ============ -->
   <section class="mf-section on-paper-2">
     <div class="mf-container tight" style="text-align:center; margin-bottom:40px;">
       <span class="mf-eyebrow">What&rsquo;s included</span>
-      <h2 class="mf-h2">Everything, in one place.</h2>
+      <h2 class="mf-h2">Everything, on every plan.</h2>
+      <p style="color:var(--mf-muted);margin-top:12px;">No feature is locked behind a higher tier. The only thing a plan changes is your member limit.</p>
     </div>
     <div class="mf-container tight">
       <div class="feature-table">
@@ -348,8 +390,13 @@
       </div>
 
       <details class="faq-item">
-        <summary>What happens when beta ends?</summary>
-        <p>Current beta orgs get 90 days to decide on Growth. If you pass, you keep everything you built — export your data anytime. If you subscribe, we grandfather beta pricing for the first year.</p>
+        <summary>Can I switch plans anytime?</summary>
+        <p>Yes. Upgrade from your admin dashboard whenever you're getting close to your member limit — it takes effect immediately. Downgrade or cancel anytime from the same billing screen; you keep your current plan until the end of the billing period.</p>
+      </details>
+
+      <details class="faq-item">
+        <summary>What happens if I hit my member limit?</summary>
+        <p>You'll see it coming from your dashboard before it happens. Once you're at the limit, adding a new member prompts an upgrade — nothing about your existing site, members, or data is ever locked or degraded.</p>
       </details>
 
       <details class="faq-item">
@@ -359,17 +406,17 @@
 
       <details class="faq-item">
         <summary>Can I use my own domain?</summary>
-        <p>Yes, on any tier. Point your DNS at MemberForge, set your custom domain in admin, and the tenant router resolves it the same way it resolves the subdomain.</p>
+        <p>Yes, on every plan, including Free. Point your DNS at MemberForge, set your custom domain in admin, and the tenant router resolves it the same way it resolves the subdomain.</p>
       </details>
 
       <details class="faq-item">
-        <summary>Do you charge for Stripe fees?</summary>
-        <p>No. Stripe&rsquo;s own processing fees apply (2.9% + $0.30), but MemberForge takes zero platform fee on top of that. Every dollar collected minus Stripe&rsquo;s cut goes to your org.</p>
+        <summary>Do you take a cut of the dues and event fees I collect?</summary>
+        <p>No. When your members pay dues, event fees, or buy from your store, Stripe's own processing fees apply (2.9% + $0.30), but MemberForge takes zero cut on top of that — every dollar minus Stripe's fee goes to your org. That's separate from your monthly plan cost, which only covers the platform itself.</p>
       </details>
 
       <details class="faq-item">
         <summary>What if my chapter has 500 members? 5,000?</summary>
-        <p>No per-member fee. Unlimited members on every tier. If you&rsquo;re past 2,500 and want dedicated support / SSO, that&rsquo;s the Growth plan.</p>
+        <p>No per-member fee within a plan — you pay the plan price, not a per-head charge. Free covers up to 50, Start up to 250, Growth up to 1,000, and Pro is unlimited for national orgs and federations.</p>
       </details>
 
     </div>
