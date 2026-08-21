@@ -693,7 +693,10 @@ using ( public.current_user_can_manage(org_id, 'chapter-news') ) with check ( pu
 
 drop policy if exists "member_news_submissions_insert_member" on public.member_news_submissions;
 create policy "member_news_submissions_insert_member" on public.member_news_submissions for insert to authenticated
-with check ( public.current_user_is_org_member(org_id) );
+with check (
+  public.current_user_is_org_member(org_id)
+  and member_id in (select id from public.members where auth_user_id = auth.uid())
+);
 drop policy if exists "member_news_submissions_select_own_or_admin" on public.member_news_submissions;
 create policy "member_news_submissions_select_own_or_admin" on public.member_news_submissions for select to authenticated
 using ( member_id in (select id from public.members where auth_user_id = auth.uid()) or public.current_user_can_manage(org_id, 'news-submissions') );
@@ -726,7 +729,10 @@ alter table public.member_announcements enable row level security;
 
 drop policy if exists "member_announcements_insert_member" on public.member_announcements;
 create policy "member_announcements_insert_member" on public.member_announcements for insert to authenticated
-with check ( public.current_user_is_org_member(org_id) );
+with check (
+  public.current_user_is_org_member(org_id)
+  and member_id in (select id from public.members where auth_user_id = auth.uid())
+);
 drop policy if exists "member_announcements_select" on public.member_announcements;
 create policy "member_announcements_select" on public.member_announcements for select to authenticated
 using ( member_id in (select id from public.members where auth_user_id = auth.uid()) or public.current_user_can_manage(org_id, 'member-announcements') );
@@ -779,7 +785,10 @@ using ( public.current_user_can_manage(org_id, 'store') ) with check ( public.cu
 
 drop policy if exists "store_orders_insert_member" on public.store_orders;
 create policy "store_orders_insert_member" on public.store_orders for insert to authenticated
-with check ( public.current_user_is_org_member(org_id) );
+with check (
+  public.current_user_is_org_member(org_id)
+  and member_id in (select id from public.members where auth_user_id = auth.uid())
+);
 drop policy if exists "store_orders_select_own_or_admin" on public.store_orders;
 create policy "store_orders_select_own_or_admin" on public.store_orders for select to authenticated
 using ( member_id in (select id from public.members where auth_user_id = auth.uid()) or public.current_user_can_manage(org_id, 'store') );
@@ -874,7 +883,10 @@ alter table public.dues_payments enable row level security;
 
 drop policy if exists "finance_requisitions_insert_member" on public.finance_requisitions;
 create policy "finance_requisitions_insert_member" on public.finance_requisitions for insert to authenticated
-with check ( public.current_user_is_org_member(org_id) );
+with check (
+  public.current_user_is_org_member(org_id)
+  and member_id in (select id from public.members where auth_user_id = auth.uid())
+);
 drop policy if exists "finance_requisitions_select" on public.finance_requisitions;
 create policy "finance_requisitions_select" on public.finance_requisitions for select to authenticated
 using ( member_id in (select id from public.members where auth_user_id = auth.uid())
@@ -887,7 +899,14 @@ with check ( public.current_user_can_manage(org_id, 'requisitions') or public.cu
 
 drop policy if exists "finance_reimbursements_insert" on public.finance_reimbursements;
 create policy "finance_reimbursements_insert" on public.finance_reimbursements for insert to authenticated
-with check ( public.current_user_is_org_member(org_id) or public.current_user_finance_role(org_id) is not null );
+with check (
+  -- A plain member may only file a reimbursement for themselves. A finance-role
+  -- staffer may file one for any member of the org — needed for the "approve
+  -- requisition -> auto-create a personal reimbursement" flow in the admin
+  -- console, which inserts on behalf of the original requisition's submitter.
+  (public.current_user_is_org_member(org_id) and member_id in (select id from public.members where auth_user_id = auth.uid()))
+  or public.current_user_finance_role(org_id) is not null
+);
 drop policy if exists "finance_reimbursements_select" on public.finance_reimbursements;
 create policy "finance_reimbursements_select" on public.finance_reimbursements for select to authenticated
 using ( member_id in (select id from public.members where auth_user_id = auth.uid())
