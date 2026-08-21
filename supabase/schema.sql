@@ -954,10 +954,21 @@ create table if not exists public.finance_reimbursements (
   requisition_id    bigint references public.finance_requisitions(id)
 );
 
-alter table public.finance_requisitions
-  add constraint finance_requisitions_reimbursement_id_fkey
-  foreign key (reimbursement_id) references public.finance_reimbursements(id)
-  deferrable initially deferred;
+-- Postgres has no `add constraint if not exists`, so guard this explicitly —
+-- unlike every other statement in this file, a bare `alter table ... add
+-- constraint` errors (42710) on a second run once the constraint already
+-- exists, aborting the rest of the script.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'finance_requisitions_reimbursement_id_fkey'
+  ) then
+    alter table public.finance_requisitions
+      add constraint finance_requisitions_reimbursement_id_fkey
+      foreign key (reimbursement_id) references public.finance_reimbursements(id)
+      deferrable initially deferred;
+  end if;
+end $$;
 
 create table if not exists public.dues_payments (
   id                          bigint generated always as identity primary key,
