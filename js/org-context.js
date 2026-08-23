@@ -234,6 +234,29 @@
       </div>`;
   }
 
+  // Shown for every visitor (public site, member portal, admin dashboard —
+  // every page loads this file) when a platform admin has suspended the
+  // org, instead of that page's normal content. Deliberately does not use
+  // the org's own branding/colors here, since a suspended org may be
+  // suspended precisely because something about it needs attention.
+  function orgSuspended(org) {
+    const reason = org.suspended_reason
+      ? `<p style="opacity:0.6;max-width:440px;margin-top:10px;font-size:0.85rem;">${escapeHtml(org.suspended_reason)}</p>`
+      : '';
+    document.body.innerHTML = `
+      <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;background:#1a1613;color:#fff;text-align:center;padding:24px;">
+        <div>
+          <h1 style="font-size:1.5rem;margin-bottom:12px;">This organization is unavailable</h1>
+          <p style="opacity:0.7;max-width:440px;">${escapeHtml(org.name || 'This organization')}'s MemberForge site has been suspended.</p>
+          ${reason}
+        </div>
+      </div>`;
+  }
+
+  function escapeHtml(str) {
+    return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
   async function resolve() {
     const target = resolveOrgSlug();
     if (!target) {
@@ -253,7 +276,7 @@
 
   async function fetchOrg(by, value) {
     const column = by === 'custom_domain' ? 'custom_domain' : 'slug';
-    const cols = 'id,slug,name,tagline,logo_url,favicon_url,hero_image_url,accent_color,ink_color,contact_email,contact_phone,contact_address,social_links,terminology,plan,custom_domain';
+    const cols = 'id,slug,name,tagline,logo_url,favicon_url,hero_image_url,accent_color,ink_color,contact_email,contact_phone,contact_address,social_links,terminology,plan,custom_domain,suspended,suspended_reason';
     const rows = await sb.getAll('organizations', `${column}=eq.${encodeURIComponent(value)}&select=${cols}&limit=1`);
     return rows[0] || null;
   }
@@ -325,6 +348,13 @@
       const org = await resolve();
       if (!org) {
         if (!window.MEMBERFORGE_ALLOW_NO_ORG) orgNotFound();
+        return null;
+      }
+      if (org.suspended) {
+        // Applies regardless of MEMBERFORGE_ALLOW_NO_ORG — a suspended org
+        // is a real, found org that should not render normally anywhere,
+        // public site or admin dashboard alike.
+        orgSuspended(org);
         return null;
       }
       MF.org = org;

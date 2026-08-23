@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.stripe-billing-portal]
 verify_jwt = false
+
+[functions.platform-impersonate-org-admin]
+verify_jwt = false

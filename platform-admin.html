@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Platform Admin | MemberForge</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <script src="js/memberforge-client.js"></script>
+  <style>
+    /* This page is NOT tenant-scoped — no org-context.js, no per-org
+       branding. It manages every org, so it deliberately looks like an
+       internal ops tool rather than the marketing/tenant theme. */
+    body { background: var(--mf-paper, #f7f4ee); color: var(--mf-ink, #1a1613); font-family: var(--mf-sans, 'Inter', sans-serif); margin: 0; }
+
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 28px; background: var(--mf-ink, #1a1613); color: #fff;
+    }
+    .topbar .brand { display: flex; align-items: center; gap: 10px; font-family: var(--mf-serif, serif); font-size: 18px; font-weight: 600; }
+    .topbar .brand .badge {
+      font-family: var(--mf-mono, monospace); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+      background: var(--mf-accent, #c7562d); color: #fff; padding: 3px 8px; border-radius: 4px;
+    }
+    .topbar .who { display: flex; align-items: center; gap: 14px; font-size: 13px; color: rgba(255,255,255,0.6); }
+    .topbar button.signout {
+      background: none; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.8);
+      padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer;
+    }
+    .topbar button.signout:hover { border-color: rgba(255,255,255,0.5); color: #fff; }
+
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* ---- Sign-in gate ---- */
+    .gate-wrap { max-width: 380px; margin: 80px auto; }
+    .gate-card { background: #fff; border: 1px solid var(--mf-line, #e5ddd0); border-radius: var(--mf-radius-lg, 10px); padding: 32px; }
+    .gate-card h1 { font-family: var(--mf-serif, serif); font-size: 22px; margin: 0 0 6px; }
+    .gate-card p.sub { font-size: 13px; color: var(--mf-muted, #8a8072); margin: 0 0 22px; }
+    .field-group { margin-bottom: 14px; }
+    .field-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--mf-ink-3, #4a4238); }
+    .field-group input {
+      width: 100%; padding: 10px 12px; border: 1.5px solid var(--mf-line, #e5ddd0); border-radius: 6px;
+      font-size: 14px; font-family: inherit; box-sizing: border-box;
+    }
+    .field-group input:focus { outline: none; border-color: var(--mf-accent, #c7562d); }
+    .gate-submit {
+      width: 100%; padding: 11px; background: var(--mf-ink, #1a1613); color: #fff; border: none;
+      border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; margin-top: 6px;
+    }
+    .gate-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+    .gate-error {
+      background: rgba(196,64,52,0.08); border: 1px solid rgba(196,64,52,0.25); color: #b3261e;
+      padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none;
+    }
+    .gate-error.show { display: block; }
+
+    /* ---- Console ---- */
+    .console-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .console-head h1 { font-family: var(--mf-serif, serif); font-size: 24px; margin: 0; }
+    .console-stats { display: flex; gap: 18px; font-size: 13px; color: var(--mf-muted, #8a8072); }
+    .console-stats strong { color: var(--mf-ink, #1a1613); }
+    #orgFilterInput {
+      width: 280px; max-width: 100%; padding: 9px 12px; border: 1.5px solid var(--mf-line, #e5ddd0);
+      border-radius: 6px; font-size: 13px; font-family: inherit;
+    }
+    #orgFilterInput:focus { outline: none; border-color: var(--mf-accent, #c7562d); }
+
+    table.org-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--mf-line, #e5ddd0); border-radius: var(--mf-radius-lg, 10px); overflow: hidden; }
+    table.org-table th {
+      text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--mf-muted, #8a8072);
+      padding: 12px 14px; border-bottom: 1px solid var(--mf-line, #e5ddd0); font-weight: 600;
+    }
+    table.org-table td { padding: 12px 14px; border-bottom: 1px solid var(--mf-line-2, #efe9dd); font-size: 13.5px; vertical-align: middle; }
+    table.org-table tr:last-child td { border-bottom: none; }
+    .org-name { font-weight: 600; }
+    .org-slug { font-family: var(--mf-mono, monospace); font-size: 11.5px; color: var(--mf-muted, #8a8072); }
+    .status-pill {
+      display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .status-pill.active { background: rgba(60,107,79,0.12); color: #3c6b4f; }
+    .status-pill.suspended { background: rgba(179,38,30,0.1); color: #b3261e; }
+    select.plan-select { font-size: 13px; padding: 5px 8px; border: 1px solid var(--mf-line, #e5ddd0); border-radius: 5px; font-family: inherit; }
+    .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .row-actions button {
+      font-size: 12px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--mf-line, #e5ddd0);
+      background: #fff; color: var(--mf-ink-3, #4a4238); cursor: pointer; white-space: nowrap;
+    }
+    .row-actions button:hover { border-color: var(--mf-accent, #c7562d); color: var(--mf-accent, #c7562d); }
+    .row-actions button.danger:hover { border-color: #b3261e; color: #b3261e; }
+    .row-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .empty-state { text-align: center; padding: 48px 16px; color: var(--mf-muted, #8a8072); font-size: 14px; }
+
+    #toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--mf-ink, #1a1613); color: #fff; padding: 11px 20px; border-radius: 8px;
+      font-size: 13.5px; opacity: 0; pointer-events: none; transition: all .25s ease; z-index: 999; max-width: 90vw;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.error { background: #b3261e; }
+  </style>
+</head>
+<body>
+
+  <div id="gateScreen" class="gate-wrap">
+    <div class="gate-card">
+      <h1>Platform Admin</h1>
+      <p class="sub">Cross-tenant access. Sign in with the platform admin account.</p>
+      <div class="gate-error" id="gateError"></div>
+      <form id="gateForm">
+        <div class="field-group">
+          <label for="gateEmail">Email</label>
+          <input type="email" id="gateEmail" autocomplete="email" required />
+        </div>
+        <div class="field-group">
+          <label for="gatePassword">Password</label>
+          <input type="password" id="gatePassword" autocomplete="current-password" required />
+        </div>
+        <button type="submit" class="gate-submit" id="gateSubmitBtn">Sign in</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="consoleScreen" style="display:none;">
+    <div class="topbar">
+      <div class="brand"><i class="fas fa-shield-halved"></i> MemberForge <span class="badge">Platform Admin</span></div>
+      <div class="who">
+        <span id="whoEmail"></span>
+        <button class="signout" onclick="signOutPlatform()">Sign out</button>
+      </div>
+    </div>
+    <div class="wrap">
+      <div class="console-head">
+        <div>
+          <h1>Organizations</h1>
+          <div class="console-stats" id="consoleStats"></div>
+        </div>
+        <input type="text" id="orgFilterInput" placeholder="Filter by name or slug…" />
+      </div>
+      <div id="orgTableWrap"></div>
+    </div>
+  </div>
+
+  <div id="toast"><span id="toastMsg"></span></div>
+
+<script>
+  const SESSION_KEY = 'mf_platform_session';
+  const PLANS = ['free', 'start', 'growth', 'pro'];
+  let ORGS = [];
+
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    t.className = type === 'error' ? 'error' : '';
+    void t.offsetWidth; // restart animation
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 3800);
+  }
+
+  function escHtml(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /* ── Minimal standalone session handling (not org-scoped, so js/auth.js's
+     MFAuth — keyed by MF.org.slug — doesn't apply here) ── */
+  function resolveExpiresAt(data) {
+    if (data && data.expires_at) return data.expires_at;
+    const ttl = (data && data.expires_in) || 3600;
+    return Math.floor(Date.now() / 1000) + ttl;
+  }
+  function loadPlatformSession() {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return null;
+      const session = JSON.parse(raw);
+      if (!session.expires_at || session.expires_at * 1000 < Date.now()) {
+        localStorage.removeItem(SESSION_KEY);
+        return null;
+      }
+      sb.session = session;
+      return session;
+    } catch { return null; }
+  }
+  function savePlatformSession(session) {
+    sb.session = session;
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  }
+  function clearPlatformSession() {
+    sb.session = null;
+    localStorage.removeItem(SESSION_KEY);
+  }
+  async function platformSignIn(email, password) {
+    const res = await fetch(`${sb.url}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: sb.key },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error_description || data.msg || 'Sign in failed');
+    savePlatformSession({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at: resolveExpiresAt(data),
+      user: data.user
+    });
+  }
+  function signOutPlatform() {
+    clearPlatformSession();
+    document.getElementById('consoleScreen').style.display = 'none';
+    document.getElementById('gateScreen').style.display = '';
+    document.getElementById('gateEmail').value = '';
+    document.getElementById('gatePassword').value = '';
+  }
+
+  /* ── Boot ── */
+  async function tryLoadConsole() {
+    try {
+      const rows = await sb.rpc('platform_list_organizations');
+      ORGS = Array.isArray(rows) ? rows : [];
+      document.getElementById('gateScreen').style.display = 'none';
+      document.getElementById('consoleScreen').style.display = '';
+      document.getElementById('whoEmail').textContent = (sb.session.user && sb.session.user.email) || '';
+      renderConsole();
+      return true;
+    } catch (err) {
+      console.error('platform_list_organizations', err);
+      clearPlatformSession();
+      return false;
+    }
+  }
+
+  document.getElementById('gateForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('gateError');
+    errEl.classList.remove('show');
+    const email = document.getElementById('gateEmail').value.trim();
+    const password = document.getElementById('gatePassword').value;
+    const btn = document.getElementById('gateSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+    try {
+      await platformSignIn(email, password);
+      const ok = await tryLoadConsole();
+      if (!ok) {
+        errEl.textContent = 'Signed in, but this account does not have platform admin access.';
+        errEl.classList.add('show');
+      }
+    } catch (err) {
+      errEl.textContent = err.message || 'Sign in failed.';
+      errEl.classList.add('show');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Sign in';
+    }
+  });
+
+  /* ── Render ── */
+  function renderConsole() {
+    const filter = (document.getElementById('orgFilterInput').value || '').trim().toLowerCase();
+    const rows = filter
+      ? ORGS.filter(o => o.name.toLowerCase().includes(filter) || o.slug.toLowerCase().includes(filter))
+      : ORGS;
+
+    document.getElementById('consoleStats').innerHTML =
+      '<span><strong>' + ORGS.length + '</strong> organizations</span>' +
+      '<span><strong>' + ORGS.filter(o => o.suspended).length + '</strong> suspended</span>' +
+      '<span><strong>' + ORGS.reduce((s, o) => s + Number(o.member_count || 0), 0) + '</strong> total members</span>';
+
+    const wrap = document.getElementById('orgTableWrap');
+    if (!rows.length) {
+      wrap.innerHTML = '<div class="empty-state">' + (ORGS.length ? 'No organizations match that filter.' : 'No organizations yet.') + '</div>';
+      return;
+    }
+
+    wrap.innerHTML =
+      '<table class="org-table"><thead><tr>' +
+        '<th>Organization</th><th>Plan</th><th>Status</th><th>Members</th><th>Contact</th><th>Created</th><th>Actions</th>' +
+      '</tr></thead><tbody>' +
+      rows.map(o => {
+        const created = o.created_at ? new Date(o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+        const planOptions = PLANS.map(p => '<option value="' + p + '"' + (p === o.plan ? ' selected' : '') + '>' + p + '</option>').join('');
+        return '<tr data-org-id="' + o.id + '">' +
+          '<td><div class="org-name">' + escHtml(o.name) + '</div><div class="org-slug">' + escHtml(o.slug) + '</div></td>' +
+          '<td><select class="plan-select" onchange="changeOrgPlan(\'' + o.id + '\', this.value)">' + planOptions + '</select></td>' +
+          '<td>' + (o.suspended
+              ? '<span class="status-pill suspended" title="' + escHtml(o.suspended_reason || '') + '">Suspended</span>'
+              : '<span class="status-pill active">Active</span>') + '</td>' +
+          '<td>' + (o.member_count ?? 0) + '</td>' +
+          '<td>' + escHtml(o.contact_email || '—') + '</td>' +
+          '<td>' + created + '</td>' +
+          '<td><div class="row-actions">' +
+            '<a href="admin-dashboard.html?org=' + encodeURIComponent(o.slug) + '" target="_blank" rel="noopener"><button type="button">View</button></a>' +
+            '<button type="button" onclick="impersonateOrgAdmin(\'' + o.id + '\', \'' + escHtml(o.name).replace(/'/g, "\\'") + '\')">Impersonate</button>' +
+            (o.suspended
+              ? '<button type="button" onclick="toggleSuspend(\'' + o.id + '\', false)">Unsuspend</button>'
+              : '<button type="button" onclick="toggleSuspend(\'' + o.id + '\', true)">Suspend</button>') +
+            '<button type="button" class="danger" onclick="deleteOrg(\'' + o.id + '\', \'' + escHtml(o.slug) + '\')">Delete</button>' +
+          '</div></td>' +
+        '</tr>';
+      }).join('') +
+      '</tbody></table>';
+  }
+
+  document.getElementById('orgFilterInput').addEventListener('input', renderConsole);
+
+  /* ── Actions ── */
+  async function changeOrgPlan(orgId, plan) {
+    try {
+      await sb.rpc('platform_set_org_plan', { p_org_id: orgId, p_plan: plan });
+      const org = ORGS.find(o => o.id === orgId);
+      if (org) org.plan = plan;
+      showToast('Plan updated to ' + plan + '.');
+    } catch (err) {
+      showToast('Could not update plan: ' + (err.message || err), 'error');
+      renderConsole(); // revert the select to its real value
+    }
+  }
+
+  async function toggleSuspend(orgId, suspend) {
+    const org = ORGS.find(o => o.id === orgId);
+    let reason = null;
+    if (suspend) {
+      reason = prompt('Reason for suspending "' + (org ? org.name : orgId) + '" (shown to the org\'s visitors):', '');
+      if (reason === null) return; // cancelled
+    } else if (!confirm('Unsuspend "' + (org ? org.name : orgId) + '"?')) {
+      return;
+    }
+    try {
+      await sb.rpc('platform_set_org_suspended', { p_org_id: orgId, p_suspended: suspend, p_reason: reason });
+      if (org) { org.suspended = suspend; org.suspended_reason = suspend ? reason : null; }
+      renderConsole();
+      showToast(suspend ? 'Organization suspended.' : 'Organization unsuspended.');
+    } catch (err) {
+      showToast('Could not update suspension: ' + (err.message || err), 'error');
+    }
+  }
+
+  async function deleteOrg(orgId, slug) {
+    const typed = prompt(
+      'This permanently deletes "' + slug + '" and every member, event, payment, and document it has.\n\n' +
+      'Type the organization\'s slug (' + slug + ') to confirm:'
+    );
+    if (typed === null) return;
+    if (typed.trim().toLowerCase() !== slug) {
+      showToast('Slug did not match — nothing was deleted.', 'error');
+      return;
+    }
+    try {
+      await sb.rpc('platform_delete_organization', { p_org_id: orgId, p_confirm_slug: typed.trim().toLowerCase() });
+      ORGS = ORGS.filter(o => o.id !== orgId);
+      renderConsole();
+      showToast('Organization deleted.');
+    } catch (err) {
+      showToast('Could not delete: ' + (err.message || err), 'error');
+    }
+  }
+
+  async function impersonateOrgAdmin(orgId, orgName) {
+    // Open the tab synchronously, inside the click handler, so the browser
+    // still counts it as a direct user gesture — setting its location later
+    // (after the async function call below resolves) avoids popup blockers.
+    const tab = window.open('', '_blank');
+    try {
+      const res = await fetch(sb.url + '/functions/v1/platform-impersonate-org-admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: sb.key,
+          Authorization: 'Bearer ' + sb.session.access_token
+        },
+        body: JSON.stringify({ org_id: orgId })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) {
+        if (tab) tab.close();
+        showToast(data.error || ('Could not impersonate (' + res.status + ')'), 'error');
+        return;
+      }
+      if (tab) tab.location.href = data.url;
+      showToast('Signing in as ' + data.admin_email + ' of ' + orgName + '…');
+    } catch (err) {
+      if (tab) tab.close();
+      showToast('Impersonation failed: ' + (err.message || err), 'error');
+    }
+  }
+
+  /* ── Init ── */
+  (async function boot() {
+    if (loadPlatformSession()) {
+      const ok = await tryLoadConsole();
+      if (ok) return;
+    }
+    document.getElementById('gateScreen').style.display = '';
+  })();
+</script>
+
+</body>
+</html>

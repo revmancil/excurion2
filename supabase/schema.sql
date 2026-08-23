@@ -66,6 +66,9 @@ create table if not exists public.organizations (
   subscription_status    text,   -- 'active' | 'trialing' | 'past_due' | 'canceled' | 'unpaid' | null
   plan_price_id           text,   -- the Stripe Price ID currently subscribed
   plan_updated_at         timestamptz,
+  suspended         boolean not null default false,
+  suspended_reason  text,
+  suspended_at      timestamptz,
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now()
 );
@@ -81,6 +84,14 @@ alter table public.organizations add column if not exists plan_price_id text;
 alter table public.organizations add column if not exists plan_updated_at timestamptz;
 alter table public.organizations alter column plan set default 'free';
 update public.organizations set plan = 'free' where plan = 'trial';
+
+-- Platform-level suspension (distinct from an org's own plan/subscription
+-- status) — set by a platform superadmin, enforced in js/org-context.js by
+-- showing every visitor a "this organization has been suspended" screen
+-- instead of normal branding, regardless of how the tenant was resolved.
+alter table public.organizations add column if not exists suspended boolean not null default false;
+alter table public.organizations add column if not exists suspended_reason text;
+alter table public.organizations add column if not exists suspended_at timestamptz;
 
 create unique index if not exists organizations_stripe_customer_id_uidx
   on public.organizations (stripe_customer_id) where stripe_customer_id is not null;
@@ -141,6 +152,20 @@ create or replace function public.current_user_email()
 returns text language sql stable as $$
   select lower(trim(coalesce(auth.jwt() ->> 'email', '')));
 $$;
+
+-- Platform superadmin — has cross-tenant access (browse/replan/suspend/
+-- delete any org, impersonate any org's admin for support), unlike every
+-- other role in this schema, which is always scoped to one org_id. There is
+-- exactly one holder for now, hardcoded here rather than in a grantable
+-- table, matching the operator's current single-owner setup — change the
+-- email below (and redeploy schema.sql) to change who holds it, or replace
+-- this function's body with a real platform_admins table lookup if/when
+-- there's more than one.
+create or replace function public.current_user_is_platform_admin()
+returns boolean language sql stable as $$
+  select public.current_user_email() = 'hello@mc3techlabs.com';
+$$;
+grant execute on function public.current_user_is_platform_admin() to authenticated;
 
 create or replace function public.current_user_is_org_admin(p_org_id uuid)
 returns boolean language sql stable security definer set search_path = public as $$
@@ -208,7 +233,12 @@ with check (public.current_user_can_manage(id, 'settings'));
 create or replace function public.protect_org_billing_fields()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  if auth.role() = 'service_role' then
+  -- service_role: the stripe-subscription-checkout/stripe-webhook edge
+  -- functions, writing real billing state.
+  -- platform admin: the platform_set_org_plan/platform_set_org_suspended
+  -- RPCs, which run as this org admin's own session (not service_role) but
+  -- are themselves already gated by current_user_is_platform_admin().
+  if auth.role() = 'service_role' or public.current_user_is_platform_admin() then
     new.updated_at := now();
     return new;
   end if;
@@ -218,6 +248,9 @@ begin
   new.subscription_status := old.subscription_status;
   new.plan_price_id := old.plan_price_id;
   new.plan_updated_at := old.plan_updated_at;
+  new.suspended := old.suspended;
+  new.suspended_reason := old.suspended_reason;
+  new.suspended_at := old.suspended_at;
   new.updated_at := now();
   return new;
 end;
@@ -1168,3 +1201,122 @@ end;
 $$;
 revoke all on function public.get_org_billing_status(uuid) from public;
 grant execute on function public.get_org_billing_status(uuid) to authenticated;
+
+-- =============================================================================
+-- PLATFORM ADMIN (superadmin) RPCs
+--
+-- Every function here starts by checking current_user_is_platform_admin()
+-- and raises if not — fail closed, same convention as every other admin
+-- check in this file. These are the only place cross-tenant writes (plan
+-- override, suspension, deletion) or a full-roster read happen outside of
+-- RLS's normal per-org scoping.
+-- =============================================================================
+
+create or replace function public.platform_list_organizations()
+returns table (
+  id uuid, slug text, name text, plan text, subscription_status text,
+  suspended boolean, suspended_reason text, member_count bigint,
+  contact_email text, created_at timestamptz
+)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.current_user_is_platform_admin() then
+    raise exception 'Platform admin access required';
+  end if;
+  return query
+    select o.id, o.slug, o.name, o.plan, o.subscription_status,
+           o.suspended, o.suspended_reason,
+           (select count(*) from public.members m where m.org_id = o.id) as member_count,
+           o.contact_email, o.created_at
+    from public.organizations o
+    order by o.created_at desc;
+end;
+$$;
+revoke all on function public.platform_list_organizations() from public;
+grant execute on function public.platform_list_organizations() to authenticated;
+
+create or replace function public.platform_set_org_plan(p_org_id uuid, p_plan text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.current_user_is_platform_admin() then
+    raise exception 'Platform admin access required';
+  end if;
+  if p_plan not in ('free', 'start', 'growth', 'pro') then
+    raise exception 'Unknown plan: %', p_plan;
+  end if;
+  update public.organizations
+  set plan = p_plan, plan_updated_at = now()
+  where id = p_org_id;
+  if not found then
+    raise exception 'Organization not found';
+  end if;
+end;
+$$;
+revoke all on function public.platform_set_org_plan(uuid, text) from public;
+grant execute on function public.platform_set_org_plan(uuid, text) to authenticated;
+
+create or replace function public.platform_set_org_suspended(p_org_id uuid, p_suspended boolean, p_reason text default null)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.current_user_is_platform_admin() then
+    raise exception 'Platform admin access required';
+  end if;
+  update public.organizations
+  set suspended = p_suspended,
+      suspended_reason = case when p_suspended then p_reason else null end,
+      suspended_at = case when p_suspended then now() else null end
+  where id = p_org_id;
+  if not found then
+    raise exception 'Organization not found';
+  end if;
+end;
+$$;
+revoke all on function public.platform_set_org_suspended(uuid, boolean, text) from public;
+grant execute on function public.platform_set_org_suspended(uuid, boolean, text) to authenticated;
+
+-- Permanently deletes an organization and every row that cascades from it
+-- (members, events, payments, everything — see the "on delete cascade"
+-- foreign keys throughout this file). p_confirm_slug must match the org's
+-- actual slug, so a single mis-click can't destroy a tenant's data — the
+-- caller has to already know/copy the real slug.
+create or replace function public.platform_delete_organization(p_org_id uuid, p_confirm_slug text)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  real_slug text;
+begin
+  if not public.current_user_is_platform_admin() then
+    raise exception 'Platform admin access required';
+  end if;
+  select slug into real_slug from public.organizations where id = p_org_id;
+  if real_slug is null then
+    raise exception 'Organization not found';
+  end if;
+  if lower(trim(coalesce(p_confirm_slug, ''))) <> real_slug then
+    raise exception 'Confirmation slug does not match — nothing was deleted';
+  end if;
+  delete from public.organizations where id = p_org_id;
+end;
+$$;
+revoke all on function public.platform_delete_organization(uuid, text) from public;
+grant execute on function public.platform_delete_organization(uuid, text) to authenticated;
+
+-- Lets the platform-admin console look up which org(s) a signed-in email
+-- administers (org_admins is otherwise only readable by full admins of
+-- that SAME org — see org_admins_select_self/_for_full_admins — so a
+-- platform admin needs its own bypass to find who to impersonate).
+create or replace function public.platform_list_org_admins(p_org_id uuid)
+returns table (email text, is_full_admin boolean, granted_at timestamptz)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.current_user_is_platform_admin() then
+    raise exception 'Platform admin access required';
+  end if;
+  return query
+    select a.email, a.is_full_admin, a.granted_at
+    from public.org_admins a
+    where a.org_id = p_org_id
+    order by a.granted_at asc;
+end;
+$$;
+revoke all on function public.platform_list_org_admins(uuid) from public;
+grant execute on function public.platform_list_org_admins(uuid) to authenticated;
