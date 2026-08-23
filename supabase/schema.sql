@@ -1320,3 +1320,124 @@ end;
 $$;
 revoke all on function public.platform_list_org_admins(uuid) from public;
 grant execute on function public.platform_list_org_admins(uuid) to authenticated;
+
+-- =============================================================================
+-- WEBSITE BUILDER — block-based visual page editor
+--
+-- A separate system from the older Quill-based Page Content Editor
+-- (site_content/page_sections, still used by admin-dashboard.html's Pages
+-- panel) — both coexist. A page only switches to rendering builder blocks
+-- once it has a published builder_pages row for it (see
+-- js/page-builder.js's applyBuilderPage(), called from index.html);
+-- otherwise the existing static HTML/site_content content renders exactly
+-- as it always has. No migration of existing pages happens automatically.
+--
+-- "Super admin" here is the platform admin (current_user_is_platform_admin)
+-- — locking a section and defining base templates are platform-level
+-- concerns across every tenant, not something one org's own admin should
+-- unilaterally control. "Tenant admin" is the existing per-org 'pages'
+-- section permission (current_user_can_manage(org_id, 'pages')), the same
+-- gate the older page editor already uses.
+--
+-- draft_json / published_json shape: { "content": [ { "type": "HeroSection",
+-- "locked": false, "props": { "id": "...", ... } }, ... ] }. "locked" (not
+-- "readOnly") is the one canonical key this schema enforces — see
+-- enforce_builder_page_locks below.
+-- =============================================================================
+
+create table if not exists public.builder_pages (
+  id              bigint generated always as identity primary key,
+  org_id          uuid not null references public.organizations(id) on delete cascade,
+  slug            text not null,   -- 'home', 'about', etc. — matches the site's existing page slugs
+  title           text not null default '',
+  draft_json      jsonb not null default '{"content":[]}'::jsonb,
+  published_json  jsonb,
+  published_at    timestamptz,
+  updated_at      timestamptz not null default now(),
+  updated_by      text,
+  unique (org_id, slug)
+);
+
+alter table public.builder_pages enable row level security;
+
+drop policy if exists "builder_pages_select_admin" on public.builder_pages;
+create policy "builder_pages_select_admin"
+on public.builder_pages for select
+to authenticated
+using ( public.current_user_can_manage(org_id, 'pages') or public.current_user_is_platform_admin() );
+
+drop policy if exists "builder_pages_insert_admin" on public.builder_pages;
+create policy "builder_pages_insert_admin"
+on public.builder_pages for insert
+to authenticated
+with check ( public.current_user_can_manage(org_id, 'pages') or public.current_user_is_platform_admin() );
+
+drop policy if exists "builder_pages_update_admin" on public.builder_pages;
+create policy "builder_pages_update_admin"
+on public.builder_pages for update
+to authenticated
+using ( public.current_user_can_manage(org_id, 'pages') or public.current_user_is_platform_admin() )
+with check ( public.current_user_can_manage(org_id, 'pages') or public.current_user_is_platform_admin() );
+
+-- Deleting a builder page entirely (not just editing its content) is a
+-- structural action reserved for the platform admin — a tenant admin can
+-- rearrange/edit/hide sections but not remove the whole page record.
+drop policy if exists "builder_pages_delete_platform_admin" on public.builder_pages;
+create policy "builder_pages_delete_platform_admin"
+on public.builder_pages for delete
+to authenticated
+using ( public.current_user_is_platform_admin() );
+
+-- Enforces that a block marked "locked": true by a platform admin cannot be
+-- removed or altered by a tenant admin — diffs old vs new draft_json block
+-- by block (matched on props.id) and rejects the write if any locked block
+-- is missing or changed. Platform admins bypass this entirely.
+create or replace function public.enforce_builder_page_locks()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  old_block jsonb;
+  new_block jsonb;
+begin
+  if public.current_user_is_platform_admin() then
+    new.updated_at := now();
+    return new;
+  end if;
+  if tg_op = 'UPDATE' and old.draft_json is not null then
+    for old_block in select * from jsonb_array_elements(coalesce(old.draft_json->'content', '[]'::jsonb))
+    loop
+      if coalesce((old_block->>'locked')::boolean, false) then
+        select value into new_block
+        from jsonb_array_elements(coalesce(new.draft_json->'content', '[]'::jsonb))
+        where value->'props'->>'id' = old_block->'props'->>'id'
+        limit 1;
+        if new_block is null then
+          raise exception 'Cannot remove a locked section (id: %). Only a platform admin can modify locked sections.', old_block->'props'->>'id';
+        end if;
+        if new_block <> old_block then
+          raise exception 'Cannot modify a locked section (id: %). Only a platform admin can modify locked sections.', old_block->'props'->>'id';
+        end if;
+      end if;
+    end loop;
+  end if;
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists builder_pages_enforce_locks on public.builder_pages;
+create trigger builder_pages_enforce_locks
+before insert or update on public.builder_pages
+for each row execute function public.enforce_builder_page_locks();
+
+-- Public read path: only ever returns published_json, never draft_json —
+-- draft content (which may include unfinished/unapproved copy) stays
+-- admin-only via the SELECT policy above. Callable with the anon key, same
+-- as any other public page content on the site.
+create or replace function public.get_published_builder_page(p_org_id uuid, p_slug text)
+returns table (title text, content_json jsonb, published_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select title, published_json, published_at
+  from public.builder_pages
+  where org_id = p_org_id and slug = p_slug and published_json is not null;
+$$;
+grant execute on function public.get_published_builder_page(uuid, text) to anon, authenticated;

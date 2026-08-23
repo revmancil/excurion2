@@ -17,6 +17,14 @@
   </script>
   <script src="js/memberforge-client.js"></script>
   <script src="js/org-context.js"></script>
+  <script src="js/page-builder.js"></script>
+  <style>
+    /* Website builder (js/page-builder.js): when this org has a published
+       visual-builder page for "home", its rendered blocks replace the
+       static sections below — nav and footer stay, since the builder only
+       owns the content between them. See the boot script at the bottom. */
+    body.mf-builder-active #pageShell > section { display: none !important; }
+  </style>
 </head>
 <body>
 
@@ -71,6 +79,8 @@
 <!-- ========================
      HERO
 ======================== -->
+<div id="builderContent" style="display:none;"></div>
+
 <section class="hero" id="hero">
   <div class="hero-bg" data-mf="hero_bg"></div>
   <div class="hero-overlay"></div>
@@ -1815,6 +1825,28 @@ function renderMarketingHome() {
   // !org early-return below, which means "that tenant doesn't exist".
   if (MF.isMarketingRoot) { renderMarketingHome(); return; }
   if (!org) return;
+
+  // Website builder (js/page-builder.js): if this org has published a
+  // visual-builder version of "home", render that instead of the static
+  // sections below — nav/footer/announcement bar are untouched either way.
+  try {
+    const rows = await sb.rpc('get_published_builder_page', { p_org_id: org.id, p_slug: 'home' });
+    const builderRow = Array.isArray(rows) ? rows[0] : rows;
+    const blocks = builderRow && builderRow.content_json && Array.isArray(builderRow.content_json.content)
+      ? builderRow.content_json.content : [];
+    if (blocks.length) {
+      const html = await MFBuilder.renderPage(builderRow.content_json, { orgId: org.id, sb });
+      const mount = document.getElementById('builderContent');
+      mount.innerHTML = html;
+      mount.style.display = '';
+      document.body.classList.add('mf-builder-active');
+      await loadHomeAnnounce();
+      return;
+    }
+  } catch (err) {
+    console.error('builder page check failed, falling back to static home', err);
+  }
+
   await loadHomeAnnounce();
   try {
     const rows = await sb.getAll('site_content', `${MF.scope("content_key=eq.home&select=content_json")}`);

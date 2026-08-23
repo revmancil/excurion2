@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Website Editor | {{ORG_NAME}}</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" />
+  <script src="js/memberforge-client.js"></script>
+  <script src="js/org-context.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/page-builder.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+  <style>
+    :root { --ed-bg: #f7f4ee; --ed-panel: #fff; --ed-line: #e5ddd0; --ed-ink: #1a1613; --ed-muted: #8a8072; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body { font-family: 'Inter', sans-serif; color: var(--ed-ink); background: var(--ed-bg); overflow: hidden; }
+
+    .ed-shell { display: grid; grid-template-rows: auto 1fr; height: 100vh; }
+
+    /* ---- Top bar ---- */
+    .ed-topbar {
+      display: flex; align-items: center; gap: 14px; padding: 10px 16px;
+      background: var(--ed-ink); color: #fff; flex-wrap: wrap;
+    }
+    .ed-topbar .title { font-weight: 700; font-size: 14px; margin-right: auto; display: flex; align-items: center; gap: 8px; }
+    .ed-topbar .title .dirty-dot { width: 7px; height: 7px; border-radius: 50%; background: #e0a030; display: none; }
+    .ed-topbar .title.dirty .dirty-dot { display: inline-block; }
+    .ed-device-switch { display: flex; gap: 2px; background: rgba(255,255,255,0.08); border-radius: 6px; padding: 2px; }
+    .ed-device-switch button {
+      background: none; border: none; color: rgba(255,255,255,0.55); padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 13px;
+    }
+    .ed-device-switch button.active { background: rgba(255,255,255,0.18); color: #fff; }
+    .ed-topbar button.ed-btn {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff;
+      padding: 7px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .ed-topbar button.ed-btn:hover:not(:disabled) { background: rgba(255,255,255,0.16); }
+    .ed-topbar button.ed-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .ed-topbar button.ed-btn.accent { background: var(--accent, #c7562d); border-color: var(--accent, #c7562d); }
+    .ed-topbar .save-status { font-size: 12px; color: rgba(255,255,255,0.5); white-space: nowrap; }
+
+    /* ---- Body layout ---- */
+    .ed-body { display: grid; grid-template-columns: 260px 1fr 300px; height: 100%; overflow: hidden; }
+    .ed-sidebar, .ed-inspector { background: var(--ed-panel); overflow-y: auto; padding: 14px; }
+    .ed-sidebar { border-right: 1px solid var(--ed-line); }
+    .ed-inspector { border-left: 1px solid var(--ed-line); }
+    .ed-canvas-wrap { background: #ddd6c8; display: flex; align-items: flex-start; justify-content: center; overflow: auto; padding: 24px; }
+    .ed-canvas-frame { background: #fff; box-shadow: 0 2px 20px rgba(0,0,0,0.15); transition: width 0.2s ease; width: 100%; max-width: 1200px; }
+    .ed-canvas-frame.tablet { max-width: 768px; }
+    .ed-canvas-frame.mobile { max-width: 390px; }
+    .ed-canvas-frame iframe { width: 100%; border: none; display: block; min-height: 70vh; }
+
+    .ed-section-title {
+      font-family: var(--mf-mono, monospace); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ed-muted); margin: 0 0 10px;
+    }
+    .ed-add-btn {
+      width: 100%; padding: 9px; border: 1.5px dashed var(--ed-line); background: none; border-radius: 8px;
+      color: var(--ed-muted); font-size: 13px; cursor: pointer; margin-bottom: 14px;
+    }
+    .ed-add-btn:hover { border-color: var(--accent, #c7562d); color: var(--accent, #c7562d); }
+
+    .ed-block-row {
+      display: flex; align-items: center; gap: 8px; padding: 9px 8px; border-radius: 7px; cursor: pointer;
+      border: 1px solid transparent; margin-bottom: 4px; background: #fff;
+    }
+    .ed-block-row:hover { background: var(--ed-bg); }
+    .ed-block-row.selected { border-color: var(--accent, #c7562d); background: color-mix(in srgb, var(--accent, #c7562d) 8%, #fff); }
+    .ed-block-row.hidden-block { opacity: 0.45; }
+    .ed-block-row .handle { cursor: grab; color: var(--ed-muted); font-size: 11px; }
+    .ed-block-row .b-icon { color: var(--accent, #c7562d); width: 16px; text-align: center; font-size: 12px; }
+    .ed-block-row .b-label { flex: 1; font-size: 12.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ed-block-row .b-actions { display: flex; gap: 3px; opacity: 0; }
+    .ed-block-row:hover .b-actions, .ed-block-row.selected .b-actions { opacity: 1; }
+    .ed-block-row .b-actions button {
+      background: none; border: none; color: var(--ed-muted); cursor: pointer; padding: 3px 5px; font-size: 11px; border-radius: 4px;
+    }
+    .ed-block-row .b-actions button:hover { background: var(--ed-line); color: var(--ed-ink); }
+    .ed-block-row .b-actions button.locked-icon { color: #b3261e; }
+    .ed-block-row[draggable="true"].dragging { opacity: 0.4; }
+    .ed-drop-line { height: 3px; background: var(--accent, #c7562d); border-radius: 2px; margin: -2px 0; display: none; }
+    .ed-drop-line.show { display: block; }
+
+    .ed-empty { text-align: center; color: var(--ed-muted); font-size: 12.5px; padding: 30px 10px; }
+
+    /* ---- Inspector fields ---- */
+    .ed-field { margin-bottom: 14px; }
+    .ed-field label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ed-muted); margin-bottom: 6px; }
+    .ed-field input[type="text"], .ed-field input[type="url"], .ed-field input[type="number"], .ed-field input[type="color"], .ed-field textarea, .ed-field select {
+      width: 100%; padding: 8px 10px; border: 1.5px solid var(--ed-line); border-radius: 6px; font-size: 13px; font-family: inherit;
+    }
+    .ed-field textarea { resize: vertical; min-height: 60px; }
+    .ed-field .ql-container { border-radius: 0 0 6px 6px; min-height: 120px; }
+    .ed-field .ql-toolbar { border-radius: 6px 6px 0 0; }
+    .ed-img-preview { width: 100%; height: 90px; background: var(--ed-bg) center/cover; border-radius: 6px; margin-bottom: 8px; border: 1px solid var(--ed-line); }
+    .ed-upload-btn { font-size: 12px; padding: 7px 10px; border: 1px solid var(--ed-line); background: #fff; border-radius: 6px; cursor: pointer; }
+    .ed-card-item { border: 1px solid var(--ed-line); border-radius: 8px; padding: 10px; margin-bottom: 8px; }
+    .ed-card-item .ed-card-remove { float: right; background: none; border: none; color: #b3261e; cursor: pointer; font-size: 11px; }
+    .ed-inspector-empty { color: var(--ed-muted); font-size: 12.5px; text-align: center; padding: 40px 10px; }
+
+    /* ---- Add-block drawer ---- */
+    .ed-drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.3); display: none; align-items: center; justify-content: center; z-index: 100; }
+    .ed-drawer-backdrop.show { display: flex; }
+    .ed-drawer { background: #fff; border-radius: 12px; padding: 20px; width: 420px; max-width: 92vw; max-height: 80vh; overflow-y: auto; }
+    .ed-drawer h3 { margin: 0 0 14px; font-size: 15px; }
+    .ed-drawer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ed-drawer-grid button {
+      display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 8px;
+      border: 1px solid var(--ed-line); border-radius: 8px; background: #fff; cursor: pointer; font-size: 12px; color: var(--ed-ink);
+    }
+    .ed-drawer-grid button:hover { border-color: var(--accent, #c7562d); color: var(--accent, #c7562d); }
+    .ed-drawer-grid button i { font-size: 18px; color: var(--accent, #c7562d); }
+    .ed-drawer-close { display: block; width: 100%; margin-top: 14px; padding: 9px; border: none; background: var(--ed-bg); border-radius: 6px; cursor: pointer; }
+
+    #gateScreen { display: flex; align-items: center; justify-content: center; height: 100vh; }
+    #gateScreen .box { text-align: center; max-width: 360px; padding: 20px; }
+
+    #toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--ed-ink); color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px;
+      opacity: 0; pointer-events: none; transition: all .25s ease; z-index: 999; max-width: 90vw;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.error { background: #b3261e; }
+  </style>
+</head>
+<body>
+
+<div id="gateScreen"><div class="box">Loading…</div></div>
+
+<div id="edShell" class="ed-shell" style="display:none;">
+  <div class="ed-topbar">
+    <div class="title" id="edTitle"><span class="dirty-dot"></span>Website Editor</div>
+    <span class="save-status" id="saveStatus"></span>
+    <button class="ed-btn" id="undoBtn" onclick="doUndo()" disabled title="Undo (Ctrl+Z)"><i class="fas fa-rotate-left"></i></button>
+    <button class="ed-btn" id="redoBtn" onclick="doRedo()" disabled title="Redo (Ctrl+Y)"><i class="fas fa-rotate-right"></i></button>
+    <div class="ed-device-switch">
+      <button class="active" data-device="desktop" onclick="setDevice('desktop')"><i class="fas fa-desktop"></i></button>
+      <button data-device="tablet" onclick="setDevice('tablet')"><i class="fas fa-tablet-screen-button"></i></button>
+      <button data-device="mobile" onclick="setDevice('mobile')"><i class="fas fa-mobile-screen-button"></i></button>
+    </div>
+    <button class="ed-btn" onclick="discardChanges()"><i class="fas fa-arrow-rotate-left"></i> Discard</button>
+    <button class="ed-btn" onclick="saveDraft(true)"><i class="fas fa-floppy-disk"></i> Save Draft</button>
+    <button class="ed-btn accent" onclick="publishPage()"><i class="fas fa-upload"></i> Publish Live</button>
+    <a class="ed-btn" href="admin-dashboard.html" id="backLink"><i class="fas fa-arrow-left"></i></a>
+  </div>
+
+  <div class="ed-body">
+    <div class="ed-sidebar">
+      <div class="ed-section-title">Sections</div>
+      <button class="ed-add-btn" onclick="openAddDrawer()"><i class="fas fa-plus"></i> Add section</button>
+      <div id="sectionList"></div>
+    </div>
+
+    <div class="ed-canvas-wrap">
+      <div class="ed-canvas-frame" id="canvasFrame">
+        <iframe id="previewFrame" title="Page preview"></iframe>
+      </div>
+    </div>
+
+    <div class="ed-inspector" id="inspectorPanel">
+      <div class="ed-inspector-empty">Select a section to edit its content.</div>
+    </div>
+  </div>
+</div>
+
+<div class="ed-drawer-backdrop" id="addDrawer">
+  <div class="ed-drawer">
+    <h3>Add a section</h3>
+    <div class="ed-drawer-grid" id="addDrawerGrid"></div>
+    <button class="ed-drawer-close" onclick="closeAddDrawer()">Cancel</button>
+  </div>
+</div>
+
+<div id="toast"><span id="toastMsg"></span></div>
+
+<script>
+  const ORG_MEDIA_BUCKET = 'org-media';
+  const PAGE_SLUG = new URLSearchParams(window.location.search).get('page') || 'home';
+
+  let ORG = null;
+  let IS_PLATFORM_ADMIN = false;
+  let PAGE_ROW = null;              // the builder_pages row, once loaded/created
+  let CONTENT = { content: [] };    // working draft
+  let SELECTED_ID = null;
+  let DEVICE = 'desktop';
+  let DIRTY = false;
+  let UNDO_STACK = [];
+  let REDO_STACK = [];
+  let quillInstance = null;
+  let autosaveTimer = null;
+
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    t.className = type === 'error' ? 'error' : '';
+    void t.offsetWidth;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 3500);
+  }
+  function escHtml(str) {
+    return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function orgQS() { return ORG ? '?org=' + encodeURIComponent(ORG.slug) : ''; }
+  function findBlock(id) { return CONTENT.content.find(b => b.props && b.props.id === id); }
+  function markDirty() {
+    DIRTY = true;
+    document.getElementById('edTitle').classList.add('dirty');
+    document.getElementById('saveStatus').textContent = 'Unsaved changes';
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(() => saveDraft(false), 1500);
+  }
+  function pushUndo() {
+    UNDO_STACK.push(JSON.stringify(CONTENT));
+    if (UNDO_STACK.length > 50) UNDO_STACK.shift();
+    REDO_STACK = [];
+    updateUndoRedoButtons();
+  }
+  function updateUndoRedoButtons() {
+    document.getElementById('undoBtn').disabled = UNDO_STACK.length === 0;
+    document.getElementById('redoBtn').disabled = REDO_STACK.length === 0;
+  }
+  function doUndo() {
+    if (!UNDO_STACK.length) return;
+    REDO_STACK.push(JSON.stringify(CONTENT));
+    CONTENT = JSON.parse(UNDO_STACK.pop());
+    updateUndoRedoButtons();
+    markDirty();
+    renderAll();
+  }
+  function doRedo() {
+    if (!REDO_STACK.length) return;
+    UNDO_STACK.push(JSON.stringify(CONTENT));
+    CONTENT = JSON.parse(REDO_STACK.pop());
+    updateUndoRedoButtons();
+    markDirty();
+    renderAll();
+  }
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); doUndo(); }
+    if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) { e.preventDefault(); doRedo(); }
+  });
+
+  function setDevice(d) {
+    DEVICE = d;
+    document.querySelectorAll('.ed-device-switch button').forEach(b => b.classList.toggle('active', b.dataset.device === d));
+    const frame = document.getElementById('canvasFrame');
+    frame.className = 'ed-canvas-frame' + (d !== 'desktop' ? ' ' + d : '');
+  }
+
+  /* ── Auth gate (standalone, org-scoped via MFAuth) ── */
+  (async function boot() {
+    const org = await MF.ready;
+    if (!org) return; // org-context.js already rendered not-found/suspended screen
+    ORG = org;
+    document.getElementById('backLink').href = 'admin-dashboard.html' + orgQS();
+
+    if (!MFAuth.loadSession() || !MFAuth.isSignedIn()) {
+      window.location.href = 'admin-login.html' + orgQS() + '&reason=no_session';
+      return;
+    }
+    await MFAuth.loadAdminPermissions();
+    let canEdit = MFAuth.canManage('pages');
+    if (!canEdit) {
+      try {
+        const r = await sb.rpc('current_user_is_platform_admin');
+        IS_PLATFORM_ADMIN = r === true;
+        canEdit = IS_PLATFORM_ADMIN;
+      } catch { /* not a platform admin either */ }
+    } else {
+      try { IS_PLATFORM_ADMIN = (await sb.rpc('current_user_is_platform_admin')) === true; } catch { IS_PLATFORM_ADMIN = false; }
+    }
+    if (!canEdit) {
+      document.getElementById('gateScreen').innerHTML =
+        '<div class="box"><h2>Access denied</h2><p>You need Pages access to use the website editor.</p>' +
+        '<a class="ed-btn" style="color:#c7562d;" href="admin-dashboard.html' + orgQS() + '">Back to dashboard</a></div>';
+      return;
+    }
+
+    document.getElementById('edTitle').innerHTML =
+      '<span class="dirty-dot"></span>Website Editor — ' + escHtml(ORG.name) + ' / ' + escHtml(PAGE_SLUG);
+
+    await loadPage();
+    document.getElementById('gateScreen').style.display = 'none';
+    document.getElementById('edShell').style.display = 'grid';
+    buildAddDrawer();
+    renderAll();
+  })();
+
+  async function loadPage() {
+    try {
+      const rows = await sb.getAll('builder_pages', MF.scope('slug=eq.' + encodeURIComponent(PAGE_SLUG) + '&limit=1'));
+      if (rows && rows[0]) {
+        PAGE_ROW = rows[0];
+        CONTENT = rows[0].draft_json && Array.isArray(rows[0].draft_json.content) ? rows[0].draft_json : { content: [] };
+      } else {
+        PAGE_ROW = null;
+        CONTENT = { content: [] };
+      }
+    } catch (err) {
+      console.error('loadPage', err);
+      showToast('Could not load this page: ' + (err.message || err), 'error');
+    }
+  }
+
+  /* ── Save / discard / publish ── */
+  async function saveDraft(showFeedback) {
+    clearTimeout(autosaveTimer);
+    document.getElementById('saveStatus').textContent = 'Saving…';
+    try {
+      const email = (MFAuth.session.user && MFAuth.session.user.email) || '';
+      const [row] = await sb.upsert('builder_pages', {
+        org_id: ORG.id, slug: PAGE_SLUG, title: (PAGE_ROW && PAGE_ROW.title) || PAGE_SLUG,
+        draft_json: CONTENT, updated_by: email
+      }, 'org_id,slug');
+      if (row) PAGE_ROW = row;
+      DIRTY = false;
+      document.getElementById('edTitle').classList.remove('dirty');
+      document.getElementById('saveStatus').textContent = 'Saved ' + new Date().toLocaleTimeString();
+      if (showFeedback) showToast('Draft saved.');
+    } catch (err) {
+      document.getElementById('saveStatus').textContent = 'Save failed';
+      showToast('Could not save draft: ' + (err.message || err), 'error');
+    }
+  }
+
+  async function discardChanges() {
+    if (!confirm('Discard all unsaved changes and reload the last saved draft?')) return;
+    await loadPage();
+    UNDO_STACK = []; REDO_STACK = [];
+    updateUndoRedoButtons();
+    DIRTY = false;
+    document.getElementById('edTitle').classList.remove('dirty');
+    document.getElementById('saveStatus').textContent = '';
+    SELECTED_ID = null;
+    renderAll();
+    showToast('Reverted to last saved draft.');
+  }
+
+  async function publishPage() {
+    if (!confirm('Publish this page? It will immediately go live for all visitors.')) return;
+    await saveDraft(false);
+    try {
+      const email = (MFAuth.session.user && MFAuth.session.user.email) || '';
+      const [row] = await sb.upsert('builder_pages', {
+        org_id: ORG.id, slug: PAGE_SLUG, title: (PAGE_ROW && PAGE_ROW.title) || PAGE_SLUG,
+        draft_json: CONTENT, published_json: CONTENT, published_at: new Date().toISOString(), updated_by: email
+      }, 'org_id,slug');
+      if (row) PAGE_ROW = row;
+      showToast('Published — live on the public site now.');
+    } catch (err) {
+      showToast('Could not publish: ' + (err.message || err), 'error');
+    }
+  }
+
+  /* ── Block list mutations ── */
+  function addBlock(type) {
+    pushUndo();
+    const block = MFBuilder.newBlock(type);
+    CONTENT.content.push(block);
+    SELECTED_ID = block.props.id;
+    closeAddDrawer();
+    markDirty();
+    renderAll();
+  }
+  function duplicateBlock(id) {
+    const block = findBlock(id);
+    if (!block) return;
+    pushUndo();
+    const copy = JSON.parse(JSON.stringify(block));
+    copy.props.id = MFBuilder.newBlock(block.type).props.id;
+    copy.locked = false;
+    const idx = CONTENT.content.findIndex(b => b.props.id === id);
+    CONTENT.content.splice(idx + 1, 0, copy);
+    SELECTED_ID = copy.props.id;
+    markDirty();
+    renderAll();
+  }
+  function deleteBlock(id) {
+    const block = findBlock(id);
+    if (!block) return;
+    if (block.locked && !IS_PLATFORM_ADMIN) {
+      showToast('This section is locked — only a platform admin can remove it.', 'error');
+      return;
+    }
+    if (!confirm('Delete this section? This cannot be undone once saved.')) return;
+    pushUndo();
+    CONTENT.content = CONTENT.content.filter(b => b.props.id !== id);
+    if (SELECTED_ID === id) SELECTED_ID = null;
+    markDirty();
+    renderAll();
+  }
+  function toggleHidden(id) {
+    const block = findBlock(id);
+    if (!block) return;
+    if (block.locked && !IS_PLATFORM_ADMIN) {
+      showToast('This section is locked.', 'error');
+      return;
+    }
+    pushUndo();
+    block.hidden = !block.hidden;
+    markDirty();
+    renderAll();
+  }
+  function toggleLock(id) {
+    if (!IS_PLATFORM_ADMIN) return;
+    const block = findBlock(id);
+    if (!block) return;
+    pushUndo();
+    block.locked = !block.locked;
+    markDirty();
+    renderAll();
+  }
+  function selectBlock(id) {
+    SELECTED_ID = id;
+    renderSectionList();
+    renderInspector();
+  }
+
+  /* ── Drag-and-drop reordering (native HTML5 DnD, no library) ── */
+  let dragFromIndex = null;
+  function handleDragStart(e, idx) {
+    dragFromIndex = idx;
+    e.currentTarget.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  }
+  function handleDragEnd(e) { e.currentTarget.classList.remove('dragging'); }
+  function handleDragOver(e, idx) { e.preventDefault(); }
+  function handleDrop(e, idx) {
+    e.preventDefault();
+    if (dragFromIndex === null || dragFromIndex === idx) return;
+    pushUndo();
+    const [moved] = CONTENT.content.splice(dragFromIndex, 1);
+    CONTENT.content.splice(idx, 0, moved);
+    dragFromIndex = null;
+    markDirty();
+    renderAll();
+  }
+
+  /* ── Rendering ── */
+  function renderAll() {
+    renderSectionList();
+    renderInspector();
+    renderPreview();
+  }
+
+  function renderSectionList() {
+    const wrap = document.getElementById('sectionList');
+    if (!CONTENT.content.length) {
+      wrap.innerHTML = '<div class="ed-empty">No sections yet. Click "Add section" to start building this page.</div>';
+      return;
+    }
+    wrap.innerHTML = CONTENT.content.map((b, idx) => {
+      const def = MFBuilder.BLOCK_TYPES[b.type] || {};
+      const id = b.props.id;
+      const canModify = !b.locked || IS_PLATFORM_ADMIN;
+      return '<div class="ed-block-row' + (id === SELECTED_ID ? ' selected' : '') + (b.hidden ? ' hidden-block' : '') + '"' +
+        ' draggable="true" data-idx="' + idx + '"' +
+        ' ondragstart="handleDragStart(event,' + idx + ')" ondragend="handleDragEnd(event)"' +
+        ' ondragover="handleDragOver(event,' + idx + ')" ondrop="handleDrop(event,' + idx + ')"' +
+        ' onclick="selectBlock(\'' + id + '\')">' +
+        '<span class="handle"><i class="fas fa-grip-vertical"></i></span>' +
+        '<span class="b-icon"><i class="fas ' + (def.icon || 'fa-cube') + '"></i></span>' +
+        '<span class="b-label">' + escHtml(def.label || b.type) + '</span>' +
+        '<span class="b-actions">' +
+          (b.locked ? '<button class="locked-icon" onclick="event.stopPropagation();' + (IS_PLATFORM_ADMIN ? 'toggleLock(\'' + id + '\')' : 'showToast(\'Locked by a platform admin.\',\'error\')') + '" title="Locked"><i class="fas fa-lock"></i></button>'
+                    : (IS_PLATFORM_ADMIN ? '<button onclick="event.stopPropagation();toggleLock(\'' + id + '\')" title="Lock this section"><i class="fas fa-lock-open"></i></button>' : '')) +
+          '<button onclick="event.stopPropagation();toggleHidden(\'' + id + '\')" title="' + (b.hidden ? 'Show' : 'Hide') + '"><i class="fas ' + (b.hidden ? 'fa-eye-slash' : 'fa-eye') + '"></i></button>' +
+          '<button onclick="event.stopPropagation();duplicateBlock(\'' + id + '\')" title="Duplicate"><i class="fas fa-copy"></i></button>' +
+          (canModify ? '<button onclick="event.stopPropagation();deleteBlock(\'' + id + '\')" title="Delete"><i class="fas fa-trash"></i></button>' : '') +
+        '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  function fieldControl(block, field) {
+    const val = block.props[field.key];
+    const onchange = (v) => `updateBlockProp('${block.props.id}', '${field.key}', ${v})`;
+    switch (field.type) {
+      case 'textarea':
+        return `<textarea oninput="updateBlockProp('${block.props.id}','${field.key}', this.value)">${escHtml(val)}</textarea>`;
+      case 'url':
+      case 'text':
+        return `<input type="text" value="${escHtml(val)}" oninput="updateBlockProp('${block.props.id}','${field.key}', this.value)" />`;
+      case 'number':
+        return `<input type="number" value="${escHtml(val)}" oninput="updateBlockProp('${block.props.id}','${field.key}', this.value)" />`;
+      case 'color':
+        return `<input type="text" placeholder="#RRGGBB" value="${escHtml(val)}" oninput="updateBlockProp('${block.props.id}','${field.key}', this.value)" />`;
+      case 'select':
+        return `<select onchange="updateBlockProp('${block.props.id}','${field.key}', this.value)">` +
+          (field.options || []).map(o => `<option value="${escHtml(o)}"${String(o) === String(val) ? ' selected' : ''}>${escHtml(o)}</option>`).join('') +
+          `</select>`;
+      case 'image':
+        return `<div class="ed-img-preview" style="${val ? `background-image:url('${escHtml(val)}');` : ''}"></div>` +
+          `<input type="file" accept="image/*" style="display:none;" id="imgUpload-${field.key}" onchange="handleImageUpload(event,'${block.props.id}','${field.key}')" />` +
+          `<button type="button" class="ed-upload-btn" onclick="document.getElementById('imgUpload-${field.key}').click()"><i class="fas fa-upload"></i> ${val ? 'Replace image' : 'Upload image'}</button>`;
+      case 'richtext':
+        return `<div id="richtext-${block.props.id}"></div>`;
+      case 'card-list':
+        return renderCardList(block, field);
+      default:
+        return '';
+    }
+  }
+
+  function renderCardList(block, field) {
+    const items = Array.isArray(block.props[field.key]) ? block.props[field.key] : [];
+    const rows = items.map((item, i) => {
+      const inner = field.itemFields.map(f => {
+        const v = item[f.key] || '';
+        const inputHtml = f.type === 'textarea'
+          ? `<textarea oninput="updateCardListField('${block.props.id}','${field.key}',${i},'${f.key}', this.value)">${escHtml(v)}</textarea>`
+          : `<input type="text" value="${escHtml(v)}" oninput="updateCardListField('${block.props.id}','${field.key}',${i},'${f.key}', this.value)" />`;
+        return `<div class="ed-field" style="margin-bottom:6px;"><label>${escHtml(f.label)}</label>${inputHtml}</div>`;
+      }).join('');
+      return `<div class="ed-card-item"><button type="button" class="ed-card-remove" onclick="removeCardListItem('${block.props.id}','${field.key}',${i})">Remove</button>${inner}</div>`;
+    }).join('');
+    return rows + `<button type="button" class="ed-add-btn" style="margin-bottom:0;" onclick="addCardListItem('${block.props.id}','${field.key}')"><i class="fas fa-plus"></i> Add</button>`;
+  }
+
+  function updateBlockProp(id, key, value) {
+    const block = findBlock(id);
+    if (!block) return;
+    block.props[key] = value;
+    markDirty();
+    renderSectionList();
+    renderPreview();
+  }
+  function updateCardListField(id, listKey, idx, itemKey, value) {
+    const block = findBlock(id);
+    if (!block || !Array.isArray(block.props[listKey])) return;
+    block.props[listKey][idx][itemKey] = value;
+    markDirty();
+    renderPreview();
+  }
+  function addCardListItem(id, listKey) {
+    const block = findBlock(id);
+    if (!block) return;
+    pushUndo();
+    if (!Array.isArray(block.props[listKey])) block.props[listKey] = [];
+    const def = MFBuilder.BLOCK_TYPES[block.type].fields.find(f => f.key === listKey);
+    const blank = {};
+    (def.itemFields || []).forEach(f => blank[f.key] = '');
+    block.props[listKey].push(blank);
+    markDirty();
+    renderInspector();
+    renderPreview();
+  }
+  function removeCardListItem(id, listKey, idx) {
+    const block = findBlock(id);
+    if (!block || !Array.isArray(block.props[listKey])) return;
+    pushUndo();
+    block.props[listKey].splice(idx, 1);
+    markDirty();
+    renderInspector();
+    renderPreview();
+  }
+
+  async function handleImageUpload(evt, blockId, propKey) {
+    const file = evt.target.files[0];
+    if (!file) return;
+    try {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = ORG.id + '/page-builder/' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+      const encoded = path.split('/').map(encodeURIComponent).join('/');
+      const res = await fetch(sb.url + '/storage/v1/object/' + ORG_MEDIA_BUCKET + '/' + encoded, {
+        method: 'POST',
+        headers: {
+          apikey: sb.key,
+          Authorization: 'Bearer ' + (sb.session && sb.session.access_token),
+          'x-upsert': 'true',
+          'Content-Type': file.type || 'application/octet-stream'
+        },
+        body: file
+      });
+      if (!res.ok) throw new Error('Upload failed (' + res.status + ')');
+      const url = sb.url + '/storage/v1/object/public/' + ORG_MEDIA_BUCKET + '/' + encoded;
+      updateBlockProp(blockId, propKey, url);
+      renderInspector();
+      showToast('Image uploaded.');
+    } catch (err) {
+      showToast('Upload failed: ' + (err.message || err), 'error');
+    }
+  }
+
+  function renderInspector() {
+    const panel = document.getElementById('inspectorPanel');
+    if (!SELECTED_ID) {
+      panel.innerHTML = '<div class="ed-inspector-empty">Select a section to edit its content.</div>';
+      return;
+    }
+    const block = findBlock(SELECTED_ID);
+    if (!block) { panel.innerHTML = '<div class="ed-inspector-empty">Section not found.</div>'; return; }
+    const def = MFBuilder.BLOCK_TYPES[block.type];
+    const readOnly = block.locked && !IS_PLATFORM_ADMIN;
+    let html = '<div class="ed-section-title">' + escHtml(def.label) + '</div>';
+    if (readOnly) {
+      html += '<div class="ed-field" style="background:#fbe9e8;border-radius:6px;padding:10px;font-size:12px;color:#b3261e;"><i class="fas fa-lock"></i> Locked by a platform admin — content can\'t be edited here.</div>';
+      panel.innerHTML = html;
+      return;
+    }
+    def.fields.forEach(f => {
+      html += '<div class="ed-field"><label>' + escHtml(f.label) + '</label>' + fieldControl(block, f) + '</div>';
+    });
+    panel.innerHTML = html;
+
+    const richtextField = def.fields.find(f => f.type === 'richtext');
+    if (richtextField) {
+      const mount = document.getElementById('richtext-' + block.props.id);
+      if (mount) {
+        quillInstance = new Quill(mount, { theme: 'snow' });
+        quillInstance.root.innerHTML = block.props[richtextField.key] || '';
+        quillInstance.on('text-change', () => {
+          block.props[richtextField.key] = quillInstance.root.innerHTML;
+          markDirty();
+          renderPreview();
+        });
+      }
+    }
+  }
+
+  function baseIframeCss() {
+    const accent = (ORG.accent_color && /^#[0-9a-f]{6}$/i.test(ORG.accent_color)) ? ORG.accent_color : '#c7562d';
+    const ink = (ORG.ink_color && /^#[0-9a-f]{6}$/i.test(ORG.ink_color)) ? ORG.ink_color : '#1a1613';
+    return `:root{--accent:${accent};--ink:${ink};--on-accent:#fff;}
+      body{margin:0;font-family:'Inter',sans-serif;color:${ink};}
+      @media (max-width:640px){ [style*="grid-template-columns"]{ grid-template-columns:1fr !important; } }`;
+  }
+
+  async function renderPreview() {
+    const html = await MFBuilder.renderPage(CONTENT, { orgId: ORG.id, sb });
+    const doc = `<!DOCTYPE html><html><head><meta charset="utf-8">
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+      <style>${baseIframeCss()}</style></head><body>${html || '<div style="padding:80px 24px;text-align:center;color:#8a8072;font-family:sans-serif;">Add a section to see it here.</div>'}</body></html>`;
+    document.getElementById('previewFrame').srcdoc = doc;
+  }
+
+  /* ── Add-section drawer ── */
+  function buildAddDrawer() {
+    const grid = document.getElementById('addDrawerGrid');
+    grid.innerHTML = Object.keys(MFBuilder.BLOCK_TYPES).map(type => {
+      const def = MFBuilder.BLOCK_TYPES[type];
+      return `<button type="button" onclick="addBlock('${type}')"><i class="fas ${def.icon}"></i>${escHtml(def.label)}</button>`;
+    }).join('');
+  }
+  function openAddDrawer() { document.getElementById('addDrawer').classList.add('show'); }
+  function closeAddDrawer() { document.getElementById('addDrawer').classList.remove('show'); }
+
+  window.addEventListener('beforeunload', (e) => {
+    if (DIRTY) { e.preventDefault(); e.returnValue = ''; }
+  });
+</script>
+
+</body>
+</html>

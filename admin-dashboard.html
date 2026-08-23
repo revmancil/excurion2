@@ -881,9 +881,10 @@
         <div class="section-card-header">
           <h3><i class="fas fa-edit icon-brand"></i>Page Content Editor</h3>
           <span>Select a page section to edit</span>
+          <a id="openVisualEditorBtn" href="website-editor.html" class="btn-sm view" style="margin-left:auto;"><i class="fas fa-wand-magic-sparkles"></i> Open Visual Editor</a>
         </div>
         <div class="section-card-body">
-          <p class="hint-text">Pick a page, then a section, and edit it with the rich-text editor. Use <strong>Advanced (Full Page Override)</strong> only when you need to replace an entire page with custom HTML.</p>
+          <p class="hint-text">Pick a page, then a section, and edit it with the rich-text editor. Use <strong>Advanced (Full Page Override)</strong> only when you need to replace an entire page with custom HTML. Prefer a drag-and-drop layout instead? Try the <strong>Visual Editor</strong> above — it replaces this page's content with your own sections (Hero, Feature Grid, etc.) once you publish from there.</p>
           <div id="pageEditorNotice" style="display:none;"></div>
 
           <div class="section-tabs" id="pageTabs"></div>
@@ -2522,6 +2523,8 @@ function bootFail(title, msg, linkHtml) {
   const vsBtn = document.getElementById('viewSiteBtn');
   if (vsLink) vsLink.href = home;
   if (vsBtn) vsBtn.href = home;
+  const openVisualEditorBtn = document.getElementById('openVisualEditorBtn');
+  if (openVisualEditorBtn) openVisualEditorBtn.href = 'website-editor.html' + orgQS();
 
   if (!MFAuth.loadSession()) {
     window.location.href = 'admin-login.html' + orgQS() + '&reason=no_session';
