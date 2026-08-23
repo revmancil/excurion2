@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Find Your Organization | MemberForge</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="description" content="Search for your organization to sign in to its member portal or admin dashboard." />
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <script>
+    // This page never belongs to a specific org — it exists to help a
+    // visitor FIND theirs — so org-context.js must not show its usual
+    // "couldn't find that organization" screen here.
+    window.MEMBERFORGE_ALLOW_NO_ORG = true;
+  </script>
+  <script src="js/memberforge-client.js"></script>
+  <script src="js/org-context.js"></script>
+  <style>
+    body { background: var(--mf-paper); color: var(--mf-ink-3); }
+
+    /* ---------- Marketing nav (matches pricing.html / stories.html) ---------- */
+    .mf-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 40px;
+      border-bottom: 1px solid var(--mf-line-2);
+    }
+    .mf-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .mf-logo .mark {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--mf-accent); color: #fff;
+      display: grid; place-items: center;
+      font-family: var(--mf-serif); font-weight: 700; font-size: 17px; letter-spacing: -0.03em;
+      box-shadow: 0 2px 6px rgba(26,22,19,0.12), inset 0 -2px 0 rgba(0,0,0,0.15);
+      flex-shrink: 0;
+    }
+    .mf-logo .word { font-family: var(--mf-serif); font-weight: 500; font-size: 19px; letter-spacing: -0.02em; color: var(--mf-ink); }
+    .mf-nav-links { display: flex; align-items: center; gap: 4px; }
+    .mf-nav-links a { padding: 8px 14px; font-size: 14px; border-radius: 6px; color: var(--mf-ink-3); font-weight: 400; }
+    .mf-nav-links a:hover { color: var(--mf-ink); }
+    .mf-nav-right { display: flex; align-items: center; gap: 8px; }
+    @media (max-width: 900px) {
+      .mf-nav-links { display: none; }
+      .mf-nav { padding: 16px 20px; }
+    }
+
+    /* ---------- Search ---------- */
+    .find-wrap { max-width: 560px; margin: 0 auto; padding: 72px 24px 100px; }
+    .find-head { text-align: center; margin-bottom: 32px; }
+    .find-input-wrap { position: relative; margin-bottom: 8px; }
+    .find-input-wrap i.search-icon {
+      position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+      color: var(--mf-muted); font-size: 15px;
+    }
+    #orgSearchInput {
+      width: 100%; padding: 15px 18px 15px 46px; font-size: 16px;
+      border: 1.5px solid var(--mf-line); border-radius: var(--mf-radius-lg);
+      background: #fff; color: var(--mf-ink); font-family: var(--mf-sans);
+      transition: border-color .15s ease;
+    }
+    #orgSearchInput:focus { outline: none; border-color: var(--mf-accent); }
+    .find-hint { font-size: 13px; color: var(--mf-muted); text-align: center; margin-bottom: 28px; }
+
+    .org-result-list { display: flex; flex-direction: column; gap: 10px; min-height: 40px; }
+    .org-result {
+      display: flex; align-items: center; gap: 14px;
+      background: #fff; border: 1px solid var(--mf-line); border-radius: var(--mf-radius-lg);
+      padding: 14px 16px;
+    }
+    .org-result-logo {
+      width: 40px; height: 40px; border-radius: 8px; object-fit: cover; flex-shrink: 0;
+      background: var(--mf-paper-2); border: 1px solid var(--mf-line-2);
+    }
+    .org-result-logo-fallback {
+      width: 40px; height: 40px; border-radius: 8px; flex-shrink: 0;
+      background: var(--mf-accent-pale, var(--mf-paper-2)); color: var(--mf-accent);
+      display: grid; place-items: center; font-family: var(--mf-serif); font-weight: 600; font-size: 16px;
+    }
+    .org-result-name { font-weight: 500; color: var(--mf-ink); font-size: 15px; flex: 1; min-width: 0; }
+    .org-result-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .org-result-actions a {
+      font-size: 13px; padding: 7px 12px; border-radius: 6px; white-space: nowrap;
+      border: 1px solid var(--mf-line); color: var(--mf-ink-3);
+    }
+    .org-result-actions a:hover { border-color: var(--mf-accent); color: var(--mf-accent); }
+    .org-result-actions a.primary { background: var(--mf-ink); color: #fff; border-color: var(--mf-ink); }
+    .org-result-actions a.primary:hover { color: #fff; opacity: 0.9; }
+
+    .find-empty, .find-idle {
+      text-align: center; padding: 32px 16px; color: var(--mf-muted); font-size: 14px;
+    }
+    .find-footer-note {
+      text-align: center; margin-top: 32px; padding-top: 24px;
+      border-top: 1px solid var(--mf-line-2); font-size: 14px; color: var(--mf-muted);
+    }
+    .find-footer-note a { color: var(--mf-accent); font-weight: 500; }
+  </style>
+</head>
+<body>
+
+  <!-- ============ NAV ============ -->
+  <nav class="mf-nav">
+    <a href="index.html" class="mf-logo">
+      <span class="mark">M</span>
+      <span class="word">MemberForge</span>
+    </a>
+    <div class="mf-nav-links">
+      <a href="index.html">Product</a>
+      <a href="index.html#audiences">Who it&rsquo;s for</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="stories.html">Stories</a>
+    </div>
+    <div class="mf-nav-right">
+      <a href="signup.html" class="mf-btn accent sm">Start your chapter <i class="fas fa-arrow-right" style="font-size:10px;"></i></a>
+    </div>
+  </nav>
+
+  <div class="find-wrap">
+    <div class="find-head">
+      <span class="mf-eyebrow">Sign in</span>
+      <h1 class="mf-h2" style="margin-top:12px;">Find your organization</h1>
+    </div>
+
+    <div class="find-input-wrap">
+      <i class="fas fa-search search-icon"></i>
+      <input type="text" id="orgSearchInput" placeholder="Search by organization name…" autocomplete="off" autofocus />
+    </div>
+    <p class="find-hint">Type at least 2 characters. Results are your organization&rsquo;s public name — nothing private is shown here.</p>
+
+    <div id="orgResults" class="org-result-list">
+      <div class="find-idle" id="orgIdleMsg">Start typing to search.</div>
+    </div>
+
+    <div class="find-footer-note">
+      Already know your organization&rsquo;s link? Go straight to <code>member-login.html?org=&lt;your-slug&gt;</code>.<br />
+      Don&rsquo;t have an organization yet? <a href="signup.html">Create one free</a>.
+    </div>
+  </div>
+
+  <script>
+    const resultsEl = document.getElementById('orgResults');
+    const idleMsg = document.getElementById('orgIdleMsg');
+    let searchTimer = null;
+    let searchSeq = 0;
+
+    function escHtml(str) {
+      return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function renderResults(orgs) {
+      if (!orgs.length) {
+        resultsEl.innerHTML = '<div class="find-empty">No organizations matched that search.</div>';
+        return;
+      }
+      resultsEl.innerHTML = orgs.map(org => {
+        const slug = encodeURIComponent(org.slug);
+        const logo = org.logo_url
+          ? '<img class="org-result-logo" src="' + escHtml(org.logo_url) + '" alt="" />'
+          : '<div class="org-result-logo-fallback">' + escHtml((org.name || '?').charAt(0).toUpperCase()) + '</div>';
+        return '<div class="org-result">' + logo +
+          '<div class="org-result-name">' + escHtml(org.name) + '</div>' +
+          '<div class="org-result-actions">' +
+            '<a href="member-login.html?org=' + slug + '">Member login</a>' +
+            '<a class="primary" href="admin-login.html?org=' + slug + '">Admin login</a>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    async function searchOrgs(query) {
+      const mySeq = ++searchSeq;
+      try {
+        const q = encodeURIComponent(query.replace(/[%,]/g, ''));
+        const rows = await sb.getAll(
+          'organizations',
+          'select=slug,name,logo_url&name=ilike.*' + q + '*&order=name.asc&limit=8'
+        );
+        if (mySeq !== searchSeq) return; // a newer search superseded this one
+        renderResults(rows || []);
+      } catch (err) {
+        if (mySeq !== searchSeq) return;
+        resultsEl.innerHTML = '<div class="find-empty">Search failed — please try again.</div>';
+        console.error('org search', err);
+      }
+    }
+
+    document.getElementById('orgSearchInput').addEventListener('input', (e) => {
+      const value = e.target.value.trim();
+      clearTimeout(searchTimer);
+      if (value.length < 2) {
+        searchSeq++; // invalidate any in-flight search
+        idleMsg.textContent = value.length ? 'Keep typing… (2 characters minimum)' : 'Start typing to search.';
+        resultsEl.innerHTML = '';
+        resultsEl.appendChild(idleMsg);
+        return;
+      }
+      searchTimer = setTimeout(() => searchOrgs(value), 250);
+    });
+  </script>
+
+</body>
+</html>

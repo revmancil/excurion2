@@ -223,8 +223,8 @@
 
   function orgNotFound(noSubdomainRouting) {
     const hint = noSubdomainRouting
-      ? `This looks like a shared preview URL with no tenant subdomain routing yet — add <code>?org=&lt;your-org-slug&gt;</code> to the address bar, or <a href="/signup.html" style="color:#d97250;">create an organization</a> if you haven't yet.`
-      : `Check the link you used, or if you're setting up MemberForge for the first time, <a href="/signup.html" style="color:#d97250;">create your organization</a>.`;
+      ? `This looks like a shared preview URL with no tenant subdomain routing yet — add <code>?org=&lt;your-org-slug&gt;</code> to the address bar, <a href="/find-org.html" style="color:#d97250;">find your organization</a>, or <a href="/signup.html" style="color:#d97250;">create one</a> if you haven't yet.`
+      : `Check the link you used, <a href="/find-org.html" style="color:#d97250;">find your organization</a>, or <a href="/signup.html" style="color:#d97250;">create one</a> if you're setting up MemberForge for the first time.`;
     document.body.innerHTML = `
       <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;background:#1a1613;color:#fff;text-align:center;padding:24px;">
         <div>
