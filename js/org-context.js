@@ -160,6 +160,30 @@
     document.dispatchEvent(new CustomEvent('mf:branded', { detail: org }));
   }
 
+  // Only does anything when the CURRENT page's URL carries an explicit
+  // ?org=<slug> override — i.e. no wildcard subdomain/custom domain is live
+  // yet, so this is the only way a link "remembers" which tenant it's on.
+  // Every plain <a href="member-login.html">-style internal link on a page
+  // resolved this way silently drops the org the instant it's clicked,
+  // landing the visitor on the "couldn't find that organization" screen —
+  // this rewrites those links (once, at load) to carry the override
+  // forward. Once a real subdomain/custom domain is in place, the browser
+  // naturally stays on the same host across every navigation and there's
+  // no ?org= in the URL to propagate, so this becomes a no-op on its own.
+  function propagateOrgOverrideToLinks(slug) {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.get('org')) return;
+    document.querySelectorAll('a[href]').forEach(a => {
+      const href = a.getAttribute('href');
+      if (!href) return;
+      if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('javascript:')) return;
+      if (/^[a-z][a-z0-9+.-]*:\/\//i.test(href) || href.startsWith('//')) return; // absolute/external
+      if (/[?&]org=/.test(href)) return; // already carries one
+      const sep = href.includes('?') ? '&' : '?';
+      a.setAttribute('href', href + sep + 'org=' + encodeURIComponent(slug));
+    });
+  }
+
   // Detects "nobody has pointed js/memberforge-client.js at a real Supabase
   // project yet" — i.e. this is being viewed (e.g. via GitHub Pages) before
   // setup, not a real deployment having an outage. Only in that specific
@@ -305,6 +329,7 @@
       }
       MF.org = org;
       applyBranding(org);
+      propagateOrgOverrideToLinks(org.slug);
       return org;
     } catch (err) {
       console.error('MemberForge: failed to resolve organization', err);
