@@ -185,16 +185,10 @@ def draw_cover(c, doc):
     c.setFont("Body-Bold", 12)
     c.setFillColor(colors.white)
     x = 1.4 * inch + c.stringWidth("Brought to you by ", "Body", 10.5)
-    c.drawString(x, 0.5 * inch, "MissionLedger.fund")
-    w1 = c.stringWidth("MissionLedger.fund", "Body-Bold", 12)
-    c.linkURL(ML_URL, (x, 0.45 * inch, x + w1, 0.7 * inch), relative=0)
-    c.setFillColor(GOLD)
-    c.drawString(x + w1 + 8, 0.5 * inch, "•")
-    x2 = x + w1 + 22
-    c.setFillColor(colors.white)
-    c.drawString(x2, 0.5 * inch, "FrontlineBookkeeping.com")
-    w2 = c.stringWidth("FrontlineBookkeeping.com", "Body-Bold", 12)
-    c.linkURL(FB_URL, (x2, 0.45 * inch, x2 + w2, 0.7 * inch), relative=0)
+    sponsor = "Frontline Bookkeeping Solutions"
+    c.drawString(x, 0.5 * inch, sponsor)
+    w1 = c.stringWidth(sponsor, "Body-Bold", 12)
+    c.linkURL(FB_URL, (x, 0.45 * inch, x + w1, 0.7 * inch), relative=0)
     c.restoreState()
 
 
