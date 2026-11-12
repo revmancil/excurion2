@@ -24,6 +24,14 @@ BRAND = {
     "year": "2026",
 }
 
+# The author's own businesses, promoted inside the guide.
+ML_URL = "https://missionledger.fund"
+FB_URL = "https://frontlinebookkeeping.com"
+ML = '<a href="%s" color="#1F3A5F"><b>MissionLedger</b></a>' % ML_URL
+FB = '<a href="%s" color="#1F3A5F"><b>Frontline Bookkeeping</b></a>' % FB_URL
+ML_LINK = '<a href="%s" color="#2A9D8F"><u>missionledger.fund</u></a>' % ML_URL
+FB_LINK = '<a href="%s" color="#2A9D8F"><u>frontlinebookkeeping.com</u></a>' % FB_URL
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "Nonprofit-Accounting-Handbook.pdf")
 
@@ -167,7 +175,26 @@ def draw_cover(c, doc):
     if BRAND["publisher"]:
         c.setFont("Body-Bold", 11)
         c.setFillColor(colors.white)
-        c.drawString(1.4 * inch, 0.8 * inch, BRAND["publisher"])
+        c.drawString(1.4 * inch, 1.15 * inch, BRAND["publisher"])
+    # sponsor strip
+    c.setFillColor(colors.HexColor("#162A46"))
+    c.rect(0, 0, W, 0.85 * inch, stroke=0, fill=1)
+    c.setFont("Body", 10.5)
+    c.setFillColor(colors.HexColor("#A8C6E5"))
+    c.drawString(1.4 * inch, 0.5 * inch, "Brought to you by")
+    c.setFont("Body-Bold", 12)
+    c.setFillColor(colors.white)
+    x = 1.4 * inch + c.stringWidth("Brought to you by ", "Body", 10.5)
+    c.drawString(x, 0.5 * inch, "MissionLedger.fund")
+    w1 = c.stringWidth("MissionLedger.fund", "Body-Bold", 12)
+    c.linkURL(ML_URL, (x, 0.45 * inch, x + w1, 0.7 * inch), relative=0)
+    c.setFillColor(GOLD)
+    c.drawString(x + w1 + 8, 0.5 * inch, "•")
+    x2 = x + w1 + 22
+    c.setFillColor(colors.white)
+    c.drawString(x2, 0.5 * inch, "FrontlineBookkeeping.com")
+    w2 = c.stringWidth("FrontlineBookkeeping.com", "Body-Bold", 12)
+    c.linkURL(FB_URL, (x2, 0.45 * inch, x2 + w2, 0.7 * inch), relative=0)
     c.restoreState()
 
 
@@ -222,7 +249,8 @@ def checklist(items):
 
 
 def box(title, body, kind="tip"):
-    bg, edge = {"tip": (TEAL_LT, TEAL), "warn": (RED_LT, RED), "note": (GOLD_LT, GOLD)}[kind]
+    bg, edge = {"tip": (TEAL_LT, TEAL), "warn": (RED_LT, RED), "note": (GOLD_LT, GOLD),
+                "brand": (colors.HexColor("#EAF0F7"), NAVY)}[kind]
     tstyle = ParagraphStyle("bt", parent=S["boxtitle"], textColor=edge)
     content = [Paragraph(title, tstyle)]
     if isinstance(body, str):
@@ -345,6 +373,10 @@ P("<b>Disclaimer.</b> This handbook provides general educational information abo
   "change, and state requirements vary. Figures cited reflect the author's understanding as of "
   "late 2026. Before acting, confirm current requirements with the IRS, your state charity "
   "regulator, and a qualified CPA or attorney.", "small")
+SP(10)
+P("<b>Disclosure.</b> The author owns MissionLedger (%s) and Frontline Bookkeeping (%s), which "
+  "are mentioned in this handbook. The guidance in this book applies whatever software or "
+  "bookkeeper you use." % (ML_LINK, FB_LINK), "small")
 
 # TOC
 story.append(PageBreak())
@@ -429,6 +461,9 @@ P("Most accounting software handles this with <b>classes</b>, <b>tags</b>, <b>lo
   "nonprofit-specific systems such as Aplos, Sage Intacct, or Financial Edge have true fund "
   "modules. The tool matters less than the discipline: <i>every restricted dollar in, and every "
   "dollar spent from it, carries the same tag.</i>")
+box("From the author: MissionLedger",
+    "%s is nonprofit accounting software I built to make the practices in this handbook part "
+    "of your everyday routine. See it at %s." % (ML, ML_LINK), "brand")
 H2("Accrual vs. cash basis")
 P("<b>Cash basis</b> records revenue when money arrives and expenses when money leaves. It is "
   "simple and many very small organizations use it for day-to-day bookkeeping.")
@@ -521,6 +556,11 @@ table([
 ], [1.6, 1.8, 1, 1, 1, 1], num_cols=(2, 3, 4, 5), total_rows=(5,))
 P("Total ending balance must equal net assets with donor restrictions on your Statement of "
   "Financial Position. If it doesn't, something was coded to the wrong column.", "small")
+SP(6)
+box("Outgrowing the spreadsheet?",
+    "When restricted gifts multiply, a spreadsheet tracker gets fragile. %s is nonprofit "
+    "accounting software designed for organizations like yours. Learn more at %s."
+    % (ML, ML_LINK), "brand")
 
 # =====================================================================
 chapter("CHAPTER 3", "Building Your Chart of Accounts",
@@ -1095,6 +1135,9 @@ checklist([
     "Lock the period in your accounting software.",
     "Send the package to the executive director and treasurer.",
 ])
+box("Rather hand off the monthly close?",
+    "%s can take bookkeeping off your plate, so you can focus on the mission. Learn more at %s."
+    % (FB, FB_LINK), "brand")
 H2("Annual compliance calendar")
 P("For a calendar-year (January–December) organization. Shift dates for other fiscal years.")
 table([
@@ -1141,6 +1184,9 @@ checklist([
     "Assemble policies: financial, conflict of interest, whistleblower, document retention.",
     "Designate one point person to coordinate requests.",
 ])
+box("Books not audit-ready?",
+    "If your books need cleanup before an audit or review, %s can help you get caught up. "
+    "Visit %s." % (FB, FB_LINK), "brand")
 H2("The board's financial responsibilities")
 P("Board members have a <b>fiduciary duty</b>—the duties of care, loyalty, and obedience. "
   "Financially, that means the board should:")
@@ -1328,6 +1374,61 @@ gloss = [
 ]
 table([["Term", "Definition"]] + [["<b>%s</b>" % a, b] for a, b in gloss], [1.9, 4.9])
 
+# =====================================================================
+chapter("", "Put This Handbook to Work",
+        "Two ways to turn what you've learned into books you can trust: the right software, "
+        "or a bookkeeper who does it for you.", "Get Expert Help")
+
+
+def promo_card(kicker, name, url_link, pitch, points, cta, accent):
+    head_st = ParagraphStyle("pk", parent=S["kicker"], textColor=accent)
+    name_st = ParagraphStyle("pn", parent=S["h2"], spaceBefore=0, spaceAfter=4, fontSize=20,
+                             leading=24)
+    inner = [Paragraph(kicker, head_st), Paragraph(name, name_st),
+             Paragraph(pitch, S["boxbody"]), Spacer(1, 2)]
+    for pt in points:
+        inner.append(Paragraph(pt, ParagraphStyle("pp", parent=S["boxbody"], leftIndent=14,
+                                                  bulletIndent=2), bulletText="•"))
+    inner.append(Spacer(1, 6))
+    btn = Table([[Paragraph(cta, ParagraphStyle("cta", parent=S["cellh"], fontSize=11,
+                                                alignment=TA_CENTER))]],
+                colWidths=[3.2 * inch])
+    btn.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), accent),
+                             ("TOPPADDING", (0, 0), (-1, -1), 7),
+                             ("BOTTOMPADDING", (0, 0), (-1, -1), 7)]))
+    btn.hAlign = "LEFT"
+    inner.append(btn)
+    t = Table([[inner]], colWidths=[doc.width])
+    t.setStyle(TableStyle([
+        ("BOX", (0, 0), (-1, -1), 0.8, GRID),
+        ("LINEABOVE", (0, 0), (-1, 0), 5, accent),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+        ("LEFTPADDING", (0, 0), (-1, -1), 18), ("RIGHTPADDING", (0, 0), (-1, -1), 18),
+        ("TOPPADDING", (0, 0), (-1, -1), 14), ("BOTTOMPADDING", (0, 0), (-1, -1), 16),
+    ]))
+    story.append(KeepTogether([t, Spacer(1, 16)]))
+
+
+promo_card(
+    "DO IT YOURSELF, WITH THE RIGHT TOOL", "MissionLedger", ML_LINK,
+    "Nonprofit accounting software from the author of this handbook, built so the practices "
+    "in these pages become part of your everyday routine.",
+    ["Made for nonprofits, not adapted from small-business software",
+     "Supports the habits this guide teaches: tracking restricted funds, "
+     "tagging expenses by function, and clear reports for your board",
+     "Helps you stay organized for Form 990 season and your auditor"],
+    '<a href="%s" color="white">Visit missionledger.fund →</a>' % ML_URL, TEAL)
+promo_card(
+    "LET A PRO HANDLE IT", "Frontline Bookkeeping", FB_LINK,
+    "Done-for-you bookkeeping from the author of this handbook. If you would rather spend your "
+    "time on the mission than on reconciliations, hand the books to us.",
+    ["Ongoing monthly bookkeeping and reconciliations",
+     "Catch-up and cleanup for books that have fallen behind",
+     "Clear monthly reports you can hand straight to your board"],
+    '<a href="%s" color="white">Visit frontlinebookkeeping.com →</a>' % FB_URL, NAVY)
+P("Not sure which fits? Start with MissionLedger if you have someone in-house to keep the books, "
+  "or Frontline Bookkeeping if you don't.", "small")
+
 # closing page
 story.append(NextPageTemplate("plain"))
 story.append(PageBreak())
@@ -1343,6 +1444,7 @@ numbered([
     "Build your restricted-funds tracker (Chapter 2) and reconcile it this month.",
     "Adopt the month-end checklist (Chapter 11) and put the compliance calendar on everyone's calendar.",
     "Share the board dashboard (Chapter 12) at your next board meeting.",
+    "Want help? Try %s or %s." % (ML_LINK, FB_LINK),
 ])
 
 doc.multiBuild(story)

@@ -53,7 +53,7 @@ def bullets(d, items, x, y, size, gap):
 W, H = 1600, 900
 im = background(W, H).convert("RGBA")
 d = ImageDraw.Draw(im)
-d.text((90, 110), "41-PAGE PDF GUIDE  •  2026 EDITION", font=bold(26), fill=(168, 198, 229))
+d.text((90, 110), "42-PAGE PDF GUIDE  •  2026 EDITION", font=bold(26), fill=(168, 198, 229))
 d.text((90, 160), "The Nonprofit", font=head(78), fill="white")
 d.text((90, 248), "Accounting Handbook", font=head(78), fill="white")
 d.rectangle([90, 362, 210, 369], fill=GOLD)
@@ -82,7 +82,7 @@ txt = "Nonprofit Accounting, Made Simple"
 tw = d.textlength(txt, font=head(56))
 d.text(((S - tw) / 2, 28), txt, font=head(56), fill="white")
 d.rectangle([0, 1110, S, S], fill=(22, 42, 70))
-txt = "41 pages  •  Templates  •  Checklists  •  Glossary"
+txt = "42 pages  •  Templates  •  Checklists  •  Glossary"
 tw = d.textlength(txt, font=bold(38))
 d.text(((S - tw) / 2, 1130), txt, font=bold(38), fill=LIGHT)
 im.convert("RGB").save("thumbnail-1200x1200.png", optimize=True)

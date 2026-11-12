@@ -16,7 +16,7 @@ Finally understand your nonprofit's books without an accounting degree.
 
 ## Short description (≈ 300 characters, for previews and social posts)
 
-A 41-page, plain-English guide to nonprofit accounting. Learn how to track donor restrictions, set up a chart of accounts, record grants and in-kind gifts, read your financial statements, and stay on the right side of the IRS. Includes checklists, templates, and a glossary. Instant PDF download.
+A 42-page, plain-English guide to nonprofit accounting. Learn how to track donor restrictions, set up a chart of accounts, record grants and in-kind gifts, read your financial statements, and stay on the right side of the IRS. Includes checklists, templates, and a glossary. Instant PDF download.
 
 ---
 
@@ -63,7 +63,7 @@ No accounting degree required. Every technical term is explained when it first a
 
 ### Details
 
-- **Format:** PDF, 41 pages, US Letter size
+- **Format:** PDF, 42 pages, US Letter size
 - **Delivery:** Instant download
 - **Works on:** Any computer, tablet, or phone. Print-friendly.
 - **Edition:** 2026, reflecting current FASB nonprofit standards and IRS rules
@@ -108,4 +108,4 @@ Optional bundle: offer the guide plus an editable budget/tracker spreadsheet for
 
 ## Social post (short)
 
-> Nonprofit leaders: if "net assets with donor restrictions" makes your eyes glaze over, I made something for you. 📘 *The Nonprofit Accounting Handbook* is a 41-page, plain-English guide with checklists and templates for bookkeeping, financial statements, and Form 990. Instant download → [link]
+> Nonprofit leaders: if "net assets with donor restrictions" makes your eyes glaze over, I made something for you. 📘 *The Nonprofit Accounting Handbook* is a 42-page, plain-English guide with checklists and templates for bookkeeping, financial statements, and Form 990. Instant download → [link]
