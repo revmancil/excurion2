@@ -28,7 +28,7 @@ BRAND = {
 ML_URL = "https://missionledger.fund"
 FB_URL = "https://frontlinebookkeeping.com"
 ML = '<a href="%s" color="#1F3A5F"><b>MissionLedger</b></a>' % ML_URL
-FB = '<a href="%s" color="#1F3A5F"><b>Frontline Bookkeeping</b></a>' % FB_URL
+FB = '<a href="%s" color="#1F3A5F"><b>Frontline Bookkeeping Solutions</b></a>' % FB_URL
 ML_LINK = '<a href="%s" color="#2A9D8F"><u>missionledger.fund</u></a>' % ML_URL
 FB_LINK = '<a href="%s" color="#2A9D8F"><u>frontlinebookkeeping.com</u></a>' % FB_URL
 
@@ -368,7 +368,7 @@ P("<b>Disclaimer.</b> This handbook provides general educational information abo
   "late 2026. Before acting, confirm current requirements with the IRS, your state charity "
   "regulator, and a qualified CPA or attorney.", "small")
 SP(10)
-P("<b>Disclosure.</b> The author owns MissionLedger (%s) and Frontline Bookkeeping (%s), which "
+P("<b>Disclosure.</b> The author owns MissionLedger (%s) and Frontline Bookkeeping Solutions (%s), which "
   "are mentioned in this handbook. The guidance in this book applies whatever software or "
   "bookkeeper you use." % (ML_LINK, FB_LINK), "small")
 
@@ -1413,7 +1413,7 @@ promo_card(
      "Helps you stay organized for Form 990 season and your auditor"],
     '<a href="%s" color="white">Visit missionledger.fund →</a>' % ML_URL, TEAL)
 promo_card(
-    "LET A PRO HANDLE IT", "Frontline Bookkeeping", FB_LINK,
+    "LET A PRO HANDLE IT", "Frontline Bookkeeping Solutions", FB_LINK,
     "Done-for-you bookkeeping from the author of this handbook. If you would rather spend your "
     "time on the mission than on reconciliations, hand the books to us.",
     ["Ongoing monthly bookkeeping and reconciliations",
@@ -1421,7 +1421,7 @@ promo_card(
      "Clear monthly reports you can hand straight to your board"],
     '<a href="%s" color="white">Visit frontlinebookkeeping.com →</a>' % FB_URL, NAVY)
 P("Not sure which fits? Start with MissionLedger if you have someone in-house to keep the books, "
-  "or Frontline Bookkeeping if you don't.", "small")
+  "or Frontline Bookkeeping Solutions if you don't.", "small")
 
 # closing page
 story.append(NextPageTemplate("plain"))
